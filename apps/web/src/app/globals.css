@@ -1,0 +1,121 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 20% 98%;
+    --foreground: 260 20% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 260 20% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 260 20% 8%;
+    --primary: 154 72% 46%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 257 78% 57%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 154 60% 94%;
+    --accent-foreground: 154 72% 25%;
+    --destructive: 345 89% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 154 72% 46%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+.vintha-glow {
+  box-shadow: 0 0 25px rgba(32, 200, 120, 0.3);
+}
+
+.vintha-card {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
+  border-radius: 1rem;
+}
+
+.vintha-dark-card {
+  background: #121018;
+  border: 1px solid #23202E;
+  color: #F4F4F5;
+}
+
+
+/* HIGH-FIDELITY PRINT MEDIA STYLES */
+@media print {
+  @page {
+    margin: 0;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide layout shell, sidebars, headers, forms, buttons */
+  aside,
+  header,
+  nav,
+  footer,
+  button,
+  input,
+  select,
+  textarea,
+  .no-print,
+  [data-no-print="true"] {
+    display: none !important;
+  }
+
+  /* If a dedicated printable poster container exists, isolate it */
+  body.printing-poster * {
+    visibility: hidden;
+  }
+
+  body.printing-poster #vintha-printable-poster,
+  body.printing-poster #vintha-printable-poster * {
+    visibility: visible;
+  }
+
+  #vintha-printable-poster {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    max-width: none !important;
+    z-index: 9999999 !important;
+    overflow: hidden !important;
+    page-break-inside: avoid !important;
+    page-break-after: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

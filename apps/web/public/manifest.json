@@ -1,0 +1,21 @@
+{
+  "name": "Vintha Print - Free QR-Based Printing System",
+  "short_name": "Vintha Print",
+  "description": "Free QR-Based Printing System for Print Shops & Cyber Cafes.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAFAF8",
+  "theme_color": "#1E1035",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

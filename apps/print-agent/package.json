@@ -1,0 +1,21 @@
+{
+  "name": "@vintha/print-agent",
+  "version": "1.0.0",
+  "description": "Vintha Print - Windows Desktop Silent Print Agent",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "copy-assets": "node -e \"const fs = require('fs'); const path = require('path'); fs.mkdirSync('dist/renderer', {recursive: true}); fs.copyFileSync('src/renderer/index.html', 'dist/renderer/index.html');\"",
+    "build": "tsc && npm run copy-assets",
+    "dev": "npm run build && electron .",
+    "start": "electron .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@vintha/shared": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "electron": "^30.0.9",
+    "typescript": "^5.4.5"
+  }
+}

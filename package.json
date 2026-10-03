@@ -1,0 +1,29 @@
+{
+  "name": "vintha-print-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vintha Print - Multi-tenant Automatic Print Shop SaaS Platform",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:web": "npm --workspace=apps/web run dev",
+    "dev:agent": "npm --workspace=apps/print-agent run dev",
+    "build:shared": "npm --workspace=packages/shared run build",
+    "build:web": "npm --workspace=apps/web run build",
+    "build:agent": "npm --workspace=apps/print-agent run build",
+    "build": "npm run build:shared && npm run build:web",
+    "test": "npm --workspace=packages/shared run test"
+  },
+  "keywords": [
+    "vintha-print",
+    "saas",
+    "phonepe",
+    "silent-printing",
+    "electron",
+    "nextjs"
+  ],
+  "author": "Vintha Print",
+  "license": "UNLICENSED"
+}
