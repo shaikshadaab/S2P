@@ -1,20 +1,15 @@
 {
-  "name": "Vintha Print - Free QR-Based Printing System",
-  "short_name": "Vintha Print",
-  "description": "Free QR-Based Printing System for Print Shops & Cyber Cafes.",
-  "start_url": "/",
+  "name": "S2P — Scan 2 Print",
+  "short_name": "S2P",
+  "description": "Scan-to-Print Self-Service System for Shakeel Online Services",
+  "start_url": "/s/shakeel-online-services",
   "display": "standalone",
-  "background_color": "#FAFAF8",
-  "theme_color": "#1E1035",
+  "background_color": "#090d0b",
+  "theme_color": "#059669",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/icon.png",
       "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
       "type": "image/png"
     }
   ]

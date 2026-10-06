@@ -1,6 +1,6 @@
 {
-  "name": "@vintha/web",
-  "version": "1.0.0",
+  "name": "@s2p/web",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 -H 0.0.0.0",
@@ -10,28 +10,24 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.43.4",
-    "@types/html2canvas": "^0.5.35",
-    "@vintha/shared": "*",
-    "class-variance-authority": "^0.7.0",
+    "@s2p/shared": "*",
     "clsx": "^2.1.1",
-    "html2canvas": "^1.4.1",
-    "jspdf": "^4.2.1",
+    "firebase": "^12.19.0",
+    "firebase-admin": "^12.7.0",
     "lucide-react": "^0.383.0",
     "next": "^14.2.4",
-    "qrcode": "^1.5.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwind-merge": "^2.3.0",
-    "tailwindcss-animate": "^1.0.7",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
-    "@types/qrcode": "^1.5.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.19",
+    "eslint": "8.57.0",
+    "eslint-config-next": "14.2.35",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
     "typescript": "^5.4.5"

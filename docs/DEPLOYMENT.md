@@ -1,71 +1,67 @@
-# Production Deployment & Infrastructure Guide
-> **Vintha Print Platform**
+﻿# S2P — Deployment & Operations Guide
+
+**Product Name:** S2P (Scan 2 Print)  
+**Shop:** Shakeel Online Services  
+**Version:** Phase 0 Technical Foundation
 
 ---
 
-## 1. Cloud Web Application Deployment (Vercel)
+## 1. System Requirements
 
-### Step 1: Link Repository
-Import the monorepo into Vercel and set the root directory to `apps/web`.
+### Shop Computer (Agent Host):
+- Windows 10 (64-bit) or Windows 11.
+- .NET 8.0 Runtime.
+- Standard printer drivers installed and confirmed working via Windows Test Page.
+- Stable broadband or mobile hotspot connection.
 
-### Step 2: Configure Build Settings
-- **Framework Preset:** Next.js
-- **Root Directory:** `apps/web`
-- **Build Command:** `next build`
-- **Output Directory:** `.next`
-- **Install Command:** `npm install`
-
-### Step 3: Production Environment Variables
-Configure the following in the Vercel Project Settings:
-```env
-NEXT_PUBLIC_APP_URL=https://print.vintha.ai
-NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
-SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
-
-# PhonePe Production Credentials
-PHONEPE_ENVIRONMENT=PRODUCTION
-PHONEPE_HOST_URL=https://api.phonepe.com/apis/hermes
-PHONEPE_MERCHANT_ID=<your-production-merchant-id>
-PHONEPE_SALT_KEY=<your-production-salt-key>
-PHONEPE_SALT_INDEX=1
-
-# Security & Data Retention
-FILE_RETENTION_HOURS=24
-DEVICE_TOKEN_ENCRYPTION_KEY=<random-32-byte-hex-string>
-PLATFORM_ADMIN_EMAIL=admin@vintha.ai
-```
+### Cloud Infrastructure:
+- Node.js 20 LTS.
+- Firebase CLI (`firebase-tools`).
+- Firebase Project configured on Blaze plan (free tier generous limits).
 
 ---
 
-## 2. Supabase PostgreSQL & Storage Configuration
+## 2. Web Application Deployment
 
-1. Create a new Supabase project in the `ap-south-1` (Mumbai) region for minimal latency.
-2. In the Supabase SQL Editor, run `supabase/migrations/20261002000001_initial_vintha_schema.sql`.
-3. Create a **Private** Storage Bucket named `private-uploads`.
-4. Ensure Public Access is **DISABLED** on the bucket.
-5. Apply Storage RLS policies allowing upload creation and short-lived signed GET access.
+The web workspace contains both the Customer PWA (`/s/shakeel-online-services`) and Shop Dashboard (`/dashboard`).
 
----
-
-## 3. PhonePe Production Go-Live Checklist
-
-- [ ] Complete business entity KYC on PhonePe Merchant Dashboard.
-- [ ] Whitelist production callback URL: `https://print.vintha.ai/api/payments/phonepe/callback`.
-- [ ] Whitelist production webhook URL: `https://print.vintha.ai/api/payments/phonepe/webhook`.
-- [ ] Execute low-value production transaction (₹1) and verify receipt in the ledger.
-- [ ] Confirm automatic T+1 bank settlement cycle.
-
----
-
-## 4. Windows Print Agent Desktop Packaging
-
-To compile standalone Windows executables with `electron-builder`:
 ```bash
-cd apps/print-agent
-npm run build
-npx electron-builder --win nsis
+# Build production bundle
+npm run build:web
+
+# Deploy to Firebase Hosting
+firebase deploy --only hosting
 ```
-Outputs:
-- `dist/VinthaPrintAgent-Setup-1.0.0.exe` (NSIS Installer)
-- `dist/win-unpacked/` (Portable Executable)
+
+---
+
+## 3. Cloud Functions Deployment
+
+```bash
+# Build Cloud Functions
+npm run build:functions
+
+# Deploy Cloud Functions
+firebase deploy --only functions
+```
+
+---
+
+## 4. Windows Print Agent Installation
+
+### Service Installation:
+```cmd
+# Register S2P.PrintService as a Windows Service
+sc.exe create S2P.PrintService binPath= "C:\Program Files\S2P\S2P.PrintService.exe" start= auto
+
+# Start the service
+sc.exe start S2P.PrintService
+```
+
+### Device Pairing Workflow:
+1. Open Shop Dashboard ➔ **Printer Center**.
+2. Click **Pair Print Computer**. A single-use 6-digit numeric pairing code is generated (e.g. `482731`).
+3. On the shop PC, open S2P Tray ➔ **Pair Device**.
+4. Enter the 6-digit pairing code.
+5. The cloud associates the computer identity (hardware GUID) with Shakeel Online Services.
+6. The agent enumerates all Windows print queues and begins heartbeat telemetry.

@@ -16,66 +16,42 @@ module.exports = {
     },
     extend: {
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        s2p: {
+          dark: "#090d0b",
+          charcoal: "#111827",
+          panel: "#161e1b",
+          border: "#24322c",
+          emerald: {
+            DEFAULT: "#059669",
+            hover: "#047857",
+            light: "#ecfdf5",
+            bright: "#10b981",
+          }
+        },
         primary: {
-          DEFAULT: "#20C878", // Vintha Mint Green
+          DEFAULT: "#059669", // S2P Emerald
           foreground: "#FFFFFF",
-          hover: "#18AA64",
-          light: "#E8FAF1",
-        },
-        secondary: {
-          DEFAULT: "#6D3AE8", // Vintha Purple
-          foreground: "#FFFFFF",
-          light: "#F0EBFC",
-        },
-        action: {
-          DEFAULT: "#F23868", // Vintha Pink-Red
-          foreground: "#FFFFFF",
-          hover: "#D82250",
-          light: "#FEECEF",
+          hover: "#047857",
+          light: "#ecfdf5",
+          bright: "#10b981"
         },
         sidebar: {
-          DEFAULT: "#121018", // Dark sidebar
+          DEFAULT: "#0b0f0e",
           foreground: "#F4F4F5",
-          border: "#23202E",
-          active: "#20C878",
-        },
-        cream: "#FAFAF8",
-        destructive: {
-          DEFAULT: "#F23868",
-          foreground: "#FFFFFF",
-        },
-        muted: {
-          DEFAULT: "#F4F4F5",
-          foreground: "#71717A",
-        },
-        accent: {
-          DEFAULT: "#E8FAF1",
-          foreground: "#0F766E",
-        },
-        card: {
-          DEFAULT: "#FFFFFF",
-          foreground: "#121018",
-        },
+          border: "#1c2621",
+          active: "#10b981",
+        }
       },
       borderRadius: {
-        lg: "0.85rem",
-        md: "0.65rem",
-        sm: "0.45rem",
-      },
-      fontFamily: {
-        sans: ["var(--font-inter)", "sans-serif"],
-        heading: ["var(--font-outfit)", "sans-serif"],
+        lg: "0.75rem",
+        md: "0.5rem",
+        sm: "0.375rem",
       },
       boxShadow: {
         card: "0 2px 10px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02)",
-        subtle: "0 4px 20px rgba(0, 0, 0, 0.06)",
-        float: "0 12px 36px rgba(0, 0, 0, 0.10)",
-        greenGlow: "0 0 25px rgba(32, 200, 120, 0.35)",
+        emeraldGlow: "0 0 25px rgba(16, 185, 129, 0.35)",
       },
     },
   },

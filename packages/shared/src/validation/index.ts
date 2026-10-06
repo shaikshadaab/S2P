@@ -72,3 +72,5 @@ export const pairingCodeSchema = z.object({
   osVersion: z.string().optional(),
   agentVersion: z.string().default("1.0.0"),
 });
+export * from './env-validation';
+export * from './file-validation';

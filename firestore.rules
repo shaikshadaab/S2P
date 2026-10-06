@@ -1,0 +1,204 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getMembership(shopId) {
+      return get(/databases/$(database)/documents/shopMembers/$(request.auth.uid + "_" + shopId)).data;
+    }
+
+    function isShopMember(shopId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/shopMembers/$(request.auth.uid + "_" + shopId)) &&
+        getMembership(shopId).status == 'ACTIVE';
+    }
+
+    function isShopStaff(shopId) {
+      return isShopMember(shopId) &&
+        getMembership(shopId).role in ['OWNER', 'MANAGER', 'COUNTER_STAFF', 'PRINT_OPERATOR', 'FINISHING_STAFF'];
+    }
+
+    function isShopManager(shopId) {
+      return isShopMember(shopId) &&
+        getMembership(shopId).role in ['OWNER', 'MANAGER'];
+    }
+
+    function isDeviceAgent(shopId) {
+      return isAuthenticated() &&
+        request.auth.token.role == 'PRINT_AGENT' &&
+        request.auth.token.shopId == shopId;
+    }
+
+    // 1. organizations
+    match /organizations/{orgId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (
+        resource == null || resource.data.ownerId == request.auth.uid
+      );
+    }
+
+    // 2. shops
+    match /shops/{shopId} {
+      allow read: if true; // Public for QR landing & shop metadata
+      allow write: if isShopManager(shopId);
+    }
+
+    // 3. users
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // 4. shopMembers (canonical ID: {userId}_{shopId})
+    match /shopMembers/{memberId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        isShopStaff(resource.data.shopId)
+      );
+      allow write: if isAuthenticated() && isShopManager(request.resource.data.shopId);
+    }
+
+    // 5. services (catalog)
+    match /services/{serviceId} {
+      allow read: if true; // Public catalog
+      allow write: if isAuthenticated() && isShopManager(request.resource.data.shopId);
+    }
+
+    // 6. paperSizes
+    match /paperSizes/{sizeId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isShopManager(request.resource.data.shopId);
+    }
+
+    // 7. paperTypes
+    match /paperTypes/{typeId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isShopManager(request.resource.data.shopId);
+    }
+
+    // 8. finishingOptions
+    match /finishingOptions/{optionId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isShopManager(request.resource.data.shopId);
+    }
+
+    // 9. pricingRules (only Owner / Manager may modify; Counter staff read-only)
+    match /pricingRules/{ruleId} {
+      allow read: if true; // Public for dynamic price quote viewing
+      allow write: if isAuthenticated() && isShopManager(request.resource.data.shopId);
+    }
+
+    // 10. shopPricingSettings
+    match /shopPricingSettings/{settingId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isShopManager(request.resource.data.shopId);
+    }
+
+    // 11. priceQuotes (server authoritative immutable quotes)
+    match /priceQuotes/{quoteId} {
+      allow read: if isAuthenticated() || resource.data.shopId != null;
+      allow write: if false; // Server-authoritative quote generation only
+    }
+
+    // 11b. orderDrafts (Phase 4 customer order draft sessions)
+    match /orderDrafts/{draftId} {
+      allow read: if isShopStaff(resource.data.shopId) ||
+        (isAuthenticated() && resource.data.ownerUid == request.auth.uid);
+      allow write: if false; // Server-authoritative draft management via /api/draft and /api/orders
+    }
+
+    // 12. orders (Phase 4 authoritative order ledger)
+    match /orders/{orderId} {
+      // Customer may read only their own order; shop staff tenant-scoped
+      allow read: if isShopStaff(resource.data.shopId) ||
+        (isAuthenticated() && (resource.data.customerId == request.auth.uid || resource.data.ownerUid == request.auth.uid));
+      // Write: strictly forbidden from client SDK to prevent price/status/payment tampering.
+      // All creation, state transitions, and payment updates must flow through trusted server APIs.
+      allow write: if false;
+    }
+
+    // 13. orderItems
+    match /orderItems/{itemId} {
+      allow read: if isShopStaff(resource.data.shopId) ||
+        (isAuthenticated() && resource.data.customerId == request.auth.uid);
+      allow write: if false; // Server authoritative
+    }
+    // 14. orderFiles (Phase 3.1 Authoritative order file metadata and purge lifecycle)
+    match /orderFiles/{fileId} {
+      // READ: Strictly restricted to authorized shop staff or authenticated document owners.
+      // Guest files are NEVER globally public; guest clients must query through trusted server session APIs.
+      allow read: if isShopStaff(resource.data.shopId) ||
+        (isAuthenticated() && resource.data.ownerUid == request.auth.uid);
+      // WRITE: DENY ALL DIRECT CLIENT WRITES!
+      // Trusted server/Admin SDK creates, validates, schedules, and purges files.
+      allow write: if false;
+    }
+
+    // 14b. legacy files
+    match /files/{fileId} {
+      allow read: if isShopStaff(resource.data.shopId) ||
+        (isAuthenticated() && resource.data.uploadedBy == request.auth.uid);
+      allow create: if isAuthenticated() || request.resource.data.isGuest == true;
+      allow update, delete: if isShopStaff(resource.data.shopId);
+    }
+
+    // 15. payments
+    match /payments/{paymentId} {
+      allow read: if isShopStaff(resource.data.shopId) ||
+        (isAuthenticated() && resource.data.customerId == request.auth.uid);
+      allow create: if request.resource.data.status in ['PENDING', 'MANUAL_VERIFICATION_REQUIRED'];
+      allow update: if isShopStaff(resource.data.shopId);
+      allow delete: if false;
+    }
+
+    // 16. devices
+    match /devices/{deviceId} {
+      allow read: if isShopStaff(resource.data.shopId) ||
+        (isDeviceAgent(resource.data.shopId) && request.auth.uid == deviceId);
+      allow write: if isShopStaff(request.resource.data.shopId) ||
+        (isDeviceAgent(request.resource.data.shopId) && request.auth.uid == deviceId);
+    }
+
+    // 17. printers
+    match /printers/{printerId} {
+      allow read: if isShopStaff(resource.data.shopId) || isDeviceAgent(resource.data.shopId);
+      allow write: if isShopStaff(request.resource.data.shopId) || isDeviceAgent(request.resource.data.shopId);
+    }
+
+    // 18. printJobs
+    match /printJobs/{jobId} {
+      allow read: if isShopStaff(resource.data.shopId) || isDeviceAgent(resource.data.shopId);
+      allow create: if isShopStaff(request.resource.data.shopId);
+      allow update: if isShopStaff(resource.data.shopId) || isDeviceAgent(resource.data.shopId);
+      allow delete: if false;
+    }
+
+    // 19. printAttempts
+    match /printAttempts/{attemptId} {
+      allow read: if isShopStaff(resource.data.shopId) || isDeviceAgent(resource.data.shopId);
+      allow create: if isShopStaff(request.resource.data.shopId) || isDeviceAgent(request.resource.data.shopId);
+      allow update, delete: if false;
+    }
+
+    // 20. notifications
+    match /notifications/{notificationId} {
+      allow read: if (isAuthenticated() && resource.data.recipientUserId == request.auth.uid) || isShopStaff(resource.data.shopId);
+      allow create, update: if isShopStaff(request.resource.data.shopId);
+      allow delete: if isShopStaff(resource.data.shopId);
+    }
+
+    // 21. auditLogs
+    match /auditLogs/{logId} {
+      allow read: if isShopManager(resource.data.shopId);
+      allow create: if isShopStaff(request.resource.data.shopId);
+      allow update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

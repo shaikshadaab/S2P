@@ -1,22 +1,11 @@
-import type { Metadata, Viewport } from "next";
+﻿import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "../lib/firebase/auth-context";
 
 export const metadata: Metadata = {
-  title: "Vintha Print - Free QR-Based Printing System",
-  description:
-    "Completely free automatic print-shop system for cyber cafes and print shops. Customers scan shop QR, upload documents, and print instantly on shop printers.",
+  title: "S2P — Scan 2 Print | Shakeel Online Services",
+  description: "Real Scan-to-Print Operating System for Shakeel Online Services",
   manifest: "/manifest.json",
-  icons: {
-    icon: "/favicon.ico",
-  },
-};
-
-export const viewport: Viewport = {
-  themeColor: "#1E1035",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 };
 
 export default function RootLayout({
@@ -26,16 +15,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="min-h-screen bg-cream font-sans antialiased text-[#121018] selection:bg-[#FF2D78]/20 selection:text-[#121018]">
-        {children}
+      <body className="min-h-screen antialiased bg-[#090d0b] text-[#f8fafc] selection:bg-emerald-500 selection:text-white">
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

@@ -1,29 +1,32 @@
 {
-  "name": "vintha-print-monorepo",
-  "version": "1.0.0",
+  "name": "s2p-monorepo",
+  "version": "0.1.0",
   "private": true,
-  "description": "Vintha Print - Multi-tenant Automatic Print Shop SaaS Platform",
+  "description": "S2P — Scan 2 Print: Print Shop Operating System for Shakeel Online Services",
   "workspaces": [
     "packages/*",
-    "apps/*"
+    "apps/*",
+    "functions"
   ],
   "scripts": {
+    "dev": "npm --workspace=apps/web run dev",
     "dev:web": "npm --workspace=apps/web run dev",
-    "dev:agent": "npm --workspace=apps/print-agent run dev",
+    "build": "npm run build:shared && npm run build:web && npm run build:functions",
     "build:shared": "npm --workspace=packages/shared run build",
     "build:web": "npm --workspace=apps/web run build",
-    "build:agent": "npm --workspace=apps/print-agent run build",
-    "build": "npm run build:shared && npm run build:web",
+    "build:functions": "npm --workspace=functions run build",
+    "lint": "npm --workspace=apps/web run lint",
+    "typecheck": "npm --workspace=packages/shared run typecheck && npm --workspace=apps/web run typecheck && npm --workspace=functions run typecheck",
     "test": "npm --workspace=packages/shared run test"
   },
   "keywords": [
-    "vintha-print",
-    "saas",
-    "phonepe",
-    "silent-printing",
-    "electron",
-    "nextjs"
+    "s2p",
+    "scan-2-print",
+    "print-shop-os",
+    "shakeel-online-services",
+    "firebase",
+    "windows-print-spooler"
   ],
-  "author": "Vintha Print",
+  "author": "S2P — Shakeel Online Services",
   "license": "UNLICENSED"
 }

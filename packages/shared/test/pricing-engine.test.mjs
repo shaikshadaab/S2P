@@ -1,166 +1,65 @@
-﻿import test from "node:test";
-import assert from "node:assert/strict";
-import { calculatePrintPrice } from "../dist/pricing/pricing-engine.js";
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { calculatePrintPrice, DEFAULT_SHAKEEL_PRICING } from '../dist/pricing/pricing-engine.js';
 
-const defaultRules = {
-  id: "rule-1",
-  shopId: "shop-1",
-  a4BwSingle: 2.0,
-  a4BwDouble: 1.5,
-  a4ColorSingle: 10.0,
-  a4ColorDouble: 8.0,
-  a3BwSingle: 5.0,
-  a3ColorSingle: 20.0,
-  photoSingle: 25.0,
-  serviceFee: 2.0,
-  minOrderAmount: 10.0,
-  taxPercentage: 0,
-  discountPercentage: 0,
-  maxAllowedPages: 100,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-};
+test('Pricing Engine - Single page A4 B&W respects minimum order amount', () => {
+  const result = calculatePrintPrice({
+    shopId: 'shakeel-online-services',
+    pageCount: 1,
+    selectedPages: [1],
+    paperSize: 'A4',
+    colorMode: 'BW',
+    duplexMode: 'SINGLE',
+    copies: 1,
+    paperType: 'NORMAL_75GSM',
+    finishing: 'NONE'
+  });
 
-test("Pricing Engine - Simple A4 B&W Single Side", () => {
-  const result = calculatePrintPrice(
-    {
-      totalPagesInDocument: 10,
-      pageRangeText: "all",
-      colorMode: "bw",
-      paperSize: "A4",
-      isDuplex: false,
-      copies: 1,
-    },
-    defaultRules
-  );
-
-  assert.equal(result.selectedPageCount, 10);
-  assert.equal(result.printableSides, 10);
-  assert.equal(result.physicalSheets, 10);
-  assert.equal(result.baseAmount, 20.0);
-  assert.equal(result.serviceFee, 2.0);
-  assert.equal(result.finalAmount, 22.0);
-  assert.equal(result.minOrderFloorApplied, false);
+  // 1 page = 2.00 printCost, but minimum order is 5.00
+  assert.equal(result.totalSides, 1);
+  assert.equal(result.printCost, 2.0);
+  assert.equal(result.total, DEFAULT_SHAKEEL_PRICING.minimumOrderAmount);
 });
 
-test("Pricing Engine - Minimum Order Floor Enforcement", () => {
-  const result = calculatePrintPrice(
-    {
-      totalPagesInDocument: 1,
-      pageRangeText: "1",
-      colorMode: "bw",
-      paperSize: "A4",
-      isDuplex: false,
-      copies: 1,
-    },
-    defaultRules
-  );
+test('Pricing Engine - A4 B&W duplex multi-copy calculation', () => {
+  const result = calculatePrintPrice({
+    shopId: 'shakeel-online-services',
+    pageCount: 10,
+    selectedPages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    paperSize: 'A4',
+    colorMode: 'BW',
+    duplexMode: 'DOUBLE',
+    copies: 2,
+    paperType: 'NORMAL_75GSM',
+    finishing: 'NONE'
+  });
 
-  assert.equal(result.baseAmount, 2.0);
-  assert.equal(result.subtotal, 4.0);
-  assert.equal(result.minOrderFloorApplied, true);
-  assert.equal(result.finalAmount, 10.0);
+  // 10 pages * 2 copies = 20 total sides.
+  // Duplex rate is a4BwDouble/2 = 3.0 / 2 = 1.5 per side.
+  // 20 * 1.5 = 30.00
+  assert.equal(result.totalSides, 20);
+  assert.equal(result.sheetCount, 10);
+  assert.equal(result.printCost, 30.0);
+  assert.equal(result.total, 30.0);
 });
 
-test("Pricing Engine - Duplex Printing with Odd Page Count", () => {
-  const result = calculatePrintPrice(
-    {
-      totalPagesInDocument: 5,
-      pageRangeText: "all",
-      colorMode: "bw",
-      paperSize: "A4",
-      isDuplex: true,
-      copies: 1,
-    },
-    { ...defaultRules, serviceFee: 0, minOrderAmount: 0 }
-  );
+test('Pricing Engine - A4 Color with Spiral Binding finishing', () => {
+  const result = calculatePrintPrice({
+    shopId: 'shakeel-online-services',
+    pageCount: 20,
+    selectedPages: Array.from({ length: 20 }, (_, i) => i + 1),
+    paperSize: 'A4',
+    colorMode: 'COLOR',
+    duplexMode: 'SINGLE',
+    copies: 1,
+    paperType: 'NORMAL_75GSM',
+    finishing: 'SPIRAL_BINDING'
+  });
 
-  assert.equal(result.printableSides, 5);
-  assert.equal(result.physicalSheets, 3);
-  assert.equal(result.baseAmount, 8.0);
-  assert.equal(result.finalAmount, 8.0);
-});
-
-test("Pricing Engine - Pages Per Sheet (2 pages on 1 side)", () => {
-  const result = calculatePrintPrice(
-    {
-      totalPagesInDocument: 8,
-      pageRangeText: "all",
-      colorMode: "bw",
-      paperSize: "A4",
-      isDuplex: false,
-      pagesPerSheet: 2,
-      copies: 1,
-    },
-    { ...defaultRules, serviceFee: 0, minOrderAmount: 0 }
-  );
-
-  assert.equal(result.printableSides, 4);
-  assert.equal(result.physicalSheets, 4);
-  assert.equal(result.finalAmount, 8.0);
-});
-
-test("Pricing Engine - Copies Multiplier", () => {
-  const result = calculatePrintPrice(
-    {
-      totalPagesInDocument: 2,
-      pageRangeText: "all",
-      colorMode: "bw",
-      paperSize: "A4",
-      isDuplex: false,
-      copies: 5,
-    },
-    { ...defaultRules, serviceFee: 1.0, minOrderAmount: 0 }
-  );
-
-  assert.equal(result.physicalSheets, 10);
-  assert.equal(result.baseAmount, 20.0);
-  assert.equal(result.finalAmount, 21.0);
-});
-
-test("Pricing Engine - Tax and Discount Calculation", () => {
-  const rulesWithTaxAndDiscount = {
-    ...defaultRules,
-    serviceFee: 5.0,
-    minOrderAmount: 0,
-    discountPercentage: 10,
-    taxPercentage: 18,
-  };
-
-  const result = calculatePrintPrice(
-    {
-      totalPagesInDocument: 10,
-      pageRangeText: "all",
-      colorMode: "color",
-      paperSize: "A4",
-      isDuplex: false,
-      copies: 1,
-    },
-    rulesWithTaxAndDiscount
-  );
-
-  assert.equal(result.baseAmount, 100.0);
-  assert.equal(result.discountAmount, 10.0);
-  assert.equal(result.serviceFee, 5.0);
-  assert.equal(result.subtotal, 95.0);
-  assert.equal(result.taxAmount, 17.1);
-  assert.equal(result.finalAmount, 112.1);
-});
-
-test("Pricing Engine - Throws when exceeding max allowed pages", () => {
-  assert.throws(
-    () =>
-      calculatePrintPrice(
-        {
-          totalPagesInDocument: 120,
-          pageRangeText: "all",
-          colorMode: "bw",
-          paperSize: "A4",
-          isDuplex: false,
-          copies: 1,
-        },
-        defaultRules
-      ),
-    /exceeds shop maximum/
-  );
+  // Print: 20 sides * 10.0 = 200.00
+  // Spiral: 30 base + (20 sheets * 0.20) = 34.00
+  // Total = 234.00
+  assert.equal(result.printCost, 200.0);
+  assert.equal(result.finishingCost, 34.0);
+  assert.equal(result.total, 234.0);
 });

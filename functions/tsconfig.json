@@ -1,0 +1,23 @@
+﻿{
+  "compilerOptions": {
+    "module": "commonjs",
+    "noImplicitReturns": true,
+    "noUnusedLocals": false,
+    "outDir": "lib",
+    "sourceMap": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "target": "es2022",
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@s2p/shared": [
+        "../packages/shared/dist"
+      ]
+    }
+  },
+  "compileOnSave": true,
+  "include": [
+    "src"
+  ]
+}

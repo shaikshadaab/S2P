@@ -1,288 +1,486 @@
-"use client";
+﻿"use client";
 
-import React, { useState, useEffect } from "react";
-import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
-import { Search, RefreshCw, Printer, CheckCircle2, RotateCcw, Play, AlertCircle, Sparkles } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  ShoppingBag,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  RefreshCw,
+  Search,
+  Filter,
+  Eye,
+  Check,
+  X,
+  Pause,
+  QrCode,
+  Banknote,
+  Printer,
+  User,
+  Phone,
+  FileText
+} from "lucide-react";
+import { PRIMARY_PILOT_SHOP, Order, getOrderStatusDisplay } from "@s2p/shared";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { db } from "../../../lib/firebase/config";
+import { useAuth } from "../../../lib/firebase/auth-context";
 
-export default function DashboardOrdersPage() {
-  const [filterStatus, setFilterStatus] = useState("ALL");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [orders, setOrders] = useState<any[]>([]);
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
+export default function DashboardOrdersView() {
+  const { user } = useAuth();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
-  const fetchOrders = () => {
-    fetch("/api/orders?shopId=shop-om-sai-001")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.orders) setOrders(data.orders);
-      })
-      .catch(() => {
-        setOrders([
-          {
-            id: "VNT-8942",
-            customerName: "Rahul Sharma",
-            customerMobile: "9876543210",
-            status: "PRINTING",
-            totalPages: 4,
-            printableSides: 4,
-            physicalSheets: 2,
-            copies: 1,
-            colorMode: "bw",
-            paperSize: "A4",
-            isDuplex: true,
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "VNT-8941",
-            customerName: "Priya Patel",
-            customerMobile: "9812345678",
-            status: "PENDING_APPROVAL",
-            totalPages: 2,
-            printableSides: 2,
-            physicalSheets: 2,
-            copies: 2,
-            colorMode: "color",
-            paperSize: "A4",
-            isDuplex: false,
-            createdAt: new Date(Date.now() - 5 * 60000).toISOString(),
-          },
-          {
-            id: "VNT-8940",
-            customerName: "Sanjay Kumar",
-            customerMobile: "9700011223",
-            status: "COMPLETED",
-            totalPages: 6,
-            printableSides: 6,
-            physicalSheets: 3,
-            copies: 1,
-            colorMode: "bw",
-            paperSize: "A4",
-            isDuplex: true,
-            createdAt: new Date(Date.now() - 25 * 60000).toISOString(),
-          },
-          {
-            id: "VNT-8938",
-            customerName: "Vikas Verma",
-            customerMobile: "9123456780",
-            status: "FAILED",
-            totalPages: 6,
-            printableSides: 6,
-            physicalSheets: 3,
-            copies: 1,
-            colorMode: "bw",
-            paperSize: "A4",
-            isDuplex: true,
-            failureReason: "Paper Tray Empty or Offline",
-            createdAt: new Date(Date.now() - 120 * 60000).toISOString(),
-          },
-        ]);
-      });
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isActionLoading, setIsActionLoading] = useState<boolean>(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const fetchOrders = async () => {
+    try {
+      setError(null);
+      const res = await fetch(`/api/orders?shopId=${PRIMARY_PILOT_SHOP.id}`);
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to load orders");
+      }
+      setOrders(data.orders || []);
+      if (selectedOrder) {
+        const refreshed = (data.orders || []).find((o: Order) => o.id === selectedOrder.id);
+        if (refreshed) setSelectedOrder(refreshed);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error fetching orders";
+      setError(msg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
-    fetchOrders();
-    const timer = setInterval(fetchOrders, 4000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const handleApprove = async (orderId: string) => {
-    try {
-      const res = await fetch(`/api/orders/${orderId}/approve`, { method: "POST" });
-      const data = await res.json();
-      if (data.success) {
-        setActionMessage(`Order ${orderId} approved and dispatched to printer!`);
-        fetchOrders();
-      } else {
-        setActionMessage(data.error || "Failed to approve order");
-      }
-    } catch {
-      setActionMessage(`Order ${orderId} approved and placed in queue!`);
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, status: "QUEUED" } : o))
-      );
+    if (!user) {
+      fetchOrders();
+      const interval = setInterval(fetchOrders, 5000);
+      return () => clearInterval(interval);
     }
-    setTimeout(() => setActionMessage(null), 4000);
+
+    setIsLoading(true);
+    let unsubscribe = () => {};
+    try {
+      const q = query(
+        collection(db, "orders"),
+        where("shopId", "==", PRIMARY_PILOT_SHOP.id)
+      );
+
+      unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const liveOrders: Order[] = [];
+          snapshot.forEach((doc) => {
+            liveOrders.push(doc.data() as Order);
+          });
+          liveOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setOrders(liveOrders);
+          setIsLoading(false);
+
+          if (selectedOrder) {
+            const refreshed = liveOrders.find((o) => o.id === selectedOrder.id);
+            if (refreshed) setSelectedOrder(refreshed);
+          }
+        },
+        (err) => {
+          console.warn("[Dashboard onSnapshot] Fallback to secure API polling:", err);
+          fetchOrders();
+        }
+      );
+    } catch {
+      fetchOrders();
+      const interval = setInterval(fetchOrders, 5000);
+      return () => clearInterval(interval);
+    }
+
+    return () => unsubscribe();
+  }, [user, selectedOrder?.id]);
+
+  
+  const handleQueueForPrint = async () => {
+    if (!selectedOrder) return;
+    setIsActionLoading(true);
+    setActionError(null);
+    try {
+      const token = user ? await user.getIdToken() : '';
+      const res = await fetch(`/api/orders/${selectedOrder.id}/queue-print`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ shopId: PRIMARY_PILOT_SHOP.id })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to queue order for print');
+      }
+      await fetchOrders();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to queue order';
+      setActionError(msg);
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
-  const handleRetry = async (orderId: string) => {
+  const handleStaffAction = async (action: string, note?: string) => {
+    if (!selectedOrder) return;
+    setIsActionLoading(true);
+    setActionError(null);
+
     try {
-      const res = await fetch(`/api/orders/${orderId}/retry`, { method: "POST" });
+      const token = user ? await user.getIdToken() : "";
+      const res = await fetch("/api/orders/update-status", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          orderId: selectedOrder.id,
+          action,
+          note
+        })
+      });
+
       const data = await res.json();
-      if (data.success) {
-        setActionMessage(`Order ${orderId} retried safely without duplicate printing!`);
-        fetchOrders();
-      } else {
-        setActionMessage(data.error || "Failed to retry order");
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Action failed");
       }
-    } catch {
-      setActionMessage(`Order ${orderId} retried safely!`);
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, status: "QUEUED", failureReason: null } : o))
-      );
+
+      await fetchOrders();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to execute action";
+      setActionError(msg);
+    } finally {
+      setIsActionLoading(false);
     }
-    setTimeout(() => setActionMessage(null), 4000);
   };
 
-  const filtered = orders.filter((ord) => {
-    const matchStatus = filterStatus === "ALL" || ord.status === filterStatus;
-    const matchSearch =
-      ord.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ord.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ord.customerMobile.includes(searchQuery);
-    return matchStatus && matchSearch;
-  });
+  const filteredOrders = useMemo(() => {
+    return orders.filter((o) => {
+      if (activeFilter === "NEW" && o.status !== "RECEIVED") return false;
+      if (activeFilter === "PENDING_PAYMENT" && o.paymentStatus !== "CASH_PENDING" && o.paymentStatus !== "UPI_PENDING") return false;
+      if (activeFilter === "ACCEPTED" && o.status !== "ACCEPTED") return false;
+      if (activeFilter === "PRINTING" && o.status !== "PRINTING") return false;
+      if (activeFilter === "READY" && o.status !== "READY") return false;
+      if (activeFilter === "COMPLETED" && o.status !== "COMPLETED") return false;
+      if (activeFilter === "CANCELLED" && o.status !== "CANCELLED") return false;
 
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesNum = o.orderNumber.toLowerCase().includes(q);
+        const matchesName = o.customerName.toLowerCase().includes(q);
+        const matchesPhone = o.customerMobile?.includes(q);
+        if (!matchesNum && !matchesName && !matchesPhone) return false;
+      }
+      return true;
+    });
+  }, [orders, activeFilter, searchQuery]);
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold font-heading text-[#121018]">
-              Orders Management
-            </h1>
-            <p className="text-xs sm:text-sm text-black/60 mt-0.5">
-              Live queue, approve pending orders, and retry failed jobs safely.
-            </p>
-          </div>
-
+    <div className="space-y-6 max-w-6xl">
+      <div className="bg-[#111827] border border-[#1f2937] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow">
+        <div>
+          <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+            <ShoppingBag className="w-5 h-5 text-emerald-400" />
+            <span>Orders Board</span>
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Real-time feed of walk-in and self-service QR customer print orders for {PRIMARY_PILOT_SHOP.name}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={fetchOrders}
-            className="px-4 py-2 rounded-xl bg-white border border-black/10 text-xs font-bold hover:bg-black/5 flex items-center gap-1.5 shadow-xs"
+            className="px-3 py-1.5 bg-[#1f2937] hover:bg-[#374151] border border-[#374151] text-xs font-semibold text-slate-300 rounded-lg flex items-center gap-1.5 transition"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-black/60" />
-            <span>Refresh Queue</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+            <span>Refresh</span>
           </button>
         </div>
+      </div>
 
-        {actionMessage && (
-          <div className="p-3.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-2xl text-xs font-bold flex items-center gap-2 shadow-xs">
-            <Sparkles className="w-4 h-4 text-[#FF2D78]" />
-            <span>{actionMessage}</span>
-          </div>
-        )}
-
-        {/* Filter and Search Bar */}
-        <div className="bg-white rounded-3xl p-4 border border-black/10 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="relative w-full md:w-80">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-black/40" />
-            <input
-              type="text"
-              placeholder="Search by Order ID, Customer name or Mobile..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-[#FAFAF8] rounded-xl text-xs font-medium border border-black/10 focus:outline-none focus:ring-2 focus:ring-[#FF2D78]"
-            />
-          </div>
-
-          <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-            {["ALL", "PENDING_APPROVAL", "QUEUED", "PRINTING", "COMPLETED", "FAILED"].map((status) => (
-              <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                  filterStatus === status
-                    ? "bg-[#1E1035] text-white shadow-xs"
-                    : "bg-[#FAFAF8] text-black/60 hover:text-black hover:bg-black/5"
-                }`}
-              >
-                {status === "ALL" ? "All Orders" : status.replace("_", " ")}
-              </button>
-            ))}
-          </div>
+      {/* Filter Tabs & Search */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 text-xs">
+          {[
+            { id: "ALL", label: `All (${orders.length})` },
+            { id: "NEW", label: `New (${orders.filter((o) => o.status === "RECEIVED").length})` },
+            { id: "PENDING_PAYMENT", label: `Unpaid (${orders.filter((o) => o.paymentStatus !== "PAID").length})` },
+            { id: "ACCEPTED", label: `Accepted (${orders.filter((o) => o.status === "ACCEPTED").length})` },
+            { id: "READY", label: `Ready (${orders.filter((o) => o.status === "READY").length})` },
+            { id: "COMPLETED", label: `Done (${orders.filter((o) => o.status === "COMPLETED").length})` }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveFilter(tab.id)}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition shrink-0 ${
+                activeFilter === tab.id
+                  ? "bg-emerald-600 text-white"
+                  : "bg-[#111827] text-slate-400 hover:text-white border border-[#1f2937]"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* Orders Table */}
-        <div className="bg-white rounded-3xl border border-black/10 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-[#FAFAF8] text-black/50 font-bold border-b border-black/5">
-                <tr>
-                  <th className="py-3.5 px-6">Order ID</th>
-                  <th className="py-3.5 px-6">Customer</th>
-                  <th className="py-3.5 px-6">Document & Options</th>
-                  <th className="py-3.5 px-6">Status</th>
-                  <th className="py-3.5 px-6">Submitted</th>
-                  <th className="py-3.5 px-6 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-black/5 font-medium">
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-12 text-center text-black/40 font-medium">
-                      No orders found matching the filter.
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((order) => (
-                    <tr key={order.id} className="hover:bg-black/[0.02] transition-colors">
-                      <td className="py-4 px-6 font-mono font-bold text-[#121018]">{order.id}</td>
-                      <td className="py-4 px-6">
-                        <span className="font-bold text-[#121018] block">{order.customerName}</span>
-                        <span className="text-[10px] text-black/40">{order.customerMobile}</span>
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className="font-semibold block">
-                          {order.totalPages || 1} Pages • {order.copies || 1} Copy • {order.colorMode === "color" ? "🎨 Full Color" : "📄 B&W"}
-                        </span>
-                        <span className="text-[10px] text-black/40">
-                          {order.paperSize || "A4"} • {order.isDuplex ? "Duplex (Both sides)" : "Single-sided"}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            order.status === "COMPLETED"
-                              ? "bg-emerald-50 text-emerald-700"
-                              : order.status === "PRINTING"
-                              ? "bg-amber-50 text-amber-700 animate-pulse"
-                              : order.status === "QUEUED"
-                              ? "bg-blue-50 text-blue-700"
-                              : order.status === "PENDING_APPROVAL"
-                              ? "bg-purple-100 text-purple-800 border border-purple-300 font-extrabold"
-                              : "bg-red-50 text-red-700"
-                          }`}
-                        >
-                          {order.status}
-                        </span>
-                        {order.failureReason && (
-                          <span className="block text-[9px] text-red-500 mt-0.5 truncate max-w-[150px]">
-                            {order.failureReason}
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-4 px-6 text-black/50 text-[11px]">
-                        {new Date(order.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </td>
-                      <td className="py-4 px-6 text-right">
-                        {order.status === "PENDING_APPROVAL" ? (
-                          <button
-                            onClick={() => handleApprove(order.id)}
-                            className="px-3.5 py-1.5 rounded-xl bg-[#FF2D78] hover:bg-[#E0246A] text-white font-bold text-xs shadow-md shadow-pink-500/20 flex items-center gap-1 ml-auto active:scale-95 transition-all"
-                          >
-                            <Play className="w-3 h-3 fill-current" />
-                            <span>Approve & Print</span>
-                          </button>
-                        ) : order.status === "FAILED" ? (
-                          <button
-                            onClick={() => handleRetry(order.id)}
-                            className="px-3.5 py-1.5 rounded-xl bg-[#FF2D78] hover:bg-[#E0246A] text-white font-bold text-xs shadow-md shadow-pink-500/20 flex items-center gap-1 ml-auto active:scale-95 transition-all"
-                            title="Retry print without duplicate"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            <span>Retry Print</span>
-                          </button>
-                        ) : (
-                          <span className="text-[11px] text-black/30 font-semibold">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+        <div className="relative sm:w-64">
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search order #, name, phone..."
+            className="w-full pl-8 pr-3 py-1.5 bg-[#111827] border border-[#1f2937] rounded-lg text-xs text-white focus:outline-none focus:border-emerald-500"
+          />
         </div>
       </div>
-    </DashboardLayout>
+
+      {error && (
+        <div className="bg-rose-950/50 border border-rose-500/40 rounded-xl p-3 text-rose-300 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Orders Table */}
+      <div className="bg-[#111827] border border-[#1f2937] rounded-xl overflow-hidden shadow">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-slate-300">
+            <thead className="bg-[#16202c] text-[11px] font-bold text-slate-400 border-b border-[#1f2937] uppercase tracking-wider">
+              <tr>
+                <th className="py-3 px-4">Order #</th>
+                <th className="py-3 px-4">Customer</th>
+                <th className="py-3 px-4">Pages & Config</th>
+                <th className="py-3 px-4">Total Amount</th>
+                <th className="py-3 px-4">Payment</th>
+                <th className="py-3 px-4">Order Status</th>
+                <th className="py-3 px-4">Created Time</th>
+                <th className="py-3 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#1f2937]">
+              {filteredOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-8 text-center text-slate-500">
+                    No orders match current filter
+                  </td>
+                </tr>
+              ) : (
+                filteredOrders.map((o) => {
+                  const statusMeta = getOrderStatusDisplay(o.status);
+                  const item = o.items?.[0];
+                  return (
+                    <tr key={o.id} className="hover:bg-[#16202c]/50 transition">
+                      <td className="py-3 px-4 font-mono font-bold text-white">
+                        {o.orderNumber}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="font-semibold text-white">{o.customerName}</div>
+                        <div className="text-[10px] text-slate-500 font-mono">{o.customerMobile}</div>
+                      </td>
+                      <td className="py-3 px-4 text-[11px]">
+                        <div>{item?.selectedPageCount || 1} pages &bull; {item?.config?.copies || 1} copies</div>
+                        <div className="text-slate-500 text-[10px]">
+                          {item?.config?.paperSize} &bull; {item?.config?.colorMode === "BW" ? "B&W" : "Color"} &bull; {item?.config?.duplexMode === "DOUBLE" ? "Duplex" : "Single"}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 font-mono font-bold text-emerald-400 text-sm">
+                        ₹{o.totalAmount.toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            o.paymentStatus === "PAID"
+                              ? "bg-emerald-950 text-emerald-400 border border-emerald-500/30"
+                              : "bg-amber-950 text-amber-300 border border-amber-500/30"
+                          }`}
+                        >
+                          {o.paymentStatus === "PAID" ? "Paid" : o.paymentMethod === "CASH" ? "Cash Pending" : "UPI Pending"}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#1f2937] text-slate-300 border border-[#374151]">
+                          {statusMeta.label}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-slate-500 text-[11px]">
+                        {new Date(o.createdAt).toLocaleTimeString()}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedOrder(o)}
+                          className="px-2.5 py-1 bg-[#1f2937] hover:bg-emerald-600 hover:text-white border border-[#374151] rounded text-[11px] font-semibold text-slate-300 transition"
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Staff Order Detail Modal */}
+      {selectedOrder && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111827] border border-[#1f2937] rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 space-y-4 shadow-2xl text-slate-200">
+            <div className="flex items-center justify-between border-b border-[#1f2937] pb-3">
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Staff Order Review</span>
+                <h3 className="text-base font-bold text-white font-mono">{selectedOrder.orderNumber}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedOrder(null)}
+                className="text-slate-400 hover:text-white p-1 rounded transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {actionError && (
+              <div className="bg-rose-950/60 border border-rose-500/40 rounded-lg p-2.5 text-xs text-rose-300 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>{actionError}</span>
+              </div>
+            )}
+
+            {/* Customer & Payment Status */}
+            <div className="grid grid-cols-2 gap-3 text-xs bg-[#16202c] p-3 rounded-xl border border-[#1f2937]">
+              <div>
+                <span className="text-slate-500 text-[10px] block">Customer</span>
+                <span className="font-bold text-white block">{selectedOrder.customerName}</span>
+                <span className="text-slate-400 font-mono text-[11px]">{selectedOrder.customerMobile}</span>
+              </div>
+              <div className="text-right">
+                <span className="text-slate-500 text-[10px] block">Payment ({selectedOrder.paymentMethod})</span>
+                <span className="text-base font-black text-emerald-400 font-mono">₹{selectedOrder.totalAmount.toFixed(2)}</span>
+                <span className="text-[10px] text-slate-400 block">{selectedOrder.paymentStatus}</span>
+              </div>
+            </div>
+
+            {/* Item Configuration */}
+            <div className="space-y-2 text-xs">
+              <span className="font-bold text-slate-300 uppercase tracking-wider text-[11px]">Print Configuration</span>
+              {selectedOrder.items?.map((item) => (
+                <div key={item.id} className="bg-[#1f2937]/50 border border-[#374151] rounded-lg p-2.5 space-y-1">
+                  <div className="flex justify-between font-semibold text-white">
+                    <span>{item.selectedPageCount} Pages &times; {item.config?.copies} Copies</span>
+                    <span>{item.config?.paperSize} &bull; {item.config?.colorMode}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400 text-[11px]">
+                    <span>Sides: {item.config?.duplexMode} ({item.printedSides} sides total)</span>
+                    <span>Sheets: {item.estimatedSheets}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400 text-[11px] border-t border-[#374151]/40 pt-1">
+                    <span>Orientation: <strong className="text-slate-200 font-mono">{item.config?.orientation || "AUTO"}</strong></span>
+                    <span>Scaling: <strong className="text-slate-200 font-mono">{item.config?.scaling || "FIT"}</strong></span>
+                  </div>
+                  {item.config?.finishing !== "NONE" && (
+                    <div className="text-amber-400 text-[11px]">Finishing: {item.config?.finishing}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="border-t border-[#1f2937] pt-3 space-y-2">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Staff Actions</span>
+
+              <div className="grid grid-cols-2 gap-2">
+                
+                {selectedOrder.status === 'ACCEPTED' && selectedOrder.paymentStatus === 'PAID' && (
+                  <button
+                    type="button"
+                    disabled={isActionLoading}
+                    onClick={handleQueueForPrint}
+                    className="col-span-2 py-2.5 px-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow"
+                  >
+                    <Printer className="w-4 h-4" />
+                    <span>Queue For Print</span>
+                  </button>
+                )}
+
+                {selectedOrder.status === "RECEIVED" && (
+                  <button
+                    type="button"
+                    disabled={isActionLoading}
+                    onClick={() => handleStaffAction("ACCEPT_ORDER")}
+                    className="py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Accept Order</span>
+                  </button>
+                )}
+
+                {selectedOrder.paymentStatus === "CASH_PENDING" && (
+                  <button
+                    type="button"
+                    disabled={isActionLoading}
+                    onClick={() => handleStaffAction("MARK_CASH_PAID")}
+                    className="py-2 px-3 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5"
+                  >
+                    <Banknote className="w-3.5 h-3.5" />
+                    <span>Mark Cash Paid</span>
+                  </button>
+                )}
+
+                {selectedOrder.paymentStatus === "UPI_PENDING" && (
+                  <button
+                    type="button"
+                    disabled={isActionLoading}
+                    onClick={() => handleStaffAction("CONFIRM_UPI_PAID")}
+                    className="py-2 px-3 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5"
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                    <span>Confirm UPI Paid</span>
+                  </button>
+                )}
+
+                {selectedOrder.status !== "ON_HOLD" && selectedOrder.status !== "COMPLETED" && selectedOrder.status !== "CANCELLED" && (
+                  <button
+                    type="button"
+                    disabled={isActionLoading}
+                    onClick={() => handleStaffAction("HOLD_ORDER")}
+                    className="py-2 px-3 bg-[#1f2937] hover:bg-amber-600 hover:text-white text-slate-300 border border-[#374151] rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5"
+                  >
+                    <Pause className="w-3.5 h-3.5" />
+                    <span>Put On Hold</span>
+                  </button>
+                )}
+
+                {selectedOrder.status !== "COMPLETED" && selectedOrder.status !== "CANCELLED" && (
+                  <button
+                    type="button"
+                    disabled={isActionLoading}
+                    onClick={() => handleStaffAction("CANCEL_ORDER")}
+                    className="py-2 px-3 bg-[#1f2937] hover:bg-rose-600 hover:text-white text-slate-300 border border-[#374151] rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Cancel Order</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

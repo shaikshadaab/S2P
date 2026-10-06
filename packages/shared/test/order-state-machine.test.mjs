@@ -1,41 +1,35 @@
-﻿import test from "node:test";
-import assert from "node:assert/strict";
-import {
-  isValidOrderTransition,
-  assertValidOrderTransition,
-  isValidPrintJobTransition,
-  getCustomerStatusDisplay,
-} from "../dist/state-machine/order-state-machine.js";
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { canTransitionOrder, assertValidOrderTransition, getOrderStatusDisplay } from '../dist/state-machine/order-state-machine.js';
 
-test("Order State Machine - Enforces Strict Payment Verification Before Queueing", () => {
-  assert.equal(isValidOrderTransition("DRAFT", "QUEUED"), false);
-  assert.throws(() => assertValidOrderTransition("DRAFT", "QUEUED"), /Illegal order state transition/);
-  assert.equal(isValidOrderTransition("AWAITING_PAYMENT", "QUEUED"), false);
-  assert.equal(isValidOrderTransition("DRAFT", "AWAITING_PAYMENT"), true);
-  assert.equal(isValidOrderTransition("AWAITING_PAYMENT", "PAYMENT_PENDING"), true);
-  assert.equal(isValidOrderTransition("PAYMENT_PENDING", "PAID"), true);
-  assert.equal(isValidOrderTransition("PAID", "QUEUED"), true);
-  assert.equal(isValidOrderTransition("QUEUED", "CLAIMED"), true);
-  assert.equal(isValidOrderTransition("CLAIMED", "DOWNLOADING"), true);
-  assert.equal(isValidOrderTransition("DOWNLOADING", "PRINTING"), true);
-  assert.equal(isValidOrderTransition("PRINTING", "COMPLETED"), true);
+test('Order State Machine - Valid workflow progression', () => {
+  assert.equal(canTransitionOrder('DRAFT', 'FILE_PROCESSING'), true);
+  assert.equal(canTransitionOrder('FILE_PROCESSING', 'CONFIGURED'), true);
+  assert.equal(canTransitionOrder('CONFIGURED', 'AWAITING_PAYMENT'), true);
+  assert.equal(canTransitionOrder('AWAITING_PAYMENT', 'RECEIVED'), true);
+  assert.equal(canTransitionOrder('RECEIVED', 'ACCEPTED'), true);
+  assert.equal(canTransitionOrder('ACCEPTED', 'QUEUED_FOR_PRINT'), true);
+  assert.equal(canTransitionOrder('QUEUED_FOR_PRINT', 'PRINTING'), true);
+  assert.equal(canTransitionOrder('PRINTING', 'READY'), true);
+  assert.equal(canTransitionOrder('READY', 'COMPLETED'), true);
 });
 
-test("Print Job State Machine - Transitions correctly", () => {
-  assert.equal(isValidPrintJobTransition("QUEUED", "CLAIMED"), true);
-  assert.equal(isValidPrintJobTransition("CLAIMED", "DOWNLOADING"), true);
-  assert.equal(isValidPrintJobTransition("DOWNLOADING", "DOWNLOADED"), true);
-  assert.equal(isValidPrintJobTransition("DOWNLOADED", "PRINTING"), true);
-  assert.equal(isValidPrintJobTransition("PRINTING", "COMPLETED"), true);
-  assert.equal(isValidPrintJobTransition("PRINTING", "QUEUED"), false);
+test('Order State Machine - Blocks illegal transitions', () => {
+  // Cannot jump directly from DRAFT to PRINTING
+  assert.equal(canTransitionOrder('DRAFT', 'PRINTING'), false);
+  // Cannot jump from AWAITING_PAYMENT directly to READY
+  assert.equal(canTransitionOrder('AWAITING_PAYMENT', 'READY'), false);
+  // COMPLETED cannot directly transition to DRAFT
+  assert.equal(canTransitionOrder('COMPLETED', 'DRAFT'), false);
+
+  assert.throws(() => assertValidOrderTransition('DRAFT', 'READY'), /Illegal order state transition/);
 });
 
-test("Customer Status Display - Returns accurate UI metadata", () => {
-  const queuedDisplay = getCustomerStatusDisplay("QUEUED");
-  assert.equal(queuedDisplay.title, "Waiting for Printer");
-  assert.equal(queuedDisplay.stepIndex, 4);
+test('Order State Machine - Provides user-friendly status displays', () => {
+  const readyDisplay = getOrderStatusDisplay('READY');
+  assert.equal(readyDisplay.label, 'Ready for Pickup');
+  assert.match(readyDisplay.customerDescription, /counter/i);
 
-  const completedDisplay = getCustomerStatusDisplay("COMPLETED");
-  assert.equal(completedDisplay.title, "Printed Successfully");
-  assert.equal(completedDisplay.badgeVariant, "success");
+  const printingDisplay = getOrderStatusDisplay('PRINTING');
+  assert.equal(printingDisplay.label, 'Printing');
 });
