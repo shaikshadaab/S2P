@@ -15,9 +15,14 @@ export interface Organization {
 export interface UpiConfiguration {
   upiId: string;
   merchantName: string;
+  providerLabel?: string;
+  verificationMode?: 'STAFF_CONFIRMATION';
+  showQr?: boolean;
+  showUpiIntent?: boolean;
   qrCodeUrl?: string;
   isEnabled: boolean;
   isVerified: boolean;
+  updatedAt?: string;
 }
 
 export interface ShopOptionItem {
@@ -71,6 +76,23 @@ export interface ShopSettings {
   retentionPolicy: RetentionPolicy;
 }
 
+
+export interface ShopBranding {
+  logoUrl?: string;
+  tagline?: string;
+  accentColor?: string;
+  bannerUrl?: string;
+}
+
+export type ShopServiceCapability =
+  | 'MULTI_FILE_PRINT'
+  | 'CARD_PRINT'
+  | 'PASSPORT_PHOTO'
+  | 'LARGE_FORMAT'
+  | 'DUPLEX'
+  | 'COLOR'
+  | 'RESUME_MAKER';
+
 export interface Shop {
   id: string;
   organizationId: string;
@@ -84,6 +106,8 @@ export interface Shop {
   upiConfig?: UpiConfiguration;
   printOptions?: ShopPrintOptions;
   settings?: ShopSettings;
+  branding?: ShopBranding;
+  availableServices?: ShopServiceCapability[];
   createdAt: string;
   updatedAt: string;
 }

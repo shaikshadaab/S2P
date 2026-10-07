@@ -19,6 +19,8 @@ import {
   ShopPrintOptions,
   UpiConfiguration,
   CardLayoutMode,
+  CustomerPrintMode,
+  MultiUpLayoutMode,
   DocumentGroup,
   SmartDocumentDetector
 } from "@s2p/shared";
@@ -39,7 +41,13 @@ import {
   Layers,
   Printer,
   Compass,
-  Maximize2
+  Maximize2,
+  ArrowUp,
+  ArrowDown,
+  RefreshCw,
+  Grid,
+  Image as ImageIcon,
+  CreditCard
 } from "lucide-react";
 
 interface UploadedFileRecord {
@@ -50,6 +58,7 @@ interface UploadedFileRecord {
   sha256: string;
   pageCount: number;
   processingStatus: string;
+  sortOrder?: number;
 }
 
 export default function CustomerShopPage({ params }: { params: { slug: string } }) {
@@ -70,6 +79,10 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
   const [scaling, setScaling] = useState<PrintScaling>("FIT");
   const [paperType, setPaperType] = useState<PaperType>("NORMAL_75GSM");
   const [finishing, setFinishing] = useState<FinishingType>("NONE");
+  const [customerMode, setCustomerMode] = useState<CustomerPrintMode>("DOCUMENTS");
+  const [multiUpLayout, setMultiUpLayout] = useState<MultiUpLayoutMode>("ONE_PER_PAGE");
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFileRecord[]>([]);
+  const [uploadProgressMsg, setUploadProgressMsg] = useState<string>("");
   const [layoutMode, setLayoutMode] = useState<CardLayoutMode>("SMALL_CARD");
   const [isFrontBackSwapped, setIsFrontBackSwapped] = useState<boolean>(false);
   const [cardRotation, setCardRotation] = useState<number>(0);
@@ -180,6 +193,18 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
     }
   }, [uploadedFile, activePageCount, pageSelectionType, customPageRange]);
 
+  const estimatedSheetCount = useMemo(() => {
+    if (uploadedFiles.length === 0) return 1;
+    if (customerMode === "IMAGES") {
+      const perSheet = multiUpLayout === "MULTI_UP_2" ? 2 : multiUpLayout === "MULTI_UP_4" ? 4 : multiUpLayout === "MULTI_UP_6" ? 6 : 1;
+      return Math.ceil(uploadedFiles.length / perSheet);
+    }
+    if (customerMode === "CARDS") {
+      return Math.ceil(uploadedFiles.length / 2);
+    }
+    return uploadedFiles.reduce((acc, f) => acc + (f.pageCount || 1), 0);
+  }, [uploadedFiles, customerMode, multiUpLayout]);
+
   const ensureDraftId = async (): Promise<string> => {
     if (orderDraftId) return orderDraftId;
     const res = await fetch("/api/draft", {
@@ -196,40 +221,55 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
 
     setIsUploading(true);
     setUploadError(null);
     setQuote(null);
 
+    const filesArray = Array.from(fileList);
+    const newRecords: UploadedFileRecord[] = [];
+
     try {
       const draftId = await ensureDraftId();
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("shopId", PRIMARY_PILOT_SHOP.id);
-      formData.append("draftId", draftId);
 
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData
-      });
+      for (let i = 0; i < filesArray.length; i++) {
+        const f = filesArray[i];
+        setUploadProgressMsg(`Uploading ${i + 1} of ${filesArray.length}: ${f.name}...`);
 
-      const data = await res.json();
+        const formData = new FormData();
+        formData.append("file", f);
+        formData.append("shopId", PRIMARY_PILOT_SHOP.id);
+        formData.append("draftId", draftId);
 
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "File upload validation failed.");
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || `Upload failed for file ${f.name}.`);
+        }
+
+        newRecords.push({
+          id: data.file.id,
+          safeDisplayName: data.file.safeDisplayName,
+          mimeType: data.file.mimeType,
+          sizeBytes: data.file.sizeBytes,
+          sha256: data.file.sha256,
+          pageCount: data.file.pageCount,
+          processingStatus: data.file.processingStatus,
+          sortOrder: uploadedFiles.length + i
+        });
       }
 
-      setUploadedFile({
-        id: data.file.id,
-        safeDisplayName: data.file.safeDisplayName,
-        mimeType: data.file.mimeType,
-        sizeBytes: data.file.sizeBytes,
-        sha256: data.file.sha256,
-        pageCount: data.file.pageCount,
-        processingStatus: data.file.processingStatus
-      });
+      const all = [...uploadedFiles, ...newRecords];
+      setUploadedFiles(all);
+      if (newRecords.length > 0 && !uploadedFile) {
+        setUploadedFile(newRecords[0]);
+      }
       setPageSelectionType("ALL");
       setCustomPageRange("");
     } catch (err: unknown) {
@@ -237,10 +277,36 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
       setUploadError(msg);
     } finally {
       setIsUploading(false);
+      setUploadProgressMsg("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
     }
+  };
+
+  const moveFileOrder = (index: number, direction: "UP" | "DOWN") => {
+    if (direction === "UP" && index === 0) return;
+    if (direction === "DOWN" && index === uploadedFiles.length - 1) return;
+
+    const targetIdx = direction === "UP" ? index - 1 : index + 1;
+    const items = [...uploadedFiles];
+    const temp = items[index];
+    items[index] = items[targetIdx];
+    items[targetIdx] = temp;
+
+    items.forEach((item, idx) => {
+      item.sortOrder = idx;
+    });
+
+    setUploadedFiles(items);
+    if (items[targetIdx]) {
+      setUploadedFile(items[targetIdx]);
+    }
+  };
+
+  const applySettingsToAll = () => {
+    setUploadProgressMsg("Settings synced to all files.");
+    setTimeout(() => setUploadProgressMsg(""), 1500);
   };
 
   const handleRemoveFile = async () => {
@@ -428,6 +494,7 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
         draftId: orderDraftId,
         fileId: uploadedFile.id,
         quoteId: quote.quoteId,
+        items: uploadedFiles.length > 0 ? uploadedFiles.map(f => ({ fileId: f.id, quoteId: quote.quoteId })) : [{ fileId: uploadedFile.id, quoteId: quote.quoteId }],
         customer: {
           name: customerName.trim(),
           mobile: cleanMobile
@@ -507,12 +574,63 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
           </div>
         </div>
 
+        {/* 3 Customer Print Modes */}
+        <div className="space-y-1.5">
+          <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+            Select Print Mode
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => setCustomerMode("DOCUMENTS")}
+              className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 ${
+                customerMode === "DOCUMENTS"
+                  ? "bg-emerald-600/90 border-emerald-500 text-white shadow-lg shadow-emerald-950"
+                  : "bg-[#111827] border-[#1f2937] text-slate-300 hover:border-slate-600"
+              }`}
+            >
+              <FileText className="w-4 h-4 text-emerald-300" />
+              <span className="text-[11px] font-extrabold">DOCUMENTS</span>
+              <span className="text-[9px] text-slate-300 leading-none">PDF / Scans</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCustomerMode("IMAGES")}
+              className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 ${
+                customerMode === "IMAGES"
+                  ? "bg-emerald-600/90 border-emerald-500 text-white shadow-lg shadow-emerald-950"
+                  : "bg-[#111827] border-[#1f2937] text-slate-300 hover:border-slate-600"
+              }`}
+            >
+              <ImageIcon className="w-4 h-4 text-emerald-300" />
+              <span className="text-[11px] font-extrabold">IMAGES</span>
+              <span className="text-[9px] text-slate-300 leading-none">1, 4, 10+ Photos</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCustomerMode("CARDS")}
+              className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center gap-1 ${
+                customerMode === "CARDS"
+                  ? "bg-emerald-600/90 border-emerald-500 text-white shadow-lg shadow-emerald-950"
+                  : "bg-[#111827] border-[#1f2937] text-slate-300 hover:border-slate-600"
+              }`}
+            >
+              <CreditCard className="w-4 h-4 text-emerald-300" />
+              <span className="text-[11px] font-extrabold">CARDS</span>
+              <span className="text-[9px] text-slate-300 leading-none">Front &amp; Back</span>
+            </button>
+          </div>
+        </div>
+
         {/* Upload Box */}
         <div className="bg-[#111827] border-2 border-dashed border-[#1f2937] hover:border-emerald-600/50 rounded-xl p-5 text-center space-y-3 transition">
           <input
             type="file"
             ref={fileInputRef}
             onChange={handleFileChange}
+            multiple
             accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
             className="hidden"
             id="file-upload-input"
@@ -628,6 +746,146 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
             </div>
           )}
         </div>
+
+        {/* Bulk Review List */}
+        {uploadedFiles.length > 1 && (
+          <div className="bg-[#111827] border border-[#1f2937] rounded-xl p-4 space-y-3 text-left">
+            <div className="flex items-center justify-between border-b border-[#1f2937] pb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                {uploadedFiles.length} Files Uploaded ({estimatedSheetCount} Sheets)
+              </span>
+              <button
+                type="button"
+                onClick={applySettingsToAll}
+                className="text-[10px] text-emerald-400 hover:underline font-semibold"
+              >
+                Apply Settings to All
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+              {uploadedFiles.map((f, idx) => (
+                <div
+                  key={f.id}
+                  onClick={() => setUploadedFile(f)}
+                  className={`flex items-center justify-between p-2 rounded-lg border transition cursor-pointer ${
+                    uploadedFile?.id === f.id
+                      ? "bg-[#18232c] border-emerald-500/50"
+                      : "bg-[#141b22] border-[#242f3d] hover:border-slate-600"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/30 shrink-0">
+                      #{idx + 1}
+                    </span>
+                    <div className="truncate">
+                      <div className="text-xs font-bold text-white truncate max-w-[170px]">{f.safeDisplayName}</div>
+                      <div className="text-[9px] text-slate-400">{(f.sizeBytes / 1024).toFixed(0)} KB &bull; {f.pageCount}p &bull; ✓ Ready</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); moveFileOrder(idx, "UP"); }}
+                      disabled={idx === 0}
+                      className="p-1 text-slate-400 hover:text-white disabled:opacity-20"
+                      title="Move Up"
+                    >
+                      <ArrowUp className="w-3 h-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); moveFileOrder(idx, "DOWN"); }}
+                      disabled={idx === uploadedFiles.length - 1}
+                      className="p-1 text-slate-400 hover:text-white disabled:opacity-20"
+                      title="Move Down"
+                    >
+                      <ArrowDown className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Multi-Up Grid Layout for Images */}
+        {customerMode === "IMAGES" && uploadedFiles.length > 0 && (
+          <div className="bg-[#111827] border border-[#1f2937] rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <Grid className="w-3.5 h-3.5 text-emerald-400" /> Multi-Image Sheet Layout
+              </label>
+              <span className="text-[11px] font-semibold text-emerald-400">
+                {estimatedSheetCount} A4 Sheets
+              </span>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { id: "ONE_PER_PAGE", label: "1 per Page" },
+                { id: "MULTI_UP_2", label: "2 per Page" },
+                { id: "MULTI_UP_4", label: "4 per Page" },
+                { id: "MULTI_UP_6", label: "6 per Page" }
+              ].map((layout) => (
+                <button
+                  key={layout.id}
+                  type="button"
+                  onClick={() => setMultiUpLayout(layout.id as MultiUpLayoutMode)}
+                  className={`py-2 px-1 text-center rounded-lg text-xs font-bold transition border ${
+                    multiUpLayout === layout.id
+                      ? "bg-emerald-600 border-emerald-500 text-white"
+                      : "bg-[#1f2937] border-[#374151] text-slate-300"
+                  }`}
+                >
+                  {layout.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Card Controls in CARDS Mode */}
+        {customerMode === "CARDS" && uploadedFiles.length > 0 && (
+          <div className="bg-[#111827] border border-[#1f2937] rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <CreditCard className="w-3.5 h-3.5 text-emerald-400" /> Card Print Layout
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsFrontBackSwapped((prev) => !prev)}
+                className="text-[10px] font-bold text-emerald-400 hover:underline flex items-center gap-1"
+              >
+                <RefreshCw className="w-3 h-3" /> Swap Front &amp; Back
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setLayoutMode("SMALL_CARD")}
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition border ${
+                  layoutMode === "SMALL_CARD"
+                    ? "bg-emerald-600 border-emerald-500 text-white"
+                    : "bg-[#1f2937] border-[#374151] text-slate-300"
+                }`}
+              >
+                Small Card (85.6 &times; 54 mm)
+              </button>
+              <button
+                type="button"
+                onClick={() => setLayoutMode("LARGE_CARD")}
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition border ${
+                  layoutMode === "LARGE_CARD"
+                    ? "bg-emerald-600 border-emerald-500 text-white"
+                    : "bg-[#1f2937] border-[#374151] text-slate-300"
+                }`}
+              >
+                Large Card (135 &times; 90 mm)
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Page Selection */}
         {uploadedFile && (

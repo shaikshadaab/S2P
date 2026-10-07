@@ -1,18 +1,43 @@
-﻿import { PrintOrientation } from './order';
+import { PrintOrientation } from './order';
+
+export type CustomerPrintMode = 'DOCUMENTS' | 'IMAGES' | 'CARDS';
+
+export type QualityScore = 'GOOD' | 'ACCEPTABLE' | 'LOW_QUALITY' | 'RETAKE_RECOMMENDED';
+
+export type PrintReadinessScore = 'READY' | 'READY_WITH_WARNING' | 'NEEDS_CONFIRMATION' | 'INVALID';
+
+export type MultiUpLayoutMode =
+  | 'ONE_PER_PAGE'
+  | 'MULTI_UP_2'
+  | 'MULTI_UP_4'
+  | 'MULTI_UP_6'
+  | 'MULTI_UP_8'
+  | 'SPLIT_ACROSS_PAGES';
 
 export type DocumentClassification =
+  | 'DOCUMENT_PAGE'
+  | 'PDF_DOCUMENT'
   | 'CARD_SMALL'
   | 'CARD_LARGE'
-  | 'DOCUMENT_A4'
   | 'PHOTO'
-  | 'PDF_DOCUMENT'
+  | 'PASSPORT_PHOTO_SOURCE'
+  | 'CERTIFICATE'
+  | 'FORM'
+  | 'DOCUMENT_A4'
   | 'UNKNOWN';
 
 export type CardLayoutMode =
   | 'SMALL_CARD'
   | 'LARGE_CARD'
   | 'ORIGINAL'
-  | 'FIT_PAGE';
+  | 'FIT_PAGE'
+  | 'PASSPORT_PHOTO_SHEET'
+  | 'ONE_PER_PAGE'
+  | 'MULTI_UP_2'
+  | 'MULTI_UP_4'
+  | 'MULTI_UP_6'
+  | 'MULTI_UP_8'
+  | 'SPLIT_ACROSS_PAGES';
 
 export interface DocumentCropMetadata {
   x: number;
@@ -33,6 +58,15 @@ export interface DocumentSide {
   crop?: DocumentCropMetadata;
   rotation: number;
   confidence: number;
+  sortOrder?: number;
+  qualityScore?: QualityScore;
+  glareDetected?: boolean;
+  blurScore?: number;
+  estimatedDpi?: number;
+  isBlank?: boolean;
+  isDuplicate?: boolean;
+  duplicateOfFileId?: string;
+  qualityWarning?: string;
 }
 
 export interface DocumentGroup {
@@ -45,6 +79,9 @@ export interface DocumentGroup {
   layoutMode: CardLayoutMode;
   orientation: PrintOrientation;
   status: 'DETECTED' | 'MANUALLY_CONFIRMED';
+  sortOrder?: number;
+  readinessScore?: PrintReadinessScore;
+  readinessReason?: string;
   createdAt?: string;
   updatedAt?: string;
 }

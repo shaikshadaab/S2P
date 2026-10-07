@@ -36,6 +36,8 @@ export type PaymentStatus =
   | 'UNPAID'
   | 'CASH_PENDING'
   | 'UPI_PENDING'
+  | 'MANUAL_UPI_REVIEW_PENDING'
+  | 'MANUAL_UPI_NOT_FOUND'
   | 'PAID'
   | 'PENDING'
   | 'MANUAL_VERIFICATION_REQUIRED'
@@ -48,7 +50,7 @@ export type PaymentMethod =
   | 'MANUAL_UPI'
   | 'ONLINE_GATEWAY';
 
-export type PaperSize = 'A4' | 'A3' | 'LEGAL' | 'LETTER' | 'PHOTO_4X6';
+export type PaperSize = 'A4' | 'A3' | 'A2' | 'A1' | 'LEGAL' | 'LETTER' | 'PHOTO_4X6' | 'PASSPORT_PHOTO_SHEET';
 export type PrintColorMode = 'BW' | 'COLOR';
 export type PrintDuplexMode = 'SINGLE' | 'DOUBLE';
 export type PrintOrientation = 'AUTO' | 'PORTRAIT' | 'LANDSCAPE';
@@ -109,6 +111,14 @@ export interface OrderItem {
   printedSides: number;
   estimatedSheets: number;
   pricingSnapshot: PriceSnapshot;
+  printMasterSnapshot?: any;
+  printerRoute?: {
+    printerId?: string | null;
+    queueName?: string | null;
+    deviceId?: string | null;
+    routedAt?: string;
+  };
+  sortOrder?: number;
 }
 
 export interface OrderTimelineEvent {
@@ -140,6 +150,9 @@ export interface Order {
   paymentReference?: string | null;
   paymentVerifiedBy?: string | null;
   paymentVerifiedAt?: string | null;
+  customerClaimedPaidAt?: string | null;
+  customerClaimedUtr?: string | null;
+  manualPaymentReference?: string | null;
   currency: 'INR';
   subtotalPaise: number;
   discountPaise: number;

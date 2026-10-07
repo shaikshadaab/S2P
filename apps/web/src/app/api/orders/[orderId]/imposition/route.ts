@@ -11,7 +11,8 @@ export async function POST(
   try {
     const { orderId } = params;
     const body = await req.json().catch(() => ({}));
-    const { layoutMode = 'SMALL_CARD', paperSize = 'A4', orientation = 'PORTRAIT' } = body;
+    const { layoutMode = 'SMALL_CARD', paperSize = 'A4', orientation = 'PORTRAIT', orderItemId, itemId } = body;
+    const targetItemId = orderItemId || itemId;
 
     const orderDoc = await adminDb.collection('orders').doc(orderId).get();
     if (!orderDoc.exists) {
@@ -19,11 +20,21 @@ export async function POST(
     }
     const order = orderDoc.data() as Order;
 
-    const itemsSnap = await adminDb.collection('orderItems').where('orderId', '==', orderId).limit(1).get();
-    if (itemsSnap.empty) {
-      return NextResponse.json({ success: false, error: 'Order item not found' }, { status: 404 });
+    let itemDoc = null;
+    if (targetItemId) {
+      const specificDoc = await adminDb.collection('orderItems').doc(targetItemId).get();
+      if (specificDoc.exists && specificDoc.data()?.orderId === orderId) {
+        itemDoc = specificDoc;
+      }
     }
-    const itemDoc = itemsSnap.docs[0];
+
+    if (!itemDoc) {
+      const itemsSnap = await adminDb.collection('orderItems').where('orderId', '==', orderId).get();
+      if (itemsSnap.empty) {
+        return NextResponse.json({ success: false, error: 'Order item not found' }, { status: 404 });
+      }
+      itemDoc = itemsSnap.docs[0];
+    }
     const item = itemDoc.data() as OrderItem;
 
     const fileDoc = await adminDb.collection('orderFiles').doc(item.fileId).get();

@@ -25,7 +25,8 @@ import {
   ShopPrintOptions,
   UserRole,
   ShopMember,
-  ServicePricingRules
+  ServicePricingRules,
+  UpiPaymentUtils
 } from '@s2p/shared';
 
 export interface CallerIdentity {
@@ -606,14 +607,107 @@ export async function calculateQuoteService(
 export interface CreateAuthoritativeOrderInput {
   shopId?: string;
   draftId: string;
-  fileId: string;
-  quoteId: string; // REQUIRED
+  fileId?: string;
+  quoteId?: string;
+  items?: Array<{ fileId: string; quoteId: string }>;
+  enforceAvailability?: boolean;
   customer: {
     name: string;
     mobile: string;
     email?: string | null;
   };
   paymentMethod: PaymentMethod;
+}
+
+export interface AvailabilityCheckResult {
+  available: boolean;
+  reason?: 'AGENT_OFFLINE' | 'PRINTER_OFFLINE' | 'NO_COMPATIBLE_ROUTE';
+  message: string;
+  onlineDeviceCount: number;
+  onlinePhysicalPrinters: number;
+}
+
+export async function checkShopPrintingAvailability(
+  db: Firestore,
+  shopId: string,
+  requiredItems?: Array<{ paperSize?: string; colorMode?: string }>
+): Promise<AvailabilityCheckResult> {
+  const now = Date.now();
+
+  // 1. Check devices for this shop
+  const devicesSnap = await db.collection('devices')
+    .where('shopId', '==', shopId)
+    .get();
+
+  const onlineDevices = devicesSnap.docs.filter(doc => {
+    const d = doc.data();
+    if (d.status !== 'ONLINE') return false;
+    const hb = new Date(d.lastHeartbeatAt || 0).getTime();
+    return now - hb <= 90 * 1000;
+  });
+
+  if (onlineDevices.length === 0) {
+    return {
+      available: false,
+      reason: 'AGENT_OFFLINE',
+      message: 'Printing is temporarily unavailable at this shop. Please try again shortly.',
+      onlineDeviceCount: 0,
+      onlinePhysicalPrinters: 0
+    };
+  }
+
+  // 2. Check enabled physical printers
+  const printersSnap = await db.collection('printers')
+    .where('shopId', '==', shopId)
+    .where('printerKind', '==', 'PHYSICAL')
+    .where('isEnabled', '==', true)
+    .get();
+
+  const onlinePrinters = printersSnap.docs
+    .map(doc => doc.data() as any)
+    .filter(p => p.isOnline === true);
+
+  if (onlinePrinters.length === 0) {
+    return {
+      available: false,
+      reason: 'PRINTER_OFFLINE',
+      message: 'Printing is temporarily unavailable at this shop. Please try again shortly.',
+      onlineDeviceCount: onlineDevices.length,
+      onlinePhysicalPrinters: 0
+    };
+  }
+
+  // 3. Routing check if items provided
+  if (requiredItems && requiredItems.length > 0) {
+    for (const item of requiredItems) {
+      const reqPaper = item.paperSize || 'A4';
+      const reqColor = item.colorMode === 'COLOR';
+
+      const hasMatch = onlinePrinters.some(p => {
+        const caps = p.capabilities || {};
+        const supportsPaper = caps.paperSizes ? caps.paperSizes.includes(reqPaper) : true;
+        const supportsColor = reqColor ? Boolean(caps.colorSupported) : true;
+        return supportsPaper && supportsColor;
+      });
+
+      if (!hasMatch) {
+        return {
+          available: false,
+          reason: 'NO_COMPATIBLE_ROUTE',
+          message: 'Printing is temporarily unavailable at this shop. Please try again shortly.',
+          onlineDeviceCount: onlineDevices.length,
+          onlinePhysicalPrinters: onlinePrinters.length
+        };
+      }
+    }
+  }
+
+  return {
+    available: true,
+    message: 'Printing is available.',
+    onlineDeviceCount: onlineDevices.length,
+    onlinePhysicalPrinters: onlinePrinters.length
+  };
 }
 
 /**
@@ -630,13 +724,20 @@ export async function createAuthoritativeOrder(
   input: CreateAuthoritativeOrderInput,
   identity: CallerIdentity
 ) {
-  const { draftId, fileId, quoteId, customer, paymentMethod } = input;
+  const { draftId, customer, paymentMethod, enforceAvailability } = input;
 
-  if (!draftId || !fileId) {
-    throw new Error('draftId and fileId are required.');
+  // Support both multi-item input (items[]) and single-item input (fileId, quoteId)
+  let itemsToProcess: Array<{ fileId: string; quoteId: string }> = [];
+  if (Array.isArray(input.items) && input.items.length > 0) {
+    itemsToProcess = input.items;
+  } else if (input.fileId && input.quoteId) {
+    itemsToProcess = [{ fileId: input.fileId, quoteId: input.quoteId }];
+  } else {
+    throw new Error('draftId and at least one item (fileId and quoteId) are required.');
   }
-  if (!quoteId) {
-    throw new Error('quoteId is required. Authoritative quote must be requested prior to checkout.');
+
+  if (!draftId) {
+    throw new Error('draftId is required.');
   }
 
   const customerName = (customer?.name || '').trim();
@@ -648,8 +749,8 @@ export async function createAuthoritativeOrder(
     throw new Error('Please enter a valid 10-digit Indian mobile number.');
   }
 
-  if (paymentMethod !== 'CASH' && paymentMethod !== 'MANUAL_UPI') {
-    throw new Error('Invalid payment method. Only CASH and MANUAL_UPI are supported.');
+  if (paymentMethod !== 'CASH' && paymentMethod !== 'MANUAL_UPI' && (paymentMethod as any) !== 'ONLINE_GATEWAY') {
+    throw new Error('Invalid payment method. Only CASH, MANUAL_UPI, and ONLINE_GATEWAY are supported.');
   }
 
   // Execute single concurrency-safe transaction
@@ -707,66 +808,165 @@ export async function createAuthoritativeOrder(
       }
     }
 
-    // 3. Read File
-    const fileRef = db.collection('orderFiles').doc(fileId);
-    const fileDoc = await transaction.get(fileRef);
-    if (!fileDoc.exists) throw new Error('File record not found.');
-    const file = fileDoc.data() as OrderFile;
-
-    if (file.orderId !== draftId) throw new Error('File does not belong to this draft.');
-    if (file.shopId !== draft.shopId) throw new Error('File shop does not match draft shop.');
-    if (file.organizationId !== draft.organizationId) throw new Error('File organization does not match draft organization.');
-    if (!file.documentAvailable) throw new Error('Document is no longer available.');
-
-    // 4. Read Quote & Verify
-    const quoteRef = db.collection('priceQuotes').doc(quoteId);
-    const quoteDoc = await transaction.get(quoteRef);
-    if (!quoteDoc.exists) throw new Error('Price quote not found.');
-    const quote = quoteDoc.data();
-    if (!quote) throw new Error('Price quote data is missing.');
-
-    if (quote.draftId !== draftId) throw new Error('Quote does not belong to this draft.');
-    if (quote.fileId !== fileId) throw new Error('Quote does not belong to this file.');
-    if (quote.shopId !== draft.shopId) throw new Error('Quote shop does not match draft shop.');
-    if (quote.organizationId !== draft.organizationId) throw new Error('Quote organization does not match draft organization.');
-    if (new Date(quote.expiresAt).getTime() <= Date.now()) {
-      throw new Error('Price quote has expired. Please recalculate.');
+    // Availability Gate check (enforce in production or when explicitly requested)
+    if (enforceAvailability || process.env.S2P_ENFORCE_AVAILABILITY === 'true') {
+      const availCheck = await checkShopPrintingAvailability(db, draft.shopId);
+      if (!availCheck.available) {
+        throw new Error('PRINTING_UNAVAILABLE: ' + availCheck.message);
+      }
     }
 
-    // Section 8: Authoritative configuration comes directly from Quote
-    const selectedPages: number[] = quote.selectedPages;
-    const paperSize = quote.paperSize;
-    const paperType = quote.paperType;
-    const colorMode = quote.colorMode;
-    const duplexMode = quote.duplexMode;
-    const copies = quote.copies;
-    const orientation: PrintOrientation = quote.orientation;
-    const scaling: PrintScaling = quote.scaling;
-    const finishing = quote.finishing;
-
-    // Section 7: Recompute price with active pricing rules to prevent stale pricing checkout
     const activePricing = await loadShopPricingRules(db, draft.shopId);
-    const recomputed = calculatePrintPrice({
-      shopId: draft.shopId,
-      pageCount: file.pageCount || 1,
-      selectedPages,
-      copies,
-      colorMode,
-      duplexMode,
-      paperSize,
-      paperType: paperType as any,
-      finishing: finishing as any,
-      customPricing: activePricing.customPricing
-    });
+    const nowIso = new Date().toISOString();
+    const orderId = 'ord_' + Date.now().toString(36) + '_' + crypto.randomBytes(4).toString('hex');
 
-    const recomputedTotalPaise = Math.round(recomputed.total * 100);
-    if (recomputedTotalPaise !== quote.totalPaise) {
-      const err = new Error('PRICE_CHANGED: Pricing rules have changed since quote was generated. Please review and place order again.');
-      (err as any).code = 'PRICE_CHANGED';
-      (err as any).oldTotalPaise = quote.totalPaise;
-      (err as any).newTotalPaise = recomputedTotalPaise;
-      (err as any).newTotalRupees = recomputed.total;
-      throw err;
+    // 3. Process All Items
+    const processedOrderItems: OrderItem[] = [];
+    let cumulativePrintCostPaise = 0;
+    let cumulativePaperCostPaise = 0;
+    let cumulativeFinishingCostPaise = 0;
+    let cumulativeSubtotalPaise = 0;
+    let cumulativeDiscountPaise = 0;
+    let cumulativeTaxPaise = 0;
+    let cumulativeTotalPaise = 0;
+    let cumulativeTotalRupees = 0;
+    let firstPricingSnapshot: PriceSnapshot | null = null;
+
+    for (let i = 0; i < itemsToProcess.length; i++) {
+      const itemInput = itemsToProcess[i];
+      const curFileId = itemInput.fileId;
+      const curQuoteId = itemInput.quoteId;
+
+      // Read File
+      const fileRef = db.collection('orderFiles').doc(curFileId);
+      const fileDoc = await transaction.get(fileRef);
+      if (!fileDoc.exists) throw new Error('File record not found for file ' + curFileId);
+      const file = fileDoc.data() as OrderFile;
+
+      if (file.orderId !== draftId) throw new Error('File does not belong to this draft.');
+      if (file.shopId !== draft.shopId) throw new Error('File shop does not match draft shop.');
+      if (file.organizationId !== draft.organizationId) throw new Error('File organization does not match draft organization.');
+      if (!file.documentAvailable) throw new Error('Document is no longer available.');
+
+      // Read Quote & Verify
+      const quoteRef = db.collection('priceQuotes').doc(curQuoteId);
+      const quoteDoc = await transaction.get(quoteRef);
+      if (!quoteDoc.exists) throw new Error('Price quote not found for quote ' + curQuoteId);
+      const quote = quoteDoc.data();
+      if (!quote) throw new Error('Price quote data is missing.');
+
+      if (quote.draftId !== draftId) throw new Error('Quote does not belong to this draft.');
+      if (quote.fileId !== curFileId) throw new Error('Quote does not belong to this file.');
+      if (quote.shopId !== draft.shopId) throw new Error('Quote shop does not match draft shop.');
+      if (quote.organizationId !== draft.organizationId) throw new Error('Quote organization does not match draft organization.');
+      if (new Date(quote.expiresAt).getTime() <= Date.now()) {
+        throw new Error('Price quote has expired. Please recalculate.');
+      }
+
+      const selectedPages: number[] = quote.selectedPages;
+      const paperSize = quote.paperSize;
+      const paperType = quote.paperType;
+      const colorMode = quote.colorMode;
+      const duplexMode = quote.duplexMode;
+      const copies = quote.copies;
+      const orientation: PrintOrientation = quote.orientation;
+      const scaling: PrintScaling = quote.scaling;
+      const finishing = quote.finishing;
+
+      // Recompute price with active pricing rules to prevent stale pricing checkout
+      const recomputed = calculatePrintPrice({
+        shopId: draft.shopId,
+        pageCount: file.pageCount || 1,
+        selectedPages,
+        copies,
+        colorMode,
+        duplexMode,
+        paperSize,
+        paperType: paperType as any,
+        finishing: finishing as any,
+        customPricing: activePricing.customPricing
+      });
+
+      const recomputedTotalPaise = Math.round(recomputed.total * 100);
+      if (recomputedTotalPaise !== quote.totalPaise) {
+        const err = new Error('PRICE_CHANGED: Pricing rules have changed since quote was generated. Please review and place order again.');
+        (err as any).code = 'PRICE_CHANGED';
+        (err as any).oldTotalPaise = quote.totalPaise;
+        (err as any).newTotalPaise = recomputedTotalPaise;
+        (err as any).newTotalRupees = recomputed.total;
+        throw err;
+      }
+
+      const itemPrintCostPaise = Math.round(recomputed.printCost * 100);
+      const itemPaperCostPaise = Math.round(recomputed.paperCost * 100);
+      const itemFinishingCostPaise = Math.round(recomputed.finishingCost * 100);
+      const itemSubtotalPaise = Math.round(recomputed.subtotal * 100);
+      const itemDiscountPaise = Math.round(recomputed.discount * 100);
+      const itemTaxPaise = Math.round(recomputed.tax * 100);
+
+      cumulativePrintCostPaise += itemPrintCostPaise;
+      cumulativePaperCostPaise += itemPaperCostPaise;
+      cumulativeFinishingCostPaise += itemFinishingCostPaise;
+      cumulativeSubtotalPaise += itemSubtotalPaise;
+      cumulativeDiscountPaise += itemDiscountPaise;
+      cumulativeTaxPaise += itemTaxPaise;
+      cumulativeTotalPaise += recomputedTotalPaise;
+      cumulativeTotalRupees += recomputed.total;
+
+      const itemPricingSnapshot: PriceSnapshot = {
+        calculatedAt: nowIso,
+        pricingVersion: quote.pricingVersion || activePricing.version,
+        pageCount: file.pageCount || 1,
+        totalSides: recomputed.totalSides,
+        sheetCount: recomputed.sheetCount,
+        orientation,
+        scaling,
+        printCostPaise: itemPrintCostPaise,
+        paperCostPaise: itemPaperCostPaise,
+        finishingCostPaise: itemFinishingCostPaise,
+        discountPaise: itemDiscountPaise,
+        taxPaise: itemTaxPaise,
+        totalPaise: recomputedTotalPaise,
+        printCost: recomputed.printCost,
+        paperCost: recomputed.paperCost,
+        finishingCost: recomputed.finishingCost,
+        discount: recomputed.discount,
+        tax: recomputed.tax,
+        total: recomputed.total,
+        currency: 'INR'
+      };
+
+      if (!firstPricingSnapshot) {
+        firstPricingSnapshot = itemPricingSnapshot;
+      }
+
+      const orderItemId = 'item_' + Date.now().toString(36) + '_' + (i + 1);
+      const orderItem: OrderItem = {
+        id: orderItemId,
+        orderId,
+        fileId: curFileId,
+        config: {
+          paperSize: paperSize as any,
+          colorMode: colorMode as any,
+          duplexMode: duplexMode as any,
+          copies,
+          pageRange: selectedPages.join(','),
+          orientation,
+          scaling,
+          fitMode: scaling,
+          paperType: paperType as any,
+          finishing: finishing as any
+        },
+        selectedPages,
+        selectedPageCount: selectedPages.length,
+        orientation,
+        scaling,
+        printedSides: recomputed.totalSides,
+        estimatedSheets: recomputed.sheetCount,
+        pricingSnapshot: itemPricingSnapshot
+      };
+
+      processedOrderItems.push(orderItem);
     }
 
     // 5. Read/Increment Shop Counter Transactionally
@@ -781,61 +981,13 @@ export async function createAuthoritativeOrder(
       }
     }
     const orderNumber = 'S2P-' + currentYear + '-' + nextSeq.toString().padStart(6, '0');
+    const manualPaymentRef = paymentMethod === 'MANUAL_UPI' ? UpiPaymentUtils.generateManualPaymentReference(orderNumber) : null;
 
-    // 6. Construct Order & Items
-    const orderId = 'ord_' + Date.now().toString(36) + '_' + crypto.randomBytes(4).toString('hex');
-    const nowIso = new Date().toISOString();
+    // 6. Construct Order & Timeline
     const initialStatus: OrderStatus = 'RECEIVED';
-    const initialPaymentStatus: PaymentStatus = paymentMethod === 'CASH' ? 'CASH_PENDING' : 'UPI_PENDING';
-
-    const pricingSnapshot: PriceSnapshot = {
-      calculatedAt: nowIso,
-      pricingVersion: quote.pricingVersion || activePricing.version,
-      pageCount: file.pageCount || 1,
-      totalSides: recomputed.totalSides,
-      sheetCount: recomputed.sheetCount,
-      orientation,
-      scaling,
-      printCostPaise: Math.round(recomputed.printCost * 100),
-      paperCostPaise: Math.round(recomputed.paperCost * 100),
-      finishingCostPaise: Math.round(recomputed.finishingCost * 100),
-      discountPaise: Math.round(recomputed.discount * 100),
-      taxPaise: Math.round(recomputed.tax * 100),
-      totalPaise: recomputedTotalPaise,
-      printCost: recomputed.printCost,
-      paperCost: recomputed.paperCost,
-      finishingCost: recomputed.finishingCost,
-      discount: recomputed.discount,
-      tax: recomputed.tax,
-      total: recomputed.total,
-      currency: 'INR'
-    };
-
-    const orderItemId = 'item_' + Date.now().toString(36) + '_1';
-    const orderItem: OrderItem = {
-      id: orderItemId,
-      orderId,
-      fileId,
-      config: {
-        paperSize: paperSize as any,
-        colorMode: colorMode as any,
-        duplexMode: duplexMode as any,
-        copies,
-        pageRange: selectedPages.join(','),
-        orientation,
-        scaling,
-        fitMode: scaling,
-        paperType: paperType as any,
-        finishing: finishing as any
-      },
-      selectedPages,
-      selectedPageCount: selectedPages.length,
-      orientation,
-      scaling,
-      printedSides: recomputed.totalSides,
-      estimatedSheets: recomputed.sheetCount,
-      pricingSnapshot
-    };
+    const initialPaymentStatus: PaymentStatus = paymentMethod === 'CASH'
+      ? 'CASH_PENDING'
+      : (paymentMethod === 'ONLINE_GATEWAY' ? 'UNPAID' : 'UPI_PENDING');
 
     const timelineEvent = {
       id: 'evt_' + Date.now().toString(36) + '_1',
@@ -845,7 +997,9 @@ export async function createAuthoritativeOrder(
       actorRole: 'CUSTOMER',
       note: paymentMethod === 'CASH'
         ? 'Order created. Cash payment pending at counter.'
-        : 'Order created. Manual UPI payment pending verification.'
+        : (paymentMethod === 'ONLINE_GATEWAY'
+            ? 'Order created. Online payment gateway initiated.'
+            : 'Order created. Manual UPI payment pending verification.')
     };
 
     const paymentEventId = 'pevt_' + Date.now().toString(36) + '_' + crypto.randomBytes(3).toString('hex');
@@ -857,7 +1011,7 @@ export async function createAuthoritativeOrder(
       paymentMethod,
       previousStatus: null,
       newStatus: initialPaymentStatus,
-      amountPaise: recomputedTotalPaise,
+      amountPaise: cumulativeTotalPaise,
       actorType: 'CUSTOMER',
       actorUid: identity.uid || identity.guestSessionId || 'guest',
       actorRole: 'CUSTOMER',
@@ -890,7 +1044,7 @@ export async function createAuthoritativeOrder(
       actorId: identity.uid || (identity.guestSessionId ? 'guest_' + identity.guestSessionId.slice(-6) : 'customer'),
       actorRole: 'CUSTOMER',
       timestamp: nowIso,
-      details: { orderNumber, paymentMethod, totalPaise: recomputedTotalPaise }
+      details: { orderNumber, paymentMethod, totalPaise: cumulativeTotalPaise, itemCount: processedOrderItems.length }
     };
 
     const orderRecord: Order = {
@@ -910,13 +1064,33 @@ export async function createAuthoritativeOrder(
       paymentStatus: initialPaymentStatus,
       paymentMethod,
       currency: 'INR',
-      subtotalPaise: Math.round(recomputed.subtotal * 100),
-      discountPaise: Math.round(recomputed.discount * 100),
-      taxPaise: Math.round(recomputed.tax * 100),
-      totalPaise: recomputedTotalPaise,
-      totalAmount: recomputed.total,
-      items: [orderItem],
-      pricingSnapshot,
+      manualPaymentReference: manualPaymentRef,
+      subtotalPaise: cumulativeSubtotalPaise,
+      discountPaise: cumulativeDiscountPaise,
+      taxPaise: cumulativeTaxPaise,
+      totalPaise: cumulativeTotalPaise,
+      totalAmount: cumulativeTotalRupees,
+      items: processedOrderItems,
+      pricingSnapshot: firstPricingSnapshot || {
+        calculatedAt: nowIso,
+        pricingVersion: activePricing.version,
+        pageCount: 1,
+        totalSides: 1,
+        sheetCount: 1,
+        printCostPaise: cumulativePrintCostPaise,
+        paperCostPaise: cumulativePaperCostPaise,
+        finishingCostPaise: cumulativeFinishingCostPaise,
+        discountPaise: cumulativeDiscountPaise,
+        taxPaise: cumulativeTaxPaise,
+        totalPaise: cumulativeTotalPaise,
+        printCost: cumulativePrintCostPaise / 100,
+        paperCost: cumulativePaperCostPaise / 100,
+        finishingCost: cumulativeFinishingCostPaise / 100,
+        discount: cumulativeDiscountPaise / 100,
+        tax: cumulativeTaxPaise / 100,
+        total: cumulativeTotalRupees,
+        currency: 'INR'
+      },
       timeline: [timelineEvent],
       createdAt: nowIso,
       updatedAt: nowIso
@@ -936,7 +1110,9 @@ export async function createAuthoritativeOrder(
       updatedAtServer: FieldValue.serverTimestamp()
     });
 
-    transaction.set(db.collection('orderItems').doc(orderItemId), orderItem);
+    for (const item of processedOrderItems) {
+      transaction.set(db.collection('orderItems').doc(item.id), item);
+    }
 
     transaction.update(draftRef, {
       status: 'CONVERTED',
@@ -1059,12 +1235,24 @@ export async function updateOrderStatusAtomic(
         if (order.paymentStatus === 'PAID') {
           return { success: true, order, isIdempotent: true, message: 'Payment already confirmed as PAID.' };
         }
-        if (order.paymentStatus !== 'UPI_PENDING') {
+        if (order.paymentStatus !== 'UPI_PENDING' && order.paymentStatus !== 'MANUAL_UPI_REVIEW_PENDING') {
           throw new Error('Cannot confirm UPI payment for order with payment status: ' + order.paymentStatus);
         }
         newPaymentStatus = 'PAID';
         isPaymentChanged = true;
         eventNote = eventNote || 'Manual UPI payment verified and confirmed by staff.';
+        break;
+
+      case 'MARK_UPI_NOT_FOUND':
+        if (order.paymentMethod !== 'MANUAL_UPI') {
+          throw new Error('Order payment method is not UPI.');
+        }
+        if (order.paymentStatus === 'PAID') {
+          throw new Error('Cannot mark an already paid order as not found.');
+        }
+        newPaymentStatus = 'MANUAL_UPI_NOT_FOUND';
+        isPaymentChanged = true;
+        eventNote = eventNote || 'Manual UPI payment not found by staff at counter.';
         break;
 
       case 'HOLD_ORDER':
@@ -1274,11 +1462,31 @@ export async function getShopOptionsService(db: Firestore, shopId: string) {
     slug: shop.slug,
     organizationId: shop.organizationId,
     printOptions: getShopEffectiveOptions(shop),
-    upiConfig: shop.upiConfig ? {
-      upiId: shop.upiConfig.upiId,
-      merchantName: shop.upiConfig.merchantName,
-      isEnabled: shop.upiConfig.isEnabled,
-      isVerified: shop.upiConfig.isVerified
-    } : null
+    upiConfig: await (async () => {
+      const manualUpiDoc = await db.collection('shops').doc(shopId).collection('paymentSettings').doc('manualUpi').get();
+      if (manualUpiDoc.exists) {
+        const data = manualUpiDoc.data();
+        return {
+          upiId: data?.upiId || '',
+          merchantName: data?.payeeName || data?.merchantName || '',
+          providerLabel: data?.providerLabel || 'PhonePe / UPI',
+          verificationMode: data?.verificationMode || 'STAFF_CONFIRMATION',
+          showQr: data?.showQr !== false,
+          showUpiIntent: data?.showUpiIntent !== false,
+          isEnabled: Boolean(data?.enabled ?? data?.isEnabled),
+          isVerified: true
+        };
+      }
+      return shop.upiConfig ? {
+        upiId: shop.upiConfig.upiId,
+        merchantName: shop.upiConfig.merchantName,
+        providerLabel: (shop.upiConfig as any).providerLabel || 'PhonePe / UPI',
+        verificationMode: (shop.upiConfig as any).verificationMode || 'STAFF_CONFIRMATION',
+        showQr: (shop.upiConfig as any).showQr !== false,
+        showUpiIntent: (shop.upiConfig as any).showUpiIntent !== false,
+        isEnabled: shop.upiConfig.isEnabled,
+        isVerified: shop.upiConfig.isVerified
+      } : null;
+    })()
   };
 }

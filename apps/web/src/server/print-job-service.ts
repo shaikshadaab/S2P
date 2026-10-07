@@ -70,104 +70,110 @@ export async function queueOrderForPrint(
       throw new Error('UNPAID_ORDER: Order must be PAID before queuing for print. Current paymentStatus: ' + order.paymentStatus);
     }
 
-    // 3. Read Order Items
+    // 3. Read All Order Items (Multi-Item Support, No limit(1))
     const itemsSnap = await transaction.get(
-      db.collection('orderItems').where('orderId', '==', orderId).limit(1)
+      db.collection('orderItems').where('orderId', '==', orderId)
     );
     if (itemsSnap.empty) {
       throw new Error('ORDER_EMPTY: Order has no items to print.');
     }
-    const itemDoc = itemsSnap.docs[0];
-    const item = itemDoc.data() as OrderItem;
-
-    // 4. Read File & Verify Availability
-    const fileRef = db.collection('orderFiles').doc(item.fileId);
-    const fileDoc = await transaction.get(fileRef);
-    if (!fileDoc.exists) {
-      throw new Error('FILE_NOT_FOUND: Associated document file does not exist.');
-    }
-    const file = fileDoc.data() as OrderFile;
-
-    if (file.documentAvailable === false || file.purgeStatus === 'PURGED') {
-      throw new Error('FILE_NOT_AVAILABLE: Document file has been purged or is not available.');
-    }
-
-    // 5. Deterministic Idempotency Key
-    const jobId = 'pj_' + order.id + '_' + item.id;
-    const jobRef = db.collection('printJobs').doc(jobId);
-    const existingJobDoc = await transaction.get(jobRef);
-
-    if (existingJobDoc.exists) {
-      const existingJob = existingJobDoc.data() as PrintJob;
-      const activeStatuses: PrintJobStatus[] = [
-        'CREATED',
-        'QUEUED',
-        'LEASED',
-        'DOWNLOADING',
-        'READY_TO_PRINT',
-        'SUBMITTED',
-        'PRINTING',
-        'COMPLETED'
-      ];
-      if (activeStatuses.includes(existingJob.status)) {
-        // Return existing job idempotently
-        return {
-          success: true,
-          printJob: existingJob,
-          idempotent: true
-        };
-      }
-    }
 
     const nowIso = new Date().toISOString();
+    const createdJobs: PrintJob[] = [];
+    let isAllExisting = true;
 
-    // 6. Complete, immutable print configuration snapshot
-    const rawCfg = ((item.config || (item as any).printConfig || {}) as unknown) as Record<string, unknown>;
-    const printConfigSnapshot: Record<string, unknown> = {
-      pageRange: rawCfg.pageRange || (item.selectedPages && item.selectedPages.length > 0 ? item.selectedPages.join(',') : 'all'),
-      selectedPages: item.selectedPages || rawCfg.selectedPages || [],
-      selectedPageCount: typeof item.selectedPageCount === 'number' ? item.selectedPageCount : (item.selectedPages ? item.selectedPages.length : rawCfg.selectedPageCount || 1),
-      paperSize: rawCfg.paperSize || 'A4',
-      paperType: rawCfg.paperType || 'NORMAL_75GSM',
-      colorMode: rawCfg.colorMode || 'BW',
-      duplexMode: rawCfg.duplexMode || 'SINGLE',
-      copies: typeof rawCfg.copies === 'number' ? rawCfg.copies : 1,
-      orientation: rawCfg.orientation || item.orientation || 'PORTRAIT',
-      scaling: rawCfg.scaling || item.scaling || 'FIT',
-      fitMode: rawCfg.fitMode || rawCfg.scaling || item.scaling || 'FIT',
-      finishing: rawCfg.finishing || 'NONE'
-    };
+    for (const itemDoc of itemsSnap.docs) {
+      const item = itemDoc.data() as OrderItem;
 
-    const printJobRecord: PrintJob = {
-      id: jobId,
-      organizationId: order.organizationId,
-      shopId: order.shopId,
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      orderItemId: item.id,
-      fileId: file.id,
-      printerId: null,
-      deviceId: null,
-      status: 'QUEUED',
-      priority: 1,
-      printConfigSnapshot,
-      fileSnapshot: {
+      // 4. Read File & Verify Availability
+      const fileRef = db.collection('orderFiles').doc(item.fileId);
+      const fileDoc = await transaction.get(fileRef);
+      if (!fileDoc.exists) {
+        throw new Error('FILE_NOT_FOUND: Associated document file does not exist for item ' + item.id);
+      }
+      const file = fileDoc.data() as OrderFile;
+
+      if (file.documentAvailable === false || file.purgeStatus === 'PURGED') {
+        throw new Error('FILE_NOT_AVAILABLE: Document file has been purged or is not available.');
+      }
+
+      // 5. Deterministic Idempotency Key per Item
+      const jobId = 'pj_' + order.id + '_' + item.id;
+      const jobRef = db.collection('printJobs').doc(jobId);
+      const existingJobDoc = await transaction.get(jobRef);
+
+      if (existingJobDoc.exists) {
+        const existingJob = existingJobDoc.data() as PrintJob;
+        const activeStatuses: PrintJobStatus[] = [
+          'CREATED', 'QUEUED', 'LEASED', 'DOWNLOADING', 'READY_TO_PRINT', 'SUBMITTED', 'PRINTING', 'COMPLETED'
+        ];
+        if (activeStatuses.includes(existingJob.status)) {
+          createdJobs.push(existingJob);
+          continue;
+        }
+      }
+
+      isAllExisting = false;
+
+      // 6. Complete, immutable print configuration snapshot
+      const rawCfg = ((item.config || (item as any).printConfig || {}) as unknown) as Record<string, unknown>;
+      const printConfigSnapshot: Record<string, unknown> = {
+        pageRange: rawCfg.pageRange || (item.selectedPages && item.selectedPages.length > 0 ? item.selectedPages.join(',') : 'all'),
+        selectedPages: item.selectedPages || rawCfg.selectedPages || [],
+        selectedPageCount: typeof item.selectedPageCount === 'number' ? item.selectedPageCount : (item.selectedPages ? item.selectedPages.length : rawCfg.selectedPageCount || 1),
+        paperSize: rawCfg.paperSize || 'A4',
+        paperType: rawCfg.paperType || 'NORMAL_75GSM',
+        colorMode: rawCfg.colorMode || 'BW',
+        duplexMode: rawCfg.duplexMode || 'SINGLE',
+        copies: typeof rawCfg.copies === 'number' ? rawCfg.copies : 1,
+        orientation: rawCfg.orientation || item.orientation || 'PORTRAIT',
+        scaling: rawCfg.scaling || item.scaling || 'FIT',
+        fitMode: rawCfg.fitMode || rawCfg.scaling || item.scaling || 'FIT',
+        finishing: rawCfg.finishing || 'NONE'
+      };
+
+      const printJobRecord: PrintJob = {
+        id: jobId,
+        organizationId: order.organizationId,
+        shopId: order.shopId,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        orderItemId: item.id,
         fileId: file.id,
-        sha256: file.sha256,
-        sizeBytes: file.sizeBytes,
-        mimeType: file.mimeType,
-        pageCount: file.pageCount,
-        filename: file.originalFilename || 'document.pdf'
-      },
-      attemptCount: 0,
-      activeAttemptId: null,
-      irreversibleStageReached: false,
-      lease: null,
-      createdAt: nowIso,
-      updatedAt: nowIso
-    };
+        printerId: item.printerRoute?.printerId || null,
+        deviceId: item.printerRoute?.deviceId || null,
+        status: 'QUEUED',
+        priority: 1,
+        printConfigSnapshot,
+        fileSnapshot: {
+          fileId: file.id,
+          sha256: file.sha256,
+          sizeBytes: file.sizeBytes,
+          mimeType: file.mimeType,
+          pageCount: file.pageCount,
+          filename: file.originalFilename || 'document.pdf'
+        },
+        attemptCount: 0,
+        activeAttemptId: null,
+        irreversibleStageReached: false,
+        lease: null,
+        createdAt: nowIso,
+        updatedAt: nowIso
+      };
 
-    transaction.set(jobRef, printJobRecord);
+      transaction.set(jobRef, printJobRecord);
+      createdJobs.push(printJobRecord);
+    }
+
+    if (isAllExisting && createdJobs.length > 0) {
+      return {
+        success: true,
+        printJob: createdJobs[0],
+        printJobs: createdJobs,
+        count: createdJobs.length,
+        idempotent: true
+      };
+    }
 
     // 7. Transition order: ACCEPTED -> QUEUED_FOR_PRINT
     if (order.status === 'ACCEPTED') {
@@ -199,21 +205,24 @@ export async function queueOrderForPrint(
       shopId: order.shopId,
       action: 'PRINT_JOB_CREATED',
       targetType: 'PRINT_JOB',
-      targetId: jobId,
+      targetId: createdJobs[0]?.id || order.id,
       actorId: staffUid,
       actorRole: 'STAFF',
       timestamp: nowIso,
       details: {
         orderId: order.id,
         orderNumber: order.orderNumber,
-        fileId: file.id,
-        pageCount: file.pageCount
+        jobIds: createdJobs.map(j => j.id),
+        jobCount: createdJobs.length,
+        fileIds: createdJobs.map(j => j.fileId)
       }
     });
 
     return {
       success: true,
-      printJob: printJobRecord,
+      printJob: createdJobs[0],
+      printJobs: createdJobs,
+      count: createdJobs.length,
       idempotent: false
     };
   });
@@ -763,37 +772,12 @@ export async function autoDispatchOrderForPrint(
       throw new Error('UNPAID_ORDER: Order must be PAID before auto-dispatch. Current: ' + order.paymentStatus);
     }
 
-    // Read order item
+    // Read all order items (Multi-item support, No limit(1))
     const itemsSnap = await transaction.get(
-      db.collection('orderItems').where('orderId', '==', orderId).limit(1)
+      db.collection('orderItems').where('orderId', '==', orderId)
     );
     if (itemsSnap.empty) {
       throw new Error('ORDER_EMPTY: Order has no items to print.');
-    }
-    const item = itemsSnap.docs[0].data() as OrderItem;
-
-    // Read file
-    const fileRef = db.collection('orderFiles').doc(item.fileId);
-    const fileDoc = await transaction.get(fileRef);
-    if (!fileDoc.exists) {
-      throw new Error('FILE_NOT_FOUND: Document file does not exist.');
-    }
-    const file = fileDoc.data() as OrderFile;
-    if (file.documentAvailable === false || file.purgeStatus === 'PURGED') {
-      throw new Error('FILE_NOT_AVAILABLE: Document file is purged or unavailable.');
-    }
-
-    const jobId = 'pj_' + order.id + '_' + item.id;
-    const jobRef = db.collection('printJobs').doc(jobId);
-    const existingJobDoc = await transaction.get(jobRef);
-
-    if (existingJobDoc.exists) {
-      return {
-        success: true,
-        jobId,
-        isIdempotent: true,
-        message: 'Print job already exists for this order.'
-      };
     }
 
     // Auto-Routing: Find active PHYSICAL printers for this shop
@@ -804,82 +788,122 @@ export async function autoDispatchOrderForPrint(
         .where('isEnabled', '==', true)
     );
 
-    let assignedPrinterId: string | null = null;
-    let assignedDeviceId: string | null = null;
-    let initialStatus: PrintJobStatus = 'QUEUED';
-
-    const cfg = item.config || {};
-    const reqColor = cfg.colorMode === 'COLOR';
-
-    // Find best match
     const candidates = printersSnap.docs
       .map(d => d.data() as Printer)
       .filter(p => p.isOnline === true);
 
-    if (candidates.length > 0) {
-      // Prioritize printer matching color capability
-      let matched = candidates.find(p => reqColor ? p.capabilities.colorSupported : true);
-      if (!matched && !reqColor) {
-        matched = candidates[0];
+    const nowIso = new Date().toISOString();
+    const dispatchedJobs: PrintJob[] = [];
+
+    for (const itemDoc of itemsSnap.docs) {
+      const item = itemDoc.data() as OrderItem;
+
+      // Read file
+      const fileRef = db.collection('orderFiles').doc(item.fileId);
+      const fileDoc = await transaction.get(fileRef);
+      if (!fileDoc.exists) {
+        throw new Error('FILE_NOT_FOUND: Document file does not exist for item ' + item.id);
       }
-      if (matched) {
-        assignedPrinterId = matched.id;
-        assignedDeviceId = matched.deviceId;
+      const file = fileDoc.data() as OrderFile;
+      if (file.documentAvailable === false || file.purgeStatus === 'PURGED') {
+        throw new Error('FILE_NOT_AVAILABLE: Document file is purged or unavailable for item ' + item.id);
+      }
+
+      const jobId = 'pj_' + order.id + '_' + item.id;
+      const jobRef = db.collection('printJobs').doc(jobId);
+      const existingJobDoc = await transaction.get(jobRef);
+
+      if (existingJobDoc.exists) {
+        dispatchedJobs.push(existingJobDoc.data() as PrintJob);
+        continue;
+      }
+
+      let assignedPrinterId: string | null = null;
+      let assignedDeviceId: string | null = null;
+      let initialStatus: PrintJobStatus = 'QUEUED';
+
+      const cfg = item.config || {};
+      const reqColor = cfg.colorMode === 'COLOR';
+      const reqPaper = cfg.paperSize || 'A4';
+      const reqDuplex = cfg.duplexMode === 'DOUBLE';
+
+      if (candidates.length > 0) {
+        // Find printer compatible with this specific item's requirements:
+        // 1. Paper size compatibility
+        // 2. Color mode compatibility
+        // 3. Duplex truth: If duplex requested, ensure printer has verified automatic duplex
+        let matched = candidates.find(p => {
+          const supportsPaper = p.capabilities.paperSizes ? p.capabilities.paperSizes.includes(reqPaper) : true;
+          const supportsColor = reqColor ? Boolean(p.capabilities.colorSupported) : true;
+          const supportsDuplex = reqDuplex ? (Boolean(p.capabilities.duplexSupported) && p.capabilities.duplexKind !== 'MANUAL') : true;
+          return supportsPaper && supportsColor && supportsDuplex;
+        });
+
+        // Fallback: match without duplex constraint if none has auto duplex
+        if (!matched && !reqColor) {
+          matched = candidates.find(p => {
+            const supportsPaper = p.capabilities.paperSizes ? p.capabilities.paperSizes.includes(reqPaper) : true;
+            return supportsPaper;
+          });
+        }
+
+        if (matched) {
+          assignedPrinterId = matched.id;
+          assignedDeviceId = matched.deviceId;
+        } else {
+          initialStatus = 'ON_HOLD';
+        }
       } else {
-        // Color requested but no color printer
         initialStatus = 'ON_HOLD';
       }
-    } else {
-      // No physical printer online
-      initialStatus = 'ON_HOLD';
+
+      const configSnapshot = {
+        pageRange: cfg.pageRange || 'ALL',
+        selectedPages: (cfg as any).selectedPages || [],
+        selectedPageCount: (cfg as any).selectedPageCount || file.pageCount || 1,
+        paperSize: cfg.paperSize || 'A4',
+        paperType: cfg.paperType || 'NORMAL_75GSM',
+        colorMode: cfg.colorMode || 'BW',
+        duplexMode: cfg.duplexMode || 'SINGLE',
+        copies: cfg.copies || 1,
+        orientation: cfg.orientation || 'AUTO',
+        scaling: cfg.scaling || 'FIT',
+        fitMode: cfg.fitMode || cfg.scaling || 'FIT',
+        finishing: cfg.finishing || 'NONE'
+      };
+
+      const newJob: PrintJob = {
+        id: jobId,
+        organizationId: order.organizationId,
+        shopId: order.shopId,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        orderItemId: item.id,
+        fileId: item.fileId,
+        printerId: assignedPrinterId,
+        deviceId: assignedDeviceId,
+        status: initialStatus,
+        priority: 10,
+        printConfigSnapshot: configSnapshot,
+        fileSnapshot: {
+          fileId: file.id,
+          sha256: file.sha256,
+          sizeBytes: file.sizeBytes,
+          mimeType: file.mimeType,
+          pageCount: file.pageCount,
+          filename: file.safeDisplayName || file.originalFilename
+        },
+        attemptCount: 0,
+        activeAttemptId: null,
+        irreversibleStageReached: false,
+        lease: null,
+        createdAt: nowIso,
+        updatedAt: nowIso
+      };
+
+      transaction.set(jobRef, newJob);
+      dispatchedJobs.push(newJob);
     }
-
-    const nowIso = new Date().toISOString();
-    const configSnapshot = {
-      pageRange: cfg.pageRange || 'ALL',
-      selectedPages: (cfg as any).selectedPages || [],
-      selectedPageCount: (cfg as any).selectedPageCount || file.pageCount || 1,
-      paperSize: cfg.paperSize || 'A4',
-      paperType: cfg.paperType || 'NORMAL_75GSM',
-      colorMode: cfg.colorMode || 'BW',
-      duplexMode: cfg.duplexMode || 'SINGLE',
-      copies: cfg.copies || 1,
-      orientation: cfg.orientation || 'AUTO',
-      scaling: cfg.scaling || 'FIT',
-      fitMode: cfg.fitMode || cfg.scaling || 'FIT',
-      finishing: cfg.finishing || 'NONE'
-    };
-
-    const newJob: PrintJob = {
-      id: jobId,
-      organizationId: order.organizationId,
-      shopId: order.shopId,
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      orderItemId: item.id,
-      fileId: item.fileId,
-      printerId: assignedPrinterId,
-      deviceId: assignedDeviceId,
-      status: initialStatus,
-      priority: 10,
-      printConfigSnapshot: configSnapshot,
-      fileSnapshot: {
-        fileId: file.id,
-        sha256: file.sha256,
-        sizeBytes: file.sizeBytes,
-        mimeType: file.mimeType,
-        pageCount: file.pageCount,
-        filename: file.safeDisplayName || file.originalFilename
-      },
-      attemptCount: 0,
-      activeAttemptId: null,
-      irreversibleStageReached: false,
-      lease: null,
-      createdAt: nowIso,
-      updatedAt: nowIso
-    };
-
-    transaction.set(jobRef, newJob);
 
     // Update order status to QUEUED_FOR_PRINT if currently ACCEPTED or RECEIVED
     if (order.status === 'RECEIVED' || order.status === 'ACCEPTED') {
@@ -891,9 +915,12 @@ export async function autoDispatchOrderForPrint(
 
     return {
       success: true,
-      jobId,
-      status: initialStatus,
-      assignedPrinterId,
+      jobId: dispatchedJobs[0]?.id || null,
+      jobIds: dispatchedJobs.map(j => j.id),
+      jobs: dispatchedJobs,
+      count: dispatchedJobs.length,
+      status: dispatchedJobs[0]?.status || 'QUEUED',
+      assignedPrinterId: dispatchedJobs[0]?.printerId || null,
       autoDispatched: true
     };
   });

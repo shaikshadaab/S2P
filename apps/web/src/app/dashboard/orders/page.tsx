@@ -105,6 +105,58 @@ export default function DashboardOrdersView() {
   }, [user, selectedOrder?.id]);
 
   
+  const handleConfirmManualUpi = async () => {
+    if (!selectedOrder) return;
+    setIsActionLoading(true);
+    setActionError(null);
+    try {
+      const token = user ? await user.getIdToken() : '';
+      const res = await fetch(`/api/orders/${selectedOrder.id}/confirm-manual-upi`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to confirm manual UPI payment');
+      }
+      await fetchOrders();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Confirmation error';
+      setActionError(msg);
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleMarkManualUpiNotFound = async () => {
+    if (!selectedOrder) return;
+    setIsActionLoading(true);
+    setActionError(null);
+    try {
+      const token = user ? await user.getIdToken() : '';
+      const res = await fetch(`/api/orders/${selectedOrder.id}/mark-manual-upi-not-found`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update payment status');
+      }
+      await fetchOrders();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error';
+      setActionError(msg);
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   const handleQueueForPrint = async () => {
     if (!selectedOrder) return;
     setIsActionLoading(true);
@@ -169,7 +221,8 @@ export default function DashboardOrdersView() {
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
       if (activeFilter === "NEW" && o.status !== "RECEIVED") return false;
-      if (activeFilter === "PENDING_PAYMENT" && o.paymentStatus !== "CASH_PENDING" && o.paymentStatus !== "UPI_PENDING") return false;
+      if (activeFilter === "PENDING_VERIFICATION" && o.paymentStatus !== "MANUAL_UPI_REVIEW_PENDING" && o.paymentStatus !== "UPI_PENDING") return false;
+      if (activeFilter === "PENDING_PAYMENT" && o.paymentStatus !== "CASH_PENDING" && o.paymentStatus !== "UPI_PENDING" && o.paymentStatus !== "MANUAL_UPI_REVIEW_PENDING") return false;
       if (activeFilter === "ACCEPTED" && o.status !== "ACCEPTED") return false;
       if (activeFilter === "PRINTING" && o.status !== "PRINTING") return false;
       if (activeFilter === "READY" && o.status !== "READY") return false;
@@ -216,6 +269,7 @@ export default function DashboardOrdersView() {
           {[
             { id: "ALL", label: `All (${orders.length})` },
             { id: "NEW", label: `New (${orders.filter((o) => o.status === "RECEIVED").length})` },
+            { id: "PENDING_VERIFICATION", label: `Pending Verification (${orders.filter((o) => o.paymentStatus === "MANUAL_UPI_REVIEW_PENDING" || (o.paymentMethod === "MANUAL_UPI" && o.paymentStatus === "UPI_PENDING")).length})` },
             { id: "PENDING_PAYMENT", label: `Unpaid (${orders.filter((o) => o.paymentStatus !== "PAID").length})` },
             { id: "ACCEPTED", label: `Accepted (${orders.filter((o) => o.status === "ACCEPTED").length})` },
             { id: "READY", label: `Ready (${orders.filter((o) => o.status === "READY").length})` },
@@ -291,10 +345,23 @@ export default function DashboardOrdersView() {
                         <div className="text-[10px] text-slate-500 font-mono">{o.customerMobile}</div>
                       </td>
                       <td className="py-3 px-4 text-[11px]">
-                        <div>{item?.selectedPageCount || 1} pages &bull; {item?.config?.copies || 1} copies</div>
-                        <div className="text-slate-500 text-[10px]">
-                          {item?.config?.paperSize} &bull; {item?.config?.colorMode === "BW" ? "B&W" : "Color"} &bull; {item?.config?.duplexMode === "DOUBLE" ? "Duplex" : "Single"}
-                        </div>
+                        {o.items && o.items.length > 1 ? (
+                          <>
+                            <div className="font-bold text-emerald-400">
+                              {o.items.length} items &bull; {o.items.reduce((acc, it) => acc + (it.selectedPageCount || 1) * (it.config?.copies || 1), 0)} pages total
+                            </div>
+                            <div className="text-slate-500 text-[10px] truncate max-w-[200px]">
+                              {o.items.map((it, idx) => `#${idx + 1}: ${it.config?.paperSize || 'A4'} ${it.config?.colorMode === 'COLOR' ? 'Color' : 'B&W'}`).join(', ')}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div>{item?.selectedPageCount || 1} pages &bull; {item?.config?.copies || 1} copies</div>
+                            <div className="text-slate-500 text-[10px]">
+                              {item?.config?.paperSize || 'A4'} &bull; {item?.config?.colorMode === "BW" ? "B&W" : "Color"} &bull; {item?.config?.duplexMode === "DOUBLE" ? "Duplex" : "Single"}
+                            </div>
+                          </>
+                        )}
                       </td>
                       <td className="py-3 px-4 font-mono font-bold text-emerald-400 text-sm">
                         ₹{o.totalAmount.toFixed(2)}
@@ -307,7 +374,7 @@ export default function DashboardOrdersView() {
                               : "bg-amber-950 text-amber-300 border border-amber-500/30"
                           }`}
                         >
-                          {o.paymentStatus === "PAID" ? "Paid" : o.paymentMethod === "CASH" ? "Cash Pending" : "UPI Pending"}
+                          {o.paymentStatus === "PAID" ? "Paid" : o.paymentStatus === "MANUAL_UPI_REVIEW_PENDING" ? "Review Pending" : o.paymentStatus === "MANUAL_UPI_NOT_FOUND" ? "Not Found" : o.paymentMethod === "CASH" ? "Cash Pending" : "UPI Pending"}
                         </span>
                       </td>
                       <td className="py-3 px-4">
@@ -441,16 +508,43 @@ export default function DashboardOrdersView() {
                   </button>
                 )}
 
-                {selectedOrder.paymentStatus === "UPI_PENDING" && (
-                  <button
-                    type="button"
-                    disabled={isActionLoading}
-                    onClick={() => handleStaffAction("CONFIRM_UPI_PAID")}
-                    className="py-2 px-3 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5"
-                  >
-                    <QrCode className="w-3.5 h-3.5" />
-                    <span>Confirm UPI Paid</span>
-                  </button>
+                {/* MANUAL UPI VERIFICATION CONTROLS */}
+                {selectedOrder.paymentMethod === "MANUAL_UPI" && selectedOrder.paymentStatus !== "PAID" && (
+                  <div className="col-span-2 bg-[#0d1824] border border-blue-500/30 rounded-xl p-3 space-y-2.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-blue-400 uppercase tracking-wider text-[10px]">Manual UPI Verification</span>
+                      <span className="font-mono text-[11px] text-slate-300">Ref: {selectedOrder.manualPaymentReference || 'None'}</span>
+                    </div>
+
+                    {selectedOrder.customerClaimedUtr && (
+                      <div className="text-[11px] text-slate-300 bg-[#162232] p-2 rounded border border-blue-500/20 flex justify-between">
+                        <span className="text-slate-400">Customer UTR:</span>
+                        <strong className="font-mono text-white">{selectedOrder.customerClaimedUtr}</strong>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <button
+                        type="button"
+                        disabled={isActionLoading}
+                        onClick={handleConfirmManualUpi}
+                        className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Confirm Payment</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={isActionLoading}
+                        onClick={handleMarkManualUpiNotFound}
+                        className="py-2.5 px-3 bg-rose-700 hover:bg-rose-600 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Not Received</span>
+                      </button>
+                    </div>
+                  </div>
                 )}
 
                 {selectedOrder.status !== "ON_HOLD" && selectedOrder.status !== "COMPLETED" && selectedOrder.status !== "CANCELLED" && (

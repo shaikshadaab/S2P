@@ -13,6 +13,8 @@ export interface PrinterCapabilities {
   paperSizes: string[];
   colorSupported: boolean;
   duplexSupported: boolean;
+  duplexKind?: 'AUTO' | 'MANUAL' | 'NONE';
+  photoPaperSupported?: boolean;
   supportedResolutionsDpi?: number[];
 }
 
