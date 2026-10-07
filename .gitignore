@@ -71,3 +71,6 @@ Desktop.ini
 
 # Agent Scratchpads
 scratchpad*.md
+
+*.exe
+apps/web/public/installer/

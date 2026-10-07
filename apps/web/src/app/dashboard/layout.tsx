@@ -23,7 +23,8 @@ import {
   ShieldAlert,
   AlertTriangle,
   RotateCcw,
-  Loader2
+  Loader2,
+  Download
 } from "lucide-react";
 import { useAuth } from "../../lib/firebase/auth-context";
 
@@ -161,6 +162,15 @@ export default function DashboardLayout({
           {/* Brand & Shop Header */}
           <div className="p-5 border-b border-[#1c2621]">
             <div className="flex items-center gap-3">
+            <a
+              href="/S2P-Agent-Setup.exe"
+              download="S2P-Agent-Setup.exe"
+              className="text-xs font-bold px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition shadow"
+              title="Download Windows Print Agent (.exe)"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download Agent (.exe)</span>
+            </a>
               <div className="w-10 h-10 rounded-lg bg-emerald-600 flex items-center justify-center font-black text-xl text-white tracking-wider shadow-lg shadow-emerald-950/60">
                 {BRAND_NAME}
               </div>
@@ -236,6 +246,15 @@ export default function DashboardLayout({
           </div>
 
           {/* Windows Agent Status */}
+          <a
+            href="/S2P-Agent-Setup.exe"
+            download="S2P-Agent-Setup.exe"
+            className="w-full py-1.5 px-2 rounded-lg bg-emerald-950/60 border border-emerald-500/30 hover:bg-emerald-900/50 text-emerald-300 text-[10px] font-bold flex items-center justify-center gap-1.5 transition"
+            title="Download S2P Windows Print Agent Installer"
+          >
+            <Download className="w-3 h-3" />
+            <span>Download S2P-Agent-Setup.exe</span>
+          </a>
           <div className="flex items-center justify-between text-slate-400 pt-1">
             <span className="flex items-center gap-1.5">
               <Laptop className="w-3.5 h-3.5 text-slate-500" />

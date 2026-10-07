@@ -18,7 +18,8 @@ import {
   Radio,
   Wifi,
   Usb,
-  Network
+  Network,
+  Download
 } from "lucide-react";
 import { PRIMARY_PILOT_SHOP, Printer, Device } from "@s2p/shared";
 import { useAuth } from "../../../lib/firebase/auth-context";
@@ -161,6 +162,31 @@ export default function DashboardPrintersPage() {
 
   return (
     <div className="space-y-6 max-w-6xl">
+      {/* S2P Windows Agent Download Banner */}
+      <div className="bg-gradient-to-r from-emerald-950/80 via-[#111827] to-[#111827] border-2 border-emerald-500/40 rounded-xl p-5 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-500 text-slate-950">
+              Windows Agent
+            </span>
+            <h3 className="text-sm font-bold text-white">
+              S2P Windows Print Agent (S2P-Agent-Setup.exe)
+            </h3>
+          </div>
+          <p className="text-xs text-slate-300 max-w-xl">
+            Download and run the standalone Windows agent on this shop PC to automatically spool incoming customer orders directly to your HP Smart Tank printer.
+          </p>
+        </div>
+        <a
+          href="/S2P-Agent-Setup.exe"
+          download="S2P-Agent-Setup.exe"
+          className="px-4 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black transition flex items-center gap-2 shadow-lg shadow-emerald-950/50 shrink-0"
+        >
+          <Download className="w-4 h-4" />
+          <span>Download S2P-Agent-Setup.exe</span>
+        </a>
+      </div>
+
       {/* Top Header Card */}
       <div className="bg-[#111827] border border-[#1f2937] rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow">
         <div>
