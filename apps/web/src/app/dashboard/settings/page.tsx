@@ -28,6 +28,8 @@ export default function DashboardSettingsPage() {
   const [upiId, setUpiId] = useState<string>("");
   const [payeeName, setPayeeName] = useState<string>(PRIMARY_PILOT_SHOP.name);
   const [providerLabel, setProviderLabel] = useState<string>("PhonePe / UPI");
+  const [verificationState, setVerificationState] = useState<string>("UNVERIFIED");
+  const [isVerified, setIsVerified] = useState<boolean>(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
@@ -49,6 +51,8 @@ export default function DashboardSettingsPage() {
           setUpiId(data.settings.upiId || "");
           setPayeeName(data.settings.payeeName || PRIMARY_PILOT_SHOP.name);
           setProviderLabel(data.settings.providerLabel || "PhonePe / UPI");
+          setVerificationState(data.settings.verificationState || "UNVERIFIED");
+          setIsVerified(Boolean(data.settings.isVerified));
         }
       } catch {
         // Fallback default
@@ -98,7 +102,9 @@ export default function DashboardSettingsPage() {
         throw new Error(data.error || "Failed to update payment settings");
       }
 
-      setSaveSuccess("Payment settings saved successfully and synchronized across tenant endpoints.");
+      setSaveSuccess("Payment settings saved successfully. Verification state reset to UNVERIFIED until tested.");
+      setVerificationState("UNVERIFIED");
+      setIsVerified(false);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error saving payment settings";
       setSaveError(msg);
@@ -107,6 +113,34 @@ export default function DashboardSettingsPage() {
     }
   };
 
+  const handleMarkTested = async () => {
+    try {
+      setIsSaving(true);
+      setSaveSuccess(null);
+      setSaveError(null);
+      const token = user ? await user.getIdToken() : "";
+      const res = await fetch(`/api/shops/${PRIMARY_PILOT_SHOP.id}/payment-settings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ action: "MARK_TESTED" })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to mark tested");
+      }
+      setVerificationState("DEVICE_TESTED");
+      setIsVerified(true);
+      setSaveSuccess("UPI setup marked as TESTED on device by owner.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error";
+      setSaveError(msg);
+    } finally {
+      setIsSaving(false);
+    }
+  };
   const handleTestPaymentQr = async () => {
     try {
       const cleanUpi = upiId.trim() || "pilot@ybl";
@@ -162,9 +196,18 @@ export default function DashboardSettingsPage() {
               </p>
             </div>
           </div>
-          <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-500/30">
-            STAFF_CONFIRMATION
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${
+    isVerified || verificationState === 'DEVICE_TESTED'
+      ? 'bg-emerald-950 text-emerald-300 border-emerald-500/30'
+      : 'bg-amber-950 text-amber-300 border-amber-500/30'
+  }`}>
+              {isVerified || verificationState === 'DEVICE_TESTED' ? 'STATUS: DEVICE_TESTED' : 'STATUS: UNVERIFIED'}
+            </span>
+            <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-500/30">
+              STAFF_CONFIRMATION
+            </span>
+          </div>
         </div>
 
         {saveSuccess && (
@@ -237,14 +280,28 @@ export default function DashboardSettingsPage() {
           </div>
 
           <div className="flex items-center justify-between border-t border-[#1f2937] pt-4">
-            <button
-              type="button"
-              onClick={handleTestPaymentQr}
-              className="px-3.5 py-2 bg-[#1f2937] hover:bg-[#374151] border border-[#374151] rounded-lg text-xs font-semibold text-slate-300 transition flex items-center gap-1.5"
-            >
-              <Eye className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Test Payment QR</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleTestPaymentQr}
+                className="px-3.5 py-2 bg-[#1f2937] hover:bg-[#374151] border border-[#374151] rounded-lg text-xs font-semibold text-slate-300 transition flex items-center gap-1.5"
+              >
+                <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Test Payment QR</span>
+              </button>
+
+              {!isVerified && (
+                <button
+                  type="button"
+                  onClick={handleMarkTested}
+                  disabled={isSaving || !upiId}
+                  className="px-3 py-2 bg-blue-700 hover:bg-blue-600 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Mark UPI Tested</span>
+                </button>
+              )}
+            </div>
 
             <button
               type="submit"

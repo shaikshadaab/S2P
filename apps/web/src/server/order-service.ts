@@ -1474,7 +1474,8 @@ export async function getShopOptionsService(db: Firestore, shopId: string) {
           showQr: data?.showQr !== false,
           showUpiIntent: data?.showUpiIntent !== false,
           isEnabled: Boolean(data?.enabled ?? data?.isEnabled),
-          isVerified: true
+          isVerified: Boolean(data?.isVerified),
+          verificationState: data?.verificationState || 'UNVERIFIED'
         };
       }
       return shop.upiConfig ? {

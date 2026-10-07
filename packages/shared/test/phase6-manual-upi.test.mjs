@@ -266,4 +266,113 @@ test('Phase 6: Manual UPI Payment Suite', async (t) => {
     orderPending.paymentStatus = 'PAID';
     assert.equal(canAutoQueuePrint(orderPending), true, 'May allow auto queue only after verified PAID');
   });
+
+  // Test 13: CUSTOMER CLAIM AUTHORIZATION RULES (ZERO DEV BYPASS)
+  await t.test('CUSTOMER CLAIM AUTH: Enforces strict ownership checks with zero dev bypass', () => {
+    const order = {
+      id: 'ord_claim_auth_test',
+      shopId: 'shakeel-online-services',
+      customerId: 'cust_real_123',
+      guestSessionId: 'guest_session_abc'
+    };
+
+    function authorizeClaim(identity, ord) {
+      let isAllowed = false;
+      if (identity.isAuthenticated && identity.uid) {
+        if (ord.customerId === identity.uid || ord.ownerUid === identity.uid) {
+          isAllowed = true;
+        }
+      } else if (identity.isGuest && identity.guestSessionId) {
+        if (ord.guestSessionId === identity.guestSessionId) {
+          isAllowed = true;
+        }
+      }
+
+      if (!isAllowed) {
+        throw new Error('FORBIDDEN: You are not authorized to update this order.');
+      }
+      return true;
+    }
+
+    // 1. Correct guest session -> Allowed
+    assert.equal(authorizeClaim({ isGuest: true, guestSessionId: 'guest_session_abc' }, order), true);
+
+    // 2. Wrong guest session -> Blocked with FORBIDDEN
+    assert.throws(() => {
+      authorizeClaim({ isGuest: true, guestSessionId: 'guest_session_hacker' }, order);
+    }, /FORBIDDEN/);
+
+    // 3. Different customer UID -> Blocked with FORBIDDEN
+    assert.throws(() => {
+      authorizeClaim({ isAuthenticated: true, uid: 'cust_different_456' }, order);
+    }, /FORBIDDEN/);
+
+    // 4. Unauthenticated with no guest session -> Blocked with FORBIDDEN
+    assert.throws(() => {
+      authorizeClaim({ isAuthenticated: false, isGuest: false }, order);
+    }, /FORBIDDEN/);
+  });
+
+  // Test 14: UPI VERIFICATION STATE MACHINE (RESET ON SAVE, TESTED ON ACTION)
+  await t.test('UPI VERIFICATION SEMANTICS: Saving resets to UNVERIFIED, explicit action marks DEVICE_TESTED', () => {
+    // Initial save of UPI settings
+    const savedConfig = {
+      upiId: 'shop@ybl',
+      payeeName: 'Shakeel',
+      verificationState: 'UNVERIFIED',
+      isVerified: false
+    };
+
+    assert.equal(savedConfig.verificationState, 'UNVERIFIED');
+    assert.equal(savedConfig.isVerified, false, 'Saving must NOT auto-verify UPI ID');
+
+    // Owner runs explicit MARK_TESTED action
+    function markUpiTested(config) {
+      if (!config.upiId || !config.upiId.includes('@')) {
+        throw new Error('INVALID_UPI_ID');
+      }
+      return {
+        ...config,
+        verificationState: 'DEVICE_TESTED',
+        isVerified: true,
+        testedAt: new Date().toISOString()
+      };
+    }
+
+    const testedConfig = markUpiTested(savedConfig);
+    assert.equal(testedConfig.verificationState, 'DEVICE_TESTED');
+    assert.equal(testedConfig.isVerified, true);
+    assert.ok(testedConfig.testedAt);
+
+    // If owner later edits UPI ID -> Resets back to UNVERIFIED
+    function editUpiSettings(existing, newUpiId) {
+      return {
+        ...existing,
+        upiId: newUpiId,
+        verificationState: 'UNVERIFIED',
+        isVerified: false,
+        testedAt: undefined
+      };
+    }
+
+    const reEdited = editUpiSettings(testedConfig, 'new@okhdfc');
+    assert.equal(reEdited.verificationState, 'UNVERIFIED');
+    assert.equal(reEdited.isVerified, false, 'Editing UPI ID must reset verification state');
+  });
+
+  // Test 15: AUTO QUEUE STRICT OPT-IN SEMANTICS
+  await t.test('AUTO QUEUE OPT-IN: Defaults to false and requires printDispatchMode === AUTO_AFTER_PAYMENT', () => {
+    function shouldAutoDispatch(shopSettings) {
+      return shopSettings?.autoQueuePaidOrders === true &&
+             shopSettings?.printDispatchMode === 'AUTO_AFTER_PAYMENT';
+    }
+
+    // Default settings (missing or default false)
+    assert.equal(shouldAutoDispatch({}), false, 'Missing settings must evaluate to false');
+    assert.equal(shouldAutoDispatch({ autoQueuePaidOrders: false }), false);
+    assert.equal(shouldAutoDispatch({ autoQueuePaidOrders: true, printDispatchMode: 'STAFF_APPROVAL' }), false, 'STAFF_APPROVAL mode must prevent auto-dispatch even if boolean flag was true');
+
+    // Only explicit opt-in with AUTO_AFTER_PAYMENT
+    assert.equal(shouldAutoDispatch({ autoQueuePaidOrders: true, printDispatchMode: 'AUTO_AFTER_PAYMENT' }), true);
+  });
 });

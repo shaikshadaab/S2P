@@ -121,7 +121,7 @@ export class PaymentService {
     if (result.status === 'SUCCESS' && !result.alreadyPaid) {
       const shopDoc = await db.collection('shops').doc(result.shopId).get();
       const shop = shopDoc.exists ? (shopDoc.data() as Shop) : null;
-      const isAutoMode = shop?.settings?.autoQueuePaidOrders !== false;
+      const isAutoMode = shop?.settings?.autoQueuePaidOrders === true && shop?.settings?.printDispatchMode === 'AUTO_AFTER_PAYMENT';
 
       if (isAutoMode) {
         try {

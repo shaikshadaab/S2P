@@ -3,6 +3,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { authenticateOrGuest } from '@/lib/auth/session';
 import { FieldValue } from 'firebase-admin/firestore';
 import crypto from 'crypto';
+import { UpiVerificationState } from '@s2p/shared';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +48,8 @@ export async function GET(
           payeeName: shopData.upiConfig.merchantName || '',
           providerLabel: (shopData.upiConfig as any).providerLabel || 'PhonePe / UPI',
           verificationMode: 'STAFF_CONFIRMATION',
+          verificationState: (shopData.upiConfig as any).verificationState || 'UNVERIFIED',
+          isVerified: Boolean(shopData.upiConfig.isVerified),
           showQr: true,
           showUpiIntent: true,
           createdAt: new Date().toISOString(),
@@ -58,6 +61,8 @@ export async function GET(
           payeeName: '',
           providerLabel: 'PhonePe / UPI',
           verificationMode: 'STAFF_CONFIRMATION',
+          verificationState: 'UNVERIFIED',
+          isVerified: false,
           showQr: true,
           showUpiIntent: true,
           createdAt: new Date().toISOString(),
@@ -87,7 +92,7 @@ export async function POST(
 
     const shopId = await resolveShopId(params.slug);
 
-    // Permission check: OWNER or MANAGER
+    // Permission check: Real active membership with OWNER or MANAGER
     const memberDoc = await adminDb
       .collection('shopMembers')
       .doc(`${identity.uid}_${shopId}`)
@@ -104,16 +109,67 @@ export async function POST(
       }
     }
 
-    if (!isAuthorized && process.env.NODE_ENV !== 'production' && process.env.S2P_TEST_MODE === 'true') {
-      isAuthorized = true;
-      staffRole = 'OWNER';
-    }
-
+    // STRICT: No development bypass allowed!
     if (!isAuthorized) {
       return NextResponse.json({ success: false, error: 'FORBIDDEN: Only shop OWNER or MANAGER may configure payment settings.' }, { status: 403 });
     }
 
     const body = await req.json().catch(() => ({}));
+    const nowIso = new Date().toISOString();
+
+    // Check if this is an explicit "MARK_TESTED" action
+    if (body.action === 'MARK_TESTED') {
+      await adminDb.runTransaction(async (transaction) => {
+        const settingsRef = adminDb.collection('shops').doc(shopId).collection('paymentSettings').doc('manualUpi');
+        const settingsDoc = await transaction.get(settingsRef);
+        if (!settingsDoc.exists) {
+          throw new Error('NO_UPI_SETTINGS: Save UPI settings before marking verified.');
+        }
+
+        const data = settingsDoc.data();
+        if (!data?.upiId || !data.upiId.includes('@')) {
+          throw new Error('INVALID_UPI_ID: A valid UPI ID is required to verify.');
+        }
+
+        transaction.update(settingsRef, {
+          verificationState: 'DEVICE_TESTED' as UpiVerificationState,
+          isVerified: true,
+          testedAt: nowIso,
+          updatedAt: nowIso,
+          updatedAtServer: FieldValue.serverTimestamp()
+        });
+
+        const shopRef = adminDb.collection('shops').doc(shopId);
+        transaction.update(shopRef, {
+          'upiConfig.verificationState': 'DEVICE_TESTED',
+          'upiConfig.isVerified': true,
+          'upiConfig.testedAt': nowIso,
+          updatedAt: nowIso,
+          updatedAtServer: FieldValue.serverTimestamp()
+        });
+
+        const auditId = 'aud_' + Date.now().toString(36) + '_' + crypto.randomBytes(3).toString('hex');
+        transaction.set(adminDb.collection('auditLogs').doc(auditId), {
+          id: auditId,
+          shopId,
+          action: 'MANUAL_UPI_MARKED_TESTED',
+          targetType: 'SHOP_PAYMENT_SETTINGS',
+          targetId: 'manualUpi',
+          actorId: identity.uid,
+          actorRole: staffRole,
+          timestamp: nowIso,
+          details: { verifiedBy: identity.uid, role: staffRole }
+        });
+      });
+
+      return NextResponse.json({
+        success: true,
+        shopId,
+        message: 'UPI settings verified as tested by shop owner.'
+      });
+    }
+
+    // Normal save/update action: resets verification to UNVERIFIED
     const { enabled, upiId, payeeName, providerLabel, showQr, showUpiIntent } = body;
 
     if (enabled && (!upiId || !upiId.includes('@'))) {
@@ -123,13 +179,14 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'INVALID_PAYEE_NAME: Payee name is required when enabled.' }, { status: 400 });
     }
 
-    const nowIso = new Date().toISOString();
     const settingsData = {
       enabled: Boolean(enabled),
       upiId: (upiId || '').trim(),
       payeeName: (payeeName || '').trim(),
       providerLabel: (providerLabel || 'PhonePe / UPI').trim(),
       verificationMode: 'STAFF_CONFIRMATION',
+      verificationState: 'UNVERIFIED' as UpiVerificationState, // Resets to UNVERIFIED on save
+      isVerified: false,                                      // Never auto-verified on edit
       showQr: showQr !== false,
       showUpiIntent: showUpiIntent !== false,
       updatedAt: nowIso,
@@ -163,10 +220,11 @@ export async function POST(
           merchantName: settingsData.payeeName,
           providerLabel: settingsData.providerLabel,
           verificationMode: settingsData.verificationMode,
+          verificationState: 'UNVERIFIED',
           showQr: settingsData.showQr,
           showUpiIntent: settingsData.showUpiIntent,
           isEnabled: settingsData.enabled,
-          isVerified: true
+          isVerified: false // Resets to FALSE on save/update!
         },
         updatedAt: nowIso,
         updatedAtServer: FieldValue.serverTimestamp()
@@ -186,7 +244,8 @@ export async function POST(
         details: {
           enabled: settingsData.enabled,
           upiIdMasked: settingsData.upiId ? settingsData.upiId.replace(/^(.{2})(.*)(@.*)$/, '$1***$3') : '',
-          payeeName: settingsData.payeeName
+          payeeName: settingsData.payeeName,
+          verificationState: 'UNVERIFIED'
         }
       });
     });

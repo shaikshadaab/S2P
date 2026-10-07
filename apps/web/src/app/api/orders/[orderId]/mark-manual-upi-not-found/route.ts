@@ -43,10 +43,7 @@ export async function POST(
         }
       }
 
-      if (!isAuthorizedStaff && process.env.NODE_ENV !== 'production' && process.env.S2P_TEST_MODE === 'true') {
-        isAuthorizedStaff = true;
-        staffRole = 'OWNER';
-      }
+
 
       if (!isAuthorizedStaff) {
         throw new Error('FORBIDDEN: Insufficient permissions to update payment status for this shop.');

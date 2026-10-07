@@ -47,13 +47,8 @@ export async function POST(
         }
       }
 
-      // In development mode, allow guest if session matches or dev testing
-      if (!isAllowed && process.env.NODE_ENV !== 'production') {
-        isAllowed = true;
-      }
-
       if (!isAllowed) {
-        throw new Error('UNAUTHORIZED: You are not authorized to update this order.');
+        throw new Error('FORBIDDEN: You are not authorized to update this order.');
       }
 
       // Idempotency: if already PAID, do not alter
@@ -139,7 +134,7 @@ export async function POST(
     return NextResponse.json(result);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Failed to record manual payment claim';
-    const status = msg.includes('ORDER_NOT_FOUND') ? 404 : msg.includes('UNAUTHORIZED') ? 403 : 400;
+    const status = msg.includes('ORDER_NOT_FOUND') ? 404 : msg.includes('UNAUTHORIZED') || msg.includes('FORBIDDEN') ? 403 : 400;
     return NextResponse.json({ success: false, error: msg }, { status });
   }
 }

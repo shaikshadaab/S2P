@@ -87,3 +87,14 @@ If a phone on the same Wi-Fi cannot open `http://192.168.1.123:3000`:
 1. Ensure the Wi-Fi connection profile in Windows is set to **Private Network** (not Public).
 2. Allow Node.js on port `3000` on the private network if prompted by Windows Firewall.
 3. Do NOT disable the entire Windows Firewall.
+
+---
+
+## 6. Firebase Emulator LAN Security Protocol
+
+1. **Local-Only Scope:** All emulator services (`0.0.0.0:8080`, `0.0.0.0:9099`, `0.0.0.0:9199`, `0.0.0.0:4000`) are bound for same-subnet Wi-Fi development only.
+2. **Never Expose to Internet:**
+   - NO router port forwarding for emulator ports or port 3000.
+   - NO public reverse proxy or tunneling (e.g., ngrok, Cloudflare Tunnel) during development.
+3. **Network Profile:** Ensure the PC network profile is set to **Private Network** in Windows Settings. Do NOT disable Windows Firewall globally.
+4. **Data Isolation:** Emulators contain zero real production customer data or live banking secrets. All test data resides in local memory.

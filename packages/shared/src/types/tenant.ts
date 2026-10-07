@@ -1,4 +1,4 @@
-﻿export type TenantStatus = 'ACTIVE' | 'SUSPENDED';
+export type TenantStatus = 'ACTIVE' | 'SUSPENDED';
 
 export type PrintDispatchMode = 'STAFF_APPROVAL' | 'AUTO_AFTER_PAYMENT';
 
@@ -12,16 +12,20 @@ export interface Organization {
   updatedAt: string;
 }
 
+export type UpiVerificationState = 'UNVERIFIED' | 'QR_GENERATED' | 'DEVICE_TESTED' | 'VERIFIED';
+
 export interface UpiConfiguration {
   upiId: string;
   merchantName: string;
   providerLabel?: string;
   verificationMode?: 'STAFF_CONFIRMATION';
+  verificationState?: UpiVerificationState;
   showQr?: boolean;
   showUpiIntent?: boolean;
   qrCodeUrl?: string;
   isEnabled: boolean;
   isVerified: boolean;
+  testedAt?: string;
   updatedAt?: string;
 }
 
@@ -75,6 +79,15 @@ export interface ShopSettings {
   requireCounterVerificationForUpi: boolean;
   retentionPolicy: RetentionPolicy;
 }
+
+export const DEFAULT_SHOP_SETTINGS: ShopSettings = {
+  allowGuestOrders: true,
+  maxUploadSizeBytes: 52428800,
+  autoQueuePaidOrders: false,
+  printDispatchMode: 'STAFF_APPROVAL',
+  requireCounterVerificationForUpi: true,
+  retentionPolicy: DEFAULT_RETENTION_POLICY
+};
 
 
 export interface ShopBranding {

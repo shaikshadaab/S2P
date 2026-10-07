@@ -46,11 +46,7 @@ export async function POST(
         }
       }
 
-      // Allow owner override in dev testing if dev bypass
-      if (!isAuthorizedStaff && process.env.NODE_ENV !== 'production' && process.env.S2P_TEST_MODE === 'true') {
-        isAuthorizedStaff = true;
-        staffRole = 'OWNER';
-      }
+
 
       if (!isAuthorizedStaff) {
         throw new Error('FORBIDDEN: Insufficient permissions to confirm payment for this shop.');
@@ -170,7 +166,7 @@ export async function POST(
     if (result.success && !result.alreadyPaid) {
       const shopDoc = await adminDb.collection('shops').doc(result.shopId).get();
       const shop = shopDoc.exists ? (shopDoc.data() as Shop) : null;
-      const isAutoMode = shop?.settings?.autoQueuePaidOrders !== false;
+      const isAutoMode = shop?.settings?.autoQueuePaidOrders === true && shop?.settings?.printDispatchMode === 'AUTO_AFTER_PAYMENT';
 
       if (isAutoMode) {
         try {
