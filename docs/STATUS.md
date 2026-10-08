@@ -4,7 +4,7 @@
 **Customer Visible Brand:** Shakeel Online Services  
 **Internal Product Name:** SOS Print  
 **Date:** 2026-10-08  
-**Server Shop ID:** `shakeel-online-services`  
+**Server Shop ID:** `shakeel-online-services`  \n**Deployment Repo:** `https://github.com/shaikshadaab/shakeel123.git`  
 **Firebase Project:** `shakeel-online-services-951ec`  
 **Owner UID:** `YSakxmoeNRX85x7eQKG2P7KYmPo2` (`shaikshadaab16@gmail.com`)  
 **Merchant UPI Status:** UNVERIFIED (Awaiting owner confirmation in Dashboard Settings; unverified UPI disabled from customer payment methods)  
@@ -26,7 +26,7 @@
 | **Phase 06** | 6 Searchable Resume Templates, Word/PowerPoint (.docx/.pptx) Converter | **COMPLETED** | OfficeConverter (5 tests PASS); Multi-page ResumeEngine (3 tests PASS) | Ready for customer use (XLSX disabled) |
 | **Phase 07** | Camera Scan / ID Front-Back Studio / Xerox Boost | **COMPLETED** | CR80 card templates & multi-page scan to PDF verified | Ready for phone camera capture |
 | **Phase 08** | Operations Dashboard, Queue, Reports & KPIs, Staff RBAC, Diagnostics | **COMPLETED** | Fail-closed RBAC (8/8 endpoints tested), CSV export, system health verified | Fully connected to authorized APIs |
-| **Phase 09** | Windows Installation Package, Deployment & Live Testing | **IN PROGRESS** | Production build passes (27 static & dynamic routes, 0 errors) | Standby for shop Windows PC printer commissioning |
+| **Phase 09** | Windows Installation Package, Deployment & Live Testing | **IN PROGRESS** | Production build passes (28 static & dynamic routes, 0 errors) | Standby for shop Windows PC printer commissioning |
 
 ---
 

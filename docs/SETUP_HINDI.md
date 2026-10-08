@@ -45,6 +45,11 @@
 
 ## भाग 2: Vercel पर वेबसाइट डिप्लॉयमेंट
 
+0. **GitHub रिपॉजिटरी:**
+   - कोड दो GitHub रिपॉजिटरी में सिंक है:
+     - `https://github.com/shaikshadaab/shakeel123.git` (मुख्य डिप्लॉयमेंट रेपो)
+     - `https://github.com/shaikshadaab/S2P.git` (बैकअप / ओरिजिन)
+
 1. **Vercel में लॉगिन करें:**
    - [https://vercel.com/](https://vercel.com/) पर जाएं और GitHub अकाउंट से लॉगिन करें।
 2. **प्रोजेक्ट इम्पोर्ट करें:**

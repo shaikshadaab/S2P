@@ -71,7 +71,13 @@ export default function HomePage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              href="/services"
+              className="hidden sm:inline-flex text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
+            >
+              {lang === "en" ? "Services" : "सेवाएं"}
+            </Link>
             <Link
               href="/rates"
               className="hidden sm:inline-flex text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
@@ -80,22 +86,28 @@ export default function HomePage() {
             </Link>
             <Link
               href="/how-to-print"
-              className="hidden sm:inline-flex text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
+              className="hidden md:inline-flex text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
             >
               {lang === "en" ? "How to Print" : "प्रिंट कैसे करें"}
             </Link>
             <Link
-              href="/s/shakeel-online-services"
-              className="text-xs font-semibold px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition flex items-center gap-1.5"
+              href="/about"
+              className="hidden lg:inline-flex text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
             >
-              <QrCode className="w-3.5 h-3.5" />
-              <span>{lang === "en" ? "Print Now" : "प्रिंट शुरू करें"}</span>
+              {lang === "en" ? "About" : "हमारे बारे में"}
             </Link>
             <Link
-              href="/dashboard"
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition"
+              href="/contact"
+              className="hidden sm:inline-flex text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
             >
-              {lang === "en" ? "Owner Login" : "दुकान लॉगिन"}
+              {lang === "en" ? "Contact" : "संपर्क"}
+            </Link>
+            <Link
+              href="/s/shakeel-online-services"
+              className="text-xs font-semibold px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs transition flex items-center gap-1.5"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>{lang === "en" ? "Start Printing" : "प्रिंट शुरू करें"}</span>
             </Link>
           </div>
         </div>
