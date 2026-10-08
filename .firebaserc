@@ -1,7 +1,6 @@
-{
+﻿{
   "projects": {
-    "default": "s2p-shakeel-dev",
-    "development": "s2p-shakeel-dev",
-    "production": "s2p-shakeel-prod"
+    "default": "shakeel-online-services-951ec",
+    "production": "shakeel-online-services-951ec"
   }
 }

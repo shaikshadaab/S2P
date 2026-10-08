@@ -1,4 +1,4 @@
-﻿/**
+/**
  * SOS Print — Authoritative Owner Bootstrap Script
  * Strictly validates and sets the initial shop owner for Shakeel Online Services.
  *
@@ -27,8 +27,12 @@ if (!currentProjectId || currentProjectId !== REQUIRED_PROJECT_ID) {
   process.exit(1);
 }
 
+import fs from 'fs';
+
 // 2. Strict Credential check (Do not proceed with empty or fake credentials)
+const saPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
 const hasCertCredentials = Boolean(
+  (saPath && fs.existsSync(saPath)) ||
   process.env.FIREBASE_SERVICE_ACCOUNT_KEY ||
   (process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY)
 );
@@ -43,7 +47,19 @@ if (!hasCertCredentials) {
 // Initialize Admin SDK with explicit credentials
 if (admin.apps.length === 0) {
   let credential;
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+  if (saPath && fs.existsSync(saPath)) {
+    try {
+      const sa = JSON.parse(fs.readFileSync(saPath, 'utf8'));
+      if (sa.project_id !== REQUIRED_PROJECT_ID) {
+        console.error('[Security Violation] Credential project_id does not match expected project ID: ' + REQUIRED_PROJECT_ID);
+        process.exit(1);
+      }
+      credential = admin.credential.cert(sa);
+    } catch (e) {
+      console.error('[Bootstrap ERROR] Failed to read service account JSON file from:', saPath, e.message);
+      process.exit(1);
+    }
+  } else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
     try {
       const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
       credential = admin.credential.cert(sa);
