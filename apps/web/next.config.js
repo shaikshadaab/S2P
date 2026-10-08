@@ -2,6 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@s2p/shared"],
+  serverExternalPackages: ["firebase-admin"],
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
