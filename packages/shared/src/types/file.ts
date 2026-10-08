@@ -2,11 +2,14 @@ export type SupportedMimeType =
   | 'application/pdf'
   | 'image/jpeg'
   | 'image/png'
-  | 'image/webp';
+  | 'image/webp'
+  | 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  | 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 
 export type FileProcessingStatus =
   | 'UPLOADING'
   | 'VALIDATING'
+  | 'CONVERTING'
   | 'READY'
   | 'READY_FOR_PRINT'
   | 'FAILED';
@@ -32,6 +35,7 @@ export interface OrderFile {
   sizeBytes: number;
   sha256: string;
   pageCount: number;
+  convertedFrom?: 'DOCX' | 'PPTX' | null;
   storageOriginalPath?: string | null;
   storageProcessedPath?: string | null;
   previewPaths?: string[];
@@ -59,7 +63,8 @@ export interface FileUploadSessionRequest {
 
 export interface FileUploadSessionResponse {
   fileId: string;
-  uploadPath: string;
+  uploadUrl: string;
+  storagePath: string;
   maxSizeBytes: number;
-  allowedMimeTypes: string[];
+  expiresAt: string;
 }

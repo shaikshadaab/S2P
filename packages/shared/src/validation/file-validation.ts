@@ -4,12 +4,22 @@ export const ALLOWED_MIME_TYPES: SupportedMimeType[] = [
   'application/pdf',
   'image/jpeg',
   'image/png',
-  'image/webp'
+  'image/webp',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation'
 ];
 
 export const MAX_DEFAULT_UPLOAD_SIZE_BYTES = 52428800; // 50 MB
 
-export const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
+export const ALLOWED_EXTENSIONS = [
+  '.pdf',
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webp',
+  '.docx',
+  '.pptx'
+];
 
 export const FORBIDDEN_EXTENSIONS = [
   // Executables
@@ -18,8 +28,8 @@ export const FORBIDDEN_EXTENSIONS = [
   '.zip', '.rar', '.7z', '.tar', '.gz', '.bz2', '.iso',
   // Scripts / Code
   '.js', '.ts', '.html', '.htm', '.php', '.py', '.rb', '.java', '.c', '.cpp',
-  // Macro Documents
-  '.docm', '.xlsm', '.pptm'
+  // Macro Documents & Disabled formats
+  '.docm', '.xlsm', '.pptm', '.xlsx', '.xls'
 ];
 
 export interface FileValidationInput {
@@ -39,13 +49,14 @@ export interface FileValidationResult {
 
 /**
  * Inspects raw buffer bytes against authoritative file magic signatures.
- * Minimum signatures:
+ * Signatures:
  * - PDF: %PDF- (0x25 0x50 0x44 0x46 0x2D)
  * - JPEG: FF D8 FF
  * - PNG: 89 50 4E 47 0D 0A 1A 0A
  * - WEBP: RIFF....WEBP (RIFF at 0..3, WEBP at 8..11)
+ * - OpenXML (.docx/.pptx): PK\x03\x04 (0x50 0x4B 0x03 0x04)
  */
-export function detectMagicFileType(bytes: Uint8Array | Buffer): { ext: string; mime: string } | null {
+export function detectMagicFileType(bytes: Uint8Array | Buffer, hintExt?: string): { ext: string; mime: string } | null {
   if (!bytes || bytes.length < 4) return null;
 
   // PDF: %PDF-
@@ -79,6 +90,17 @@ export function detectMagicFileType(bytes: Uint8Array | Buffer): { ext: string; 
     return { ext: '.webp', mime: 'image/webp' };
   }
 
+  // OpenXML: PK\x03\x04
+  if (
+    bytes.length >= 4 &&
+    bytes[0] === 0x50 && bytes[1] === 0x4B && bytes[2] === 0x03 && bytes[3] === 0x04
+  ) {
+    if (hintExt === '.pptx') {
+      return { ext: '.pptx', mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' };
+    }
+    return { ext: '.docx', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
+  }
+
   return null;
 }
 
@@ -106,9 +128,16 @@ export function validateUploadFile(input: FileValidationInput): FileValidationRe
 
   // 1. Reject Forbidden Extensions
   if (FORBIDDEN_EXTENSIONS.includes(ext)) {
+    if (ext === '.xlsx' || ext === '.xls') {
+      return {
+        isValid: false,
+        error: 'Direct Excel printing is disabled pending print-area testing. Please export sheets to PDF.',
+        safeDisplayName
+      };
+    }
     return {
       isValid: false,
-      error: `File type "${ext}" is forbidden for security. Only PDF and image documents are accepted.`,
+      error: `File type "${ext}" is forbidden for security. Only PDF, images, and Office documents (.docx, .pptx) are accepted.`,
       safeDisplayName
     };
   }
@@ -117,17 +146,25 @@ export function validateUploadFile(input: FileValidationInput): FileValidationRe
   if (!ALLOWED_EXTENSIONS.includes(ext)) {
     return {
       isValid: false,
-      error: `Unsupported file extension "${ext}". Supported formats are: PDF, JPG, JPEG, PNG, WEBP.`,
+      error: `Unsupported file extension "${ext}". Supported formats are: PDF, JPG, JPEG, PNG, WEBP, DOCX, PPTX.`,
       safeDisplayName
     };
   }
 
   // 3. Reject Unsupported MIME Types
   const normalizedMime = (mimeType || '').trim().toLowerCase();
-  if (!ALLOWED_MIME_TYPES.includes(normalizedMime as SupportedMimeType)) {
+  const isOfficeMime =
+    normalizedMime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    normalizedMime === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
+    normalizedMime === 'application/msword' ||
+    normalizedMime === 'application/vnd.ms-powerpoint' ||
+    normalizedMime === 'application/zip' ||
+    normalizedMime === 'application/octet-stream';
+
+  if (!ALLOWED_MIME_TYPES.includes(normalizedMime as SupportedMimeType) && !isOfficeMime) {
     return {
       isValid: false,
-      error: `Unsupported MIME type "${normalizedMime}". Only PDF and standard images are accepted.`,
+      error: `Unsupported MIME type "${normalizedMime}". Only PDF, standard images, and Office documents are accepted.`,
       safeDisplayName
     };
   }
@@ -181,13 +218,18 @@ export function validateUploadFile(input: FileValidationInput): FileValidationRe
 
   // 6. Validate Magic Bytes if provided
   if (bytes && bytes.length > 0) {
-    const magicInfo = detectMagicFileType(bytes);
+    const magicInfo = detectMagicFileType(bytes, ext);
     if (!magicInfo) {
       return {
         isValid: false,
         error: `File content magic header does not match any allowed document or image format.`,
         safeDisplayName
       };
+    }
+
+    if (ext === '.docx' || ext === '.pptx') {
+      // Magic bytes confirmed as OpenXML archive
+      return { isValid: true, safeDisplayName, detectedMimeType: magicInfo.mime };
     }
 
     if (magicInfo.mime !== normalizedMime) {

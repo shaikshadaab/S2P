@@ -575,7 +575,7 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
             ref={fileInputRef}
             onChange={handleFileChange}
             multiple
-            accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+            accept=".pdf,.jpg,.jpeg,.png,.webp,.docx,.pptx,application/pdf,image/jpeg,image/png,image/webp,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation"
             className="hidden"
             id="file-upload-input"
           />
@@ -594,17 +594,17 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
                   {isUploading ? "Validating & Persisting to Private Cloud..." : "Upload Document or Image"}
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
-                  Supports PDF, JPG, PNG, WEBP (Max 50MB)
+                  Supports PDF, JPG, PNG, WEBP, Word (.docx), PowerPoint (.pptx) (Max 50MB)
                 </p>
               </div>
 
               {/* Guidance for Word / PowerPoint files */}
-              <div className="bg-amber-50 border border-amber-200/80 rounded-lg p-2.5 text-amber-900 text-[11px] flex items-start gap-2 text-left">
-                <FileQuestion className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="bg-emerald-50 border border-emerald-200/80 rounded-lg p-2.5 text-emerald-950 text-[11px] flex items-start gap-2 text-left">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold block text-amber-950">Word या PowerPoint फ़ाइलें (.docx / .pptx)?</span>
-                  <span className="text-amber-800 text-[10px] leading-tight block mt-0.5">
-                    कृपया सही फ़ॉन्ट और लेआउट के लिए फ़ाइल को <strong>PDF (Save as PDF)</strong> बनाकर अपलोड करें।
+                  <span className="font-semibold block text-emerald-950">Word &amp; PowerPoint फ़ाइलें (.docx / .pptx)</span>
+                  <span className="text-emerald-800 text-[10px] leading-tight block mt-0.5">
+                    सिस्टम आपकी Word / PPT फ़ाइल को सुरक्षित रूप से सटीक प्रिंट-रेडी PDF में बदलकर तैयार कर देता है।
                   </span>
                 </div>
               </div>

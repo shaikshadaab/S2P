@@ -1,11 +1,12 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import {
   validateUploadFile,
   computeSha256,
   extractPdfPageCount,
   OrderFile,
-  OrderDraft
+  OrderDraft,
+  OfficeConverter
 } from '@s2p/shared';
 import { adminDb, getFileStorageBucket } from '@/lib/firebase/admin';
 import { authenticateOrGuest } from '@/lib/auth/session';
@@ -58,23 +59,29 @@ export async function POST(req: NextRequest) {
     const organizationId = shopData.organizationId;
     if (!organizationId) {
       return NextResponse.json(
-        { success: false, error: 'Shop missing organization configuration.' },
+        { success: false, error: 'Shop organization configuration is invalid.' },
         { status: 500 }
       );
     }
 
-    // 2. Authoritative Draft Ownership Validation
+    // 2. Draft Session Validation
     const draftDoc = await adminDb.collection('orderDrafts').doc(draftId).get();
     if (!draftDoc.exists) {
       return NextResponse.json(
-        { success: false, error: 'Order draft not found or expired.' },
+        { success: false, error: 'Order draft not found. Session may have expired.' },
         { status: 404 }
       );
     }
     const draftData = draftDoc.data() as OrderDraft;
     if (draftData.shopId !== shopId) {
       return NextResponse.json(
-        { success: false, error: 'Order draft does not belong to the requested shop.' },
+        { success: false, error: 'Order draft does not belong to target shop.' },
+        { status: 403 }
+      );
+    }
+    if (draftData.organizationId !== organizationId) {
+      return NextResponse.json(
+        { success: false, error: 'Order draft organization mismatch.' },
         { status: 403 }
       );
     }
@@ -105,13 +112,13 @@ export async function POST(req: NextRequest) {
 
     // 3. Load Bytes and Validate Magic Header
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const rawBuffer = Buffer.from(arrayBuffer);
 
     const validation = validateUploadFile({
       filename: file.name,
       mimeType: file.type,
-      sizeBytes: buffer.length,
-      bytes: buffer
+      sizeBytes: rawBuffer.length,
+      bytes: rawBuffer
     });
 
     if (!validation.isValid) {
@@ -121,14 +128,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const sha256 = computeSha256(buffer);
-
-    // 4. Server Page Count using pdf-lib
+    let effectiveBuffer = rawBuffer;
+    let detectedMime = validation.detectedMimeType || file.type;
     let pageCount = 1;
-    const detectedMime = validation.detectedMimeType || file.type;
-    if (detectedMime === 'application/pdf') {
+    let convertedFrom: 'DOCX' | 'PPTX' | null = null;
+    let safeDisplayName = validation.safeDisplayName;
+
+    const lowerName = file.name.toLowerCase();
+    const isOffice = lowerName.endsWith('.docx') || lowerName.endsWith('.pptx');
+
+    // 4. Automated Office Conversion Pipeline
+    if (isOffice) {
+      const conv = await OfficeConverter.convertToPdf(rawBuffer);
+      if (!conv.success || !conv.pdfBytes) {
+        return NextResponse.json(
+          { success: false, error: conv.error || 'Office document conversion to PDF failed.' },
+          { status: 400 }
+        );
+      }
+      effectiveBuffer = Buffer.from(conv.pdfBytes);
+      detectedMime = 'application/pdf';
+      pageCount = conv.pageCount || 1;
+      convertedFrom = conv.detectedFormat || null;
+      safeDisplayName = safeDisplayName.replace(/\.(docx|pptx)$/i, '.pdf');
+    } else if (detectedMime === 'application/pdf') {
       try {
-        pageCount = await extractPdfPageCount(buffer);
+        pageCount = await extractPdfPageCount(effectiveBuffer);
       } catch (pdfErr: unknown) {
         const msg = pdfErr instanceof Error ? pdfErr.message : 'Invalid PDF';
         return NextResponse.json(
@@ -138,15 +163,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const sha256 = computeSha256(effectiveBuffer);
+
     // 5. Generate Target Storage Path
     fileId = 'f_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex');
-    const safeDisplayName = validation.safeDisplayName;
     const storageOriginalPath = 'shops/' + shopId + '/orders/' + draftId + '/files/' + fileId + '/original/' + safeDisplayName;
 
     const bucket = getFileStorageBucket();
     const storageFile = bucket.file(storageOriginalPath);
 
-    await storageFile.save(buffer, {
+    await storageFile.save(effectiveBuffer, {
       contentType: detectedMime,
       metadata: {
         shopId,
@@ -154,6 +180,7 @@ export async function POST(req: NextRequest) {
         fileId,
         sha256,
         pageCount: String(pageCount),
+        convertedFrom: convertedFrom || '',
         ownerUid: identity.uid || '',
         guestSessionId: identity.guestSessionId || '',
         isGuest: String(identity.isGuest)
@@ -172,9 +199,10 @@ export async function POST(req: NextRequest) {
       originalFilename: file.name,
       safeDisplayName,
       mimeType: detectedMime,
-      sizeBytes: buffer.length,
+      sizeBytes: effectiveBuffer.length,
       sha256,
       pageCount,
+      convertedFrom,
       storageOriginalPath,
       processingStatus: 'READY_FOR_PRINT',
       documentAvailable: true,
@@ -202,9 +230,10 @@ export async function POST(req: NextRequest) {
         id: fileId,
         safeDisplayName,
         mimeType: detectedMime,
-        sizeBytes: buffer.length,
+        sizeBytes: effectiveBuffer.length,
         sha256,
         pageCount,
+        convertedFrom,
         processingStatus: 'READY_FOR_PRINT'
       },
       guestSessionToken: identity.newGuestSessionToken
@@ -220,69 +249,11 @@ export async function POST(req: NextRequest) {
     }
 
     return response;
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Upload processing failed.';
-    console.error('[Upload Route Error]:', error);
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Internal Server Error';
     return NextResponse.json(
-      { success: false, error: message },
+      { success: false, error: 'Upload pipeline failed: ' + errorMsg },
       { status: 500 }
     );
-  }
-}
-
-/**
- * File Removal (Development Proxy)
- */
-export async function DELETE(req: NextRequest) {
-  try {
-    const identity = await authenticateOrGuest(req);
-    const { searchParams } = new URL(req.url);
-    const fileId = searchParams.get('fileId');
-
-    if (!fileId) {
-      return NextResponse.json({ success: false, error: 'fileId is required.' }, { status: 400 });
-    }
-
-    const docRef = adminDb.collection('orderFiles').doc(fileId);
-    const snap = await docRef.get();
-
-    if (!snap.exists) {
-      return NextResponse.json({ success: false, error: 'File record not found.' }, { status: 404 });
-    }
-
-    const fileData = snap.data() as OrderFile;
-
-    if (!identity.isAuthenticated && identity.isGuest) {
-      if (fileData.guestSessionId !== identity.guestSessionId) {
-        return NextResponse.json({ success: false, error: 'Unauthorized to remove this file.' }, { status: 403 });
-      }
-    } else if (identity.isAuthenticated) {
-      if (fileData.ownerUid !== identity.uid) {
-        return NextResponse.json({ success: false, error: 'Unauthorized to remove this file.' }, { status: 403 });
-      }
-    }
-
-    if (fileData.storageOriginalPath) {
-      try {
-        const bucket = getFileStorageBucket();
-        await bucket.file(fileData.storageOriginalPath).delete();
-      } catch (storageErr) {
-        console.warn('[Upload DELETE] Storage delete warning:', storageErr);
-      }
-    }
-
-    await docRef.update({
-      documentAvailable: false,
-      purgeStatus: 'PURGED',
-      purgedAt: new Date().toISOString(),
-      storageOriginalPath: null,
-      storageProcessedPath: null,
-      previewPaths: []
-    });
-
-    return NextResponse.json({ success: true, message: 'File successfully deleted from cloud storage.' });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'File deletion failed.';
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

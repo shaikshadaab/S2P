@@ -1,4 +1,4 @@
-﻿export * from './types';
+export * from './types';
 export * from './pricing/pricing-engine';
 export * from './state-machine/order-state-machine';
 export * from './state-machine/print-job-state-machine';
@@ -14,3 +14,4 @@ export * from './detection/document-detector';
 
 export * from './payments/upi-utils';
 export * from './resume/resume-engine';
+export * from './conversion/office-converter';
