@@ -2,16 +2,17 @@ if (typeof window !== 'undefined') {
   throw new Error('FATAL: firebase-admin can only be imported in server runtime environment, not in client browser bundle.');
 }
 
+import fs from 'fs';
 import { initializeApp, getApps, getApp, App, cert } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import { getStorage, Storage } from 'firebase-admin/storage';
+import { getAuth, Auth } from 'firebase-admin/auth';
 
 if (!process.env.STORAGE_EMULATOR_HOST && process.env.FIREBASE_STORAGE_EMULATOR_HOST) {
   process.env.STORAGE_EMULATOR_HOST = process.env.FIREBASE_STORAGE_EMULATOR_HOST.startsWith('http')
     ? process.env.FIREBASE_STORAGE_EMULATOR_HOST
     : 'http://' + process.env.FIREBASE_STORAGE_EMULATOR_HOST;
 }
-import { getAuth, Auth } from 'firebase-admin/auth';
 
 function getAdminApp(): App {
   if (getApps().length > 0) {
@@ -23,14 +24,32 @@ function getAdminApp(): App {
     process.env.FIREBASE_PROJECT_ID ||
     process.env.GCLOUD_PROJECT;
 
-  // If no project ID is configured during build/test phase, initialize with build placeholder
-  // Real requests in production will validate projectId inside request handlers
-  const effectiveProjectId = projectId || 's2p-build-unconfigured';
+  const effectiveProjectId = projectId || 'shakeel-online-services-951ec';
   const storageBucket =
     process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ||
     process.env.FIREBASE_STORAGE_BUCKET ||
     effectiveProjectId + '.appspot.com';
 
+  // 1. Check local protected file path (Local Windows Workstation)
+  const localSecretPath =
+    process.env.FIREBASE_SERVICE_ACCOUNT_PATH ||
+    'C:\\SOSPrint-Secrets\\service-account.json';
+
+  if (fs.existsSync(localSecretPath)) {
+    try {
+      const raw = fs.readFileSync(localSecretPath, 'utf8');
+      const serviceAccount = JSON.parse(raw);
+      return initializeApp({
+        credential: cert(serviceAccount),
+        projectId: serviceAccount.project_id || effectiveProjectId,
+        storageBucket
+      });
+    } catch (e) {
+      console.warn('[Firebase Admin] Failed reading local service account file:', e);
+    }
+  }
+
+  // 2. Check JSON string in environment variable (Vercel deployment)
   if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
     try {
       const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
