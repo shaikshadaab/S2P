@@ -1,4 +1,4 @@
-﻿import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator, Auth } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, Firestore } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator, FirebaseStorage } from 'firebase/storage';
@@ -20,9 +20,7 @@ const storage: FirebaseStorage = getStorage(app);
 
 if (
   typeof window !== 'undefined' &&
-  (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true' ||
-   window.location.hostname === 'localhost' ||
-   window.location.hostname === '127.0.0.1')
+  process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true'
 ) {
   const isEmulated = (auth as unknown as { _isEmulated?: boolean })._isEmulated;
   if (!isEmulated) {
