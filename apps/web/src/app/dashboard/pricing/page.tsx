@@ -49,6 +49,11 @@ export default function DashboardPricingPage() {
 
   const [services, setServices] = useState<Service[]>(DEFAULT_SERVICES);
   const [rates, setRates] = useState({
+    passportPhotos: "100.00",
+    passportPhotoCount: "8",
+    passportPhotoDimensions: "35x45 mm",
+    passportStatus: "NEEDS_CONFIRMATION",
+    duplexOddSheetRate: "3.00", // ₹3 (full duplex sheet) or ₹2 (single-sided)
     a4BwSingle: "2.00",
     a4BwDuplex: "1.50",
     a4ColorSingle: "10.00",
@@ -363,6 +368,36 @@ export default function DashboardPricingPage() {
             <div>
               <label className="block text-[11px] text-slate-300 mb-1">Color Duplex (₹/side)</label>
               <input type="number" step="1.00" disabled={!isManager} value={rates.a3ColorDuplex} onChange={e => setRates({ ...rates, a3ColorDuplex: e.target.value })} className="w-full bg-[#161e1b] border border-[#24322c] rounded-lg px-3 py-1.5 text-xs text-white" />
+            </div>
+          </div>
+
+          
+          {/* Passport Photo Rates & Settings */}
+          <div className="bg-[#111827] border border-[#1f2937] rounded-xl p-5 space-y-3">
+            <h3 className="text-sm font-bold text-white border-b border-[#1f2937] pb-2 flex justify-between items-center">
+              <span>Passport Photos Set</span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                Needs Owner Confirmation
+              </span>
+            </h3>
+            <div>
+              <label className="block text-[11px] text-slate-300 mb-1">Set Price (₹/set)</label>
+              <input type="number" step="1.00" disabled={!isManager} value={rates.passportPhotos} onChange={e => setRates({ ...rates, passportPhotos: e.target.value })} className="w-full bg-[#161e1b] border border-[#24322c] rounded-lg px-3 py-1.5 text-xs text-white" />
+            </div>
+            <div>
+              <label className="block text-[11px] text-slate-300 mb-1">Photos Included per Set</label>
+              <input type="number" disabled={!isManager} value={rates.passportPhotoCount} onChange={e => setRates({ ...rates, passportPhotoCount: e.target.value })} placeholder="e.g. 8" className="w-full bg-[#161e1b] border border-[#24322c] rounded-lg px-3 py-1.5 text-xs text-white" />
+            </div>
+            <div>
+              <label className="block text-[11px] text-slate-300 mb-1">Dimensions</label>
+              <input type="text" disabled={!isManager} value={rates.passportPhotoDimensions} onChange={e => setRates({ ...rates, passportPhotoDimensions: e.target.value })} placeholder="e.g. 35x45 mm (Standard)" className="w-full bg-[#161e1b] border border-[#24322c] rounded-lg px-3 py-1.5 text-xs text-white" />
+            </div>
+            <div className="pt-2 border-t border-[#1f2937]">
+              <label className="block text-[11px] text-slate-300 mb-1">Duplex Final Odd-Sheet Charge</label>
+              <select disabled={!isManager} value={rates.duplexOddSheetRate} onChange={e => setRates({ ...rates, duplexOddSheetRate: e.target.value })} className="w-full bg-[#161e1b] border border-[#24322c] rounded-lg px-3 py-1.5 text-xs text-white">
+                <option value="3.00">₹3.00 (Full duplex sheet rate - Standard)</option>
+                <option value="2.00">₹2.00 (Single-sided rate)</option>
+              </select>
             </div>
           </div>
 

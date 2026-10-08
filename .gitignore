@@ -74,3 +74,8 @@ scratchpad*.md
 
 *.exe
 apps/web/public/installer/
+
+# Local storage fallback
+.storage/
+apps/web/.storage/
+apps/agent/publish/

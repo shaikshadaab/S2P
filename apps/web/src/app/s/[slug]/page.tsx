@@ -169,7 +169,7 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
     return shopOptions.finishingOptions.filter((o) => o.enabled);
   }, [shopOptions]);
 
-  const isUpiAvailable = Boolean(shopUpiConfig?.isEnabled && shopUpiConfig?.upiId);
+  const isUpiAvailable = Boolean(shopUpiConfig?.isEnabled && shopUpiConfig?.upiId && shopUpiConfig?.isVerified);
   const activePageCount = uploadedFile ? uploadedFile.pageCount : 1;
 
   const parsedPagesInfo = useMemo(() => {

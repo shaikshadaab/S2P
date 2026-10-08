@@ -131,31 +131,31 @@ export default function RatesPage() {
             <div className="space-y-3">
               <div className="flex justify-between items-center text-xs py-1.5 border-b border-slate-100">
                 <span className="font-medium text-slate-700">A4 Black &amp; White (Single Side)</span>
-                <span className="font-bold text-slate-900 font-mono">₹2.00 / page</span>
+                <span className="font-bold text-emerald-700 font-mono">₹2.00 / printed side</span>
               </div>
               <div className="flex justify-between items-center text-xs py-1.5 border-b border-slate-100">
                 <span className="font-medium text-slate-700">A4 Black &amp; White (Both Sides / Duplex)</span>
-                <span className="font-bold text-slate-900 font-mono">₹3.00 / sheet (₹1.50/side)</span>
+                <span className="font-bold text-emerald-700 font-mono">₹3.00 / sheet</span>
               </div>
               <div className="flex justify-between items-center text-xs py-1.5 border-b border-slate-100">
                 <span className="font-medium text-slate-700">A4 Color (Single Side)</span>
-                <span className="font-bold text-slate-900 font-mono">₹10.00 / page</span>
+                <span className="font-bold text-emerald-700 font-mono">₹10.00 / printed side</span>
               </div>
               <div className="flex justify-between items-center text-xs py-1.5 border-b border-slate-100">
-                <span className="font-medium text-slate-700">A4 Color (Both Sides / Duplex)</span>
-                <span className="font-bold text-slate-900 font-mono">₹18.00 / sheet (₹9.00/side)</span>
+                <span className="font-medium text-slate-500">Duplex Odd Sheet Rate</span>
+                <span className="font-semibold text-slate-600 font-mono">₹3.00 / sheet</span>
               </div>
               <div className="flex justify-between items-center text-xs py-1.5 border-b border-slate-100">
-                <span className="font-medium text-slate-700">A3 Black &amp; White (Single Side)</span>
-                <span className="font-bold text-slate-900 font-mono">₹10.00 / page</span>
+                <span className="font-medium text-slate-400">A3 Black &amp; White</span>
+                <span className="text-[11px] font-medium text-slate-400 italic">Rate not configured</span>
               </div>
               <div className="flex justify-between items-center text-xs py-1.5 border-b border-slate-100">
-                <span className="font-medium text-slate-700">A3 Color (Single Side)</span>
-                <span className="font-bold text-slate-900 font-mono">₹25.00 / page</span>
+                <span className="font-medium text-slate-400">A3 Color</span>
+                <span className="text-[11px] font-medium text-slate-400 italic">Rate not configured</span>
               </div>
               <div className="flex justify-between items-center text-xs py-1.5">
-                <span className="font-medium text-emerald-700">Bulk B&amp;W Discount (&gt;20 sides)</span>
-                <span className="font-bold text-emerald-700 font-mono">₹1.60 / side (20% off)</span>
+                <span className="font-medium text-slate-400">A4 Color Duplex</span>
+                <span className="text-[11px] font-medium text-slate-400 italic">Rate not configured</span>
               </div>
             </div>
           </div>
@@ -178,28 +178,23 @@ export default function RatesPage() {
 
             <div className="space-y-3">
               <div className="flex justify-between items-center text-xs py-1.5 border-b border-slate-100">
-                <span className="font-medium text-slate-700">Passport Photos (8 in 1 Sheet)</span>
-                <span className="font-bold text-slate-900 font-mono">₹40.00 / sheet</span>
+                <div>
+                  <span className="font-medium text-slate-700 block">Passport Photos Set</span>
+                  <span className="text-[10px] text-amber-600">Needs owner confirmation (count &amp; size)</span>
+                </div>
+                <span className="font-bold text-emerald-700 font-mono">₹100.00 / set</span>
               </div>
               <div className="flex justify-between items-center text-xs py-1.5 border-b border-slate-100">
-                <span className="font-medium text-slate-700">Passport Photos (16 in 1 Sheet)</span>
-                <span className="font-bold text-slate-900 font-mono">₹60.00 / sheet</span>
+                <span className="font-medium text-slate-400">4×6 Glossy Photo Print</span>
+                <span className="text-[11px] font-medium text-slate-400 italic">Rate not configured</span>
               </div>
               <div className="flex justify-between items-center text-xs py-1.5 border-b border-slate-100">
-                <span className="font-medium text-slate-700">4×6 Glossy Photo Print</span>
-                <span className="font-bold text-slate-900 font-mono">₹20.00 / photo</span>
-              </div>
-              <div className="flex justify-between items-center text-xs py-1.5 border-b border-slate-100">
-                <span className="font-medium text-slate-700">Aadhaar / PAN Card Both Sides (B&amp;W)</span>
-                <span className="font-bold text-slate-900 font-mono">₹5.00 / card</span>
-              </div>
-              <div className="flex justify-between items-center text-xs py-1.5 border-b border-slate-100">
-                <span className="font-medium text-slate-700">Aadhaar / PAN Card Both Sides (Color)</span>
-                <span className="font-bold text-slate-900 font-mono">₹15.00 / card</span>
+                <span className="font-medium text-slate-400">Aadhaar / PAN ID Copy</span>
+                <span className="text-[11px] font-medium text-slate-400 italic">Rate not configured</span>
               </div>
               <div className="flex justify-between items-center text-xs py-1.5">
-                <span className="font-medium text-slate-700">PVC Card Lamination</span>
-                <span className="font-bold text-slate-900 font-mono">₹25.00 / card</span>
+                <span className="font-medium text-slate-400">PVC Card Lamination</span>
+                <span className="text-[11px] font-medium text-slate-400 italic">Rate not configured</span>
               </div>
             </div>
           </div>

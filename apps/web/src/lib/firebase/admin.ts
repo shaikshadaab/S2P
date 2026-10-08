@@ -3,6 +3,7 @@ if (typeof window !== 'undefined') {
 }
 
 import fs from 'fs';
+import path from 'path';
 import { initializeApp, getApps, getApp, App, cert } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import { getStorage, Storage } from 'firebase-admin/storage';
@@ -80,10 +81,142 @@ try {
 export const adminStorage: Storage = getStorage(adminApp);
 export const adminAuth: Auth = getAuth(adminApp);
 
+
+const localStorageDir = path.resolve(process.cwd(), '.storage');
+
+class LocalStorageFile {
+  private localPath: string;
+  private metaPath: string;
+
+  constructor(public name: string) {
+    this.localPath = path.join(localStorageDir, name);
+    this.metaPath = this.localPath + '.meta.json';
+  }
+
+  async save(buffer: Buffer | Uint8Array, options?: any): Promise<void> {
+    const dir = path.dirname(this.localPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(this.localPath, Buffer.from(buffer));
+    const metadata = {
+      size: buffer.length,
+      contentType: options?.contentType || 'application/octet-stream',
+      metadata: options?.metadata || {},
+      updated: new Date().toISOString()
+    };
+    fs.writeFileSync(this.metaPath, JSON.stringify(metadata, null, 2), 'utf8');
+  }
+
+  async exists(): Promise<[boolean]> {
+    return [fs.existsSync(this.localPath)];
+  }
+
+  async delete(): Promise<void> {
+    if (fs.existsSync(this.localPath)) fs.unlinkSync(this.localPath);
+    if (fs.existsSync(this.metaPath)) fs.unlinkSync(this.metaPath);
+  }
+
+  async download(): Promise<[Buffer]> {
+    if (!fs.existsSync(this.localPath)) {
+      throw new Error('FILE_NOT_FOUND: ' + this.name);
+    }
+    return [fs.readFileSync(this.localPath)];
+  }
+
+  async getMetadata(): Promise<[any]> {
+    if (!fs.existsSync(this.localPath)) {
+      throw new Error('FILE_NOT_FOUND: ' + this.name);
+    }
+    if (fs.existsSync(this.metaPath)) {
+      const meta = JSON.parse(fs.readFileSync(this.metaPath, 'utf8'));
+      return [meta];
+    }
+    const stat = fs.statSync(this.localPath);
+    return [{ size: stat.size, updated: stat.mtime.toISOString() }];
+  }
+
+  async getSignedUrl(): Promise<[string]> {
+    // Return relative internal streaming URL for local storage
+    return ['/api/upload/file/' + encodeURIComponent(path.basename(this.name))];
+  }
+}
+
+class SmartStorageBucket {
+  constructor(private cloudBucket: any) {}
+
+  file(filePath: string) {
+    const cloudFile = this.cloudBucket.file(filePath);
+    const localFile = new LocalStorageFile(filePath);
+
+    return {
+      name: filePath,
+      save: async (buffer: Buffer | Uint8Array, options?: any) => {
+        try {
+          await cloudFile.save(buffer, options);
+        } catch (err: any) {
+          if (err?.message?.includes('bucket does not exist') || err?.code === 404 || err?.message?.includes('billing')) {
+            console.warn('[Storage] Remote bucket unprovisioned; saving to local workspace storage fallback:', filePath);
+            await localFile.save(buffer, options);
+            return;
+          }
+          throw err;
+        }
+      },
+      exists: async (): Promise<[boolean]> => {
+        try {
+          const [exists] = await cloudFile.exists();
+          if (exists) return [true];
+        } catch (err: any) {
+          // If cloud fails, check local
+        }
+        return localFile.exists();
+      },
+      download: async (): Promise<[Buffer]> => {
+        try {
+          return await cloudFile.download();
+        } catch (err: any) {
+          if (err?.message?.includes('bucket does not exist') || err?.code === 404) {
+            return localFile.download();
+          }
+          // If local exists, return local
+          const [locExists] = await localFile.exists();
+          if (locExists) return localFile.download();
+          throw err;
+        }
+      },
+      getMetadata: async (): Promise<[any]> => {
+        try {
+          return await cloudFile.getMetadata();
+        } catch (err: any) {
+          return localFile.getMetadata();
+        }
+      },
+      getSignedUrl: async (options?: any): Promise<[string]> => {
+        try {
+          return await cloudFile.getSignedUrl(options);
+        } catch (err: any) {
+          return localFile.getSignedUrl();
+        }
+      },
+      delete: async (): Promise<void> => {
+        try {
+          await cloudFile.delete();
+        } catch (err: any) {
+          // ignore or fallback to local
+        }
+        await localFile.delete();
+      }
+    };
+  }
+}
+
 export function getFileStorageBucket() {
   const bucketName =
     process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ||
     process.env.FIREBASE_STORAGE_BUCKET ||
     adminApp.options.projectId + '.appspot.com';
-  return adminStorage.bucket(bucketName);
+  const rawBucket = adminStorage.bucket(bucketName);
+  return new SmartStorageBucket(rawBucket);
 }
+
