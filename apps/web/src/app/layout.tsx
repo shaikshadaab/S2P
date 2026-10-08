@@ -3,8 +3,8 @@ import "./globals.css";
 import { AuthProvider } from "../lib/firebase/auth-context";
 
 export const metadata: Metadata = {
-  title: "S2P — Scan 2 Print | Shakeel Online Services",
-  description: "Real Scan-to-Print Operating System for Shakeel Online Services",
+  title: "Shakeel Online Services — Print Documents & Photos | SOS Print",
+  description: "Quick, hassle-free document and photo printing at Shakeel Online Services, Guntur.",
   manifest: "/manifest.json",
 };
 
@@ -15,7 +15,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen antialiased bg-[#090d0b] text-[#f8fafc] selection:bg-emerald-500 selection:text-white">
+      <body className="min-h-screen antialiased bg-slate-50 text-slate-900 selection:bg-emerald-500 selection:text-white">
         <AuthProvider>
           {children}
         </AuthProvider>

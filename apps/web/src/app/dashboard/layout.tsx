@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect } from "react";
 import Link from "next/link";
@@ -24,7 +24,8 @@ import {
   AlertTriangle,
   RotateCcw,
   Loader2,
-  Download
+  Download,
+  QrCode
 } from "lucide-react";
 import { useAuth } from "../../lib/firebase/auth-context";
 
@@ -33,7 +34,8 @@ const NAV_ITEMS = [
   { label: "POS", href: "/dashboard/pos", icon: Calculator, status: "Phase 9" },
   { label: "Print Queue", href: "/dashboard/queue", icon: Layers, status: "Phase 10" },
   { label: "Printer Center", href: "/dashboard/printers", icon: Printer, status: "Phase 12" },
-  { label: "Pricing", href: "/dashboard/pricing", icon: Tag, status: "Active Rates" },
+  { label: "Pricing & Rates", href: "/dashboard/pricing", icon: Tag, status: "Active Rates" },
+  { label: "QR Standee", href: "/dashboard/standee", icon: QrCode, status: "Counter QR" },
   { label: "Settings", href: "/dashboard/settings", icon: Settings, status: "Active Phase 1" },
 ];
 
@@ -313,4 +315,5 @@ export default function DashboardLayout({
     </div>
   );
 }
+
 
