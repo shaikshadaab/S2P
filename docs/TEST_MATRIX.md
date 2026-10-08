@@ -61,7 +61,7 @@
 
 ## 2. Compilation, Typecheck & Static Analysis
 - **TypeScript:** `npm --workspace=apps/web run typecheck` — 0 errors.
-- **Next.js Production Build:** `npm --workspace=apps/web run build` — 28 static & dynamic routes compiled cleanly.
+- **Next.js Production Build:** `npm --workspace=apps/web run build` — 31 static & dynamic routes compiled cleanly.
   - `/` (Home)
   - `/services` (Services Catalog)
   - `/rates` (Official Rates)
@@ -80,7 +80,9 @@
   - `/dashboard/printers` (Printer Management & Pairing)
   - `/dashboard/queue` (Print Job Queue)
   - `/dashboard/reports` (Revenue KPIs & CSV Export)
+  - `/dashboard/services` (Owner Services Catalog & Hardware Mapping)
   - `/dashboard/settings` (Shop Details & Payment Settings)
+  - `/print` (Print Hub & 10-Service Discovery)
   - `/dashboard/diagnostics` (System Health & Storage Checks)
   - `/api/*` (Upload, Order, Payment, Agent Pairing, Webhook routes)
 

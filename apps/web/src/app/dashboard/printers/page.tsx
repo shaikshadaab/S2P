@@ -19,7 +19,12 @@ import {
   Wifi,
   Usb,
   Network,
-  Download
+  Download,
+  Info,
+  ExternalLink,
+  ChevronRight,
+  Terminal,
+  Cpu
 } from "lucide-react";
 import { PRIMARY_PILOT_SHOP, Printer, Device } from "@s2p/shared";
 import { useAuth } from "../../../lib/firebase/auth-context";
@@ -162,299 +167,367 @@ export default function DashboardPrintersPage() {
 
   return (
     <div className="space-y-6 max-w-6xl">
-      {/* S2P Windows Agent Download Banner */}
-      <div className="bg-gradient-to-r from-emerald-950/80 via-[#111827] to-[#111827] border-2 border-emerald-500/40 rounded-xl p-5 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-500 text-slate-950">
-              Windows Agent
-            </span>
-            <h3 className="text-sm font-bold text-white">
-              S2P Windows Print Agent (S2P-Agent-Setup.exe)
-            </h3>
+      {/* 1. Prominent Windows Print Agent Download Card */}
+      <div className="bg-white border-2 border-emerald-500/50 rounded-2xl p-6 shadow-xs relative overflow-hidden">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <div className="space-y-3 max-w-2xl">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+                Official Release · v1.0.0 LTS
+              </span>
+              <span className="text-xs text-[#475569] font-medium flex items-center gap-1">
+                <Cpu className="w-3.5 h-3.5 text-emerald-600" />
+                Windows Spooler Agent
+              </span>
+            </div>
+
+            <h2 className="text-xl font-black text-[#111827] tracking-tight">
+              Download Windows Print Agent Package
+            </h2>
+
+            <p className="text-xs text-[#475569] leading-relaxed">
+              Install the official SOS Print user-session agent on your shop Windows PC. It listens for verified customer orders, downloads encrypted print files, and sends them directly to your physical HP Smart Tank printer via the Windows Print Spooler.
+            </p>
+
+            {/* Prerequisites & Quick Specs */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                <div className="text-[10px] uppercase font-bold text-[#475569]">System Requirement</div>
+                <div className="text-xs font-bold text-[#111827] mt-0.5">Windows 10 / 11 (64-bit)</div>
+              </div>
+              <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                <div className="text-[10px] uppercase font-bold text-[#475569]">Runtime Prerequisite</div>
+                <div className="text-xs font-bold text-[#111827] mt-0.5">.NET 8 Desktop Runtime</div>
+              </div>
+              <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                <div className="text-[10px] uppercase font-bold text-[#475569]">Package Contents</div>
+                <div className="text-xs font-bold text-[#111827] mt-0.5">Worker EXE, Scripts & SQLite</div>
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-slate-300 max-w-xl">
-            Download and run the standalone Windows agent on this shop PC to automatically spool incoming customer orders directly to your HP Smart Tank printer.
-          </p>
+
+          {/* Action Column */}
+          <div className="flex flex-col items-stretch sm:items-end gap-3 shrink-0 w-full lg:w-auto">
+            <a
+              href="/S2P-Agent-Package.zip"
+              download="S2P-Agent-Package.zip"
+              className="px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-700/20 transition flex items-center justify-center gap-2 text-center"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download Windows Print Agent (ZIP)</span>
+            </a>
+            <p className="text-[11px] text-[#475569] text-center sm:text-right">
+              Package: <span className="font-mono font-bold text-[#111827]">S2P-Agent-Package.zip (1.8 MB)</span>
+            </p>
+          </div>
         </div>
-        <a
-          href="/S2P-Agent-Setup.exe"
-          download="S2P-Agent-Setup.exe"
-          className="px-4 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black transition flex items-center gap-2 shadow-lg shadow-emerald-950/50 shrink-0"
-        >
-          <Download className="w-4 h-4" />
-          <span>Download S2P-Agent-Setup.exe</span>
-        </a>
+
+        {/* 3-Step Setup Instructions */}
+        <div className="mt-6 pt-5 border-t border-[#E2E8F0] grid sm:grid-cols-3 gap-4 text-xs">
+          <div className="flex items-start gap-2.5">
+            <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-xs">
+              1
+            </div>
+            <div>
+              <div className="font-bold text-[#111827]">Extract to Shop PC</div>
+              <p className="text-[11px] text-[#475569] mt-0.5">Unzip the archive to a folder like <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px]">C:\SOSPrint-Agent</code>.</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-2.5">
+            <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-xs">
+              2
+            </div>
+            <div>
+              <div className="font-bold text-[#111827]">Start Agent Process</div>
+              <p className="text-[11px] text-[#475569] mt-0.5">Double-click <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px]">start-agent.bat</code> to launch the terminal worker.</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-2.5">
+            <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-xs">
+              3
+            </div>
+            <div>
+              <div className="font-bold text-[#111827]">Pair with 6-Digit Code</div>
+              <p className="text-[11px] text-[#475569] mt-0.5">Click "Pair New Device" below and type the pairing code in the agent prompt.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Top Header Card */}
-      <div className="bg-[#111827] border border-[#1f2937] rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow">
+      <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
         <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <PrinterIcon className="w-5 h-5 text-emerald-400" />
-            <span>Windows Printer Center</span>
+          <h2 className="text-lg font-bold text-[#111827] flex items-center gap-2">
+            <PrinterIcon className="w-5 h-5 text-emerald-600" />
+            <span>Connected Devices &amp; Printers</span>
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Manage connected Windows PC print agents and discovered local print queues for {PRIMARY_PILOT_SHOP.name}
+          <p className="text-xs text-[#475569] mt-0.5">
+            Manage paired Windows PC print agents and discovered local print queues for {PRIMARY_PILOT_SHOP.name}
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
           <button
-            type="button"
             onClick={fetchData}
-            className="p-2 rounded-lg bg-[#1f2937] hover:bg-[#374151] text-slate-300 transition"
-            title="Refresh"
+            disabled={isLoading}
+            className="p-2.5 rounded-xl border border-[#E2E8F0] hover:bg-slate-50 text-[#475569] hover:text-[#111827] transition shrink-0"
+            title="Refresh Devices"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-emerald-600" : ""}`} />
           </button>
 
           {isOwnerOrManager && (
             <button
-              type="button"
-              disabled={isGeneratingCode}
               onClick={handleGeneratePairingCode}
-              className="py-2 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-2 shadow"
+              disabled={isGeneratingCode}
+              className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-2"
             >
               {isGeneratingCode ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Plus className="w-4 h-4" />
               )}
-              <span>Connect S2P Agent</span>
+              <span>Pair New Windows PC</span>
             </button>
           )}
         </div>
       </div>
 
       {error && (
-        <div className="p-3 bg-red-950/40 border border-red-500/30 text-red-300 text-xs rounded-xl flex items-center gap-2">
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2.5">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Connected Devices Section */}
-      <div className="bg-[#111827] border border-[#1f2937] rounded-xl overflow-hidden shadow">
-        <div className="p-4 border-b border-[#1f2937] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Laptop className="w-4 h-4 text-emerald-400" />
-            <h3 className="text-sm font-bold text-white">Connected Windows Agents</h3>
-          </div>
-          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#1e293b] text-slate-300">
-            {devices.length} {devices.length === 1 ? "device" : "devices"}
+      {/* Devices Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-[#111827] flex items-center gap-2">
+            <Laptop className="w-4 h-4 text-emerald-600" />
+            <span>Paired Windows PCs ({devices.length})</span>
+          </h3>
+          <span className="text-[11px] text-[#475569]">
+            Active heartbeats report every 15-30s
           </span>
         </div>
 
         {devices.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 text-xs space-y-2">
-            <Laptop className="w-8 h-8 mx-auto text-slate-600" />
-            <p className="font-semibold text-slate-300">No Windows Agents Connected Yet</p>
-            <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
-              Click &quot;Connect S2P Agent&quot; above to generate a 5-minute pairing code, then run the S2P Windows Agent on the shop PC.
-            </p>
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-8 text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-[#475569]">
+              <Laptop className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-[#111827]">No Windows PC Paired Yet</h4>
+              <p className="text-xs text-[#475569] max-w-sm mx-auto">
+                Download the Windows Agent above, extract on your shop PC, and click "Pair New Windows PC" to register it with this dashboard.
+              </p>
+            </div>
+            {isOwnerOrManager && (
+              <button
+                onClick={handleGeneratePairingCode}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition inline-flex items-center gap-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Generate Pairing Code</span>
+              </button>
+            )}
           </div>
         ) : (
-          <div className="divide-y divide-[#1f2937]">
-            {devices.map((dev) => (
-              <div key={dev.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-white text-sm">{dev.name}</span>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1.5 ${
-                        dev.status === "ONLINE"
-                          ? "bg-emerald-950/60 text-emerald-400 border border-emerald-500/30"
-                          : dev.status === "OFFLINE"
-                          ? "bg-slate-800 text-slate-400 border border-slate-700"
-                          : "bg-red-950/60 text-red-400 border border-red-500/30"
-                      }`}
-                    >
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          dev.status === "ONLINE"
-                            ? "bg-emerald-400 animate-pulse"
-                            : dev.status === "OFFLINE"
-                            ? "bg-slate-400"
-                            : "bg-red-400"
-                        }`}
-                      />
-                      <span>{dev.status}</span>
-                    </span>
+          <div className="grid md:grid-cols-2 gap-4">
+            {devices.map((device) => {
+              const lastSeenMs = device.lastSeen ? Date.now() - new Date(device.lastSeen).getTime() : Infinity;
+              const isOnline = lastSeenMs < 90000; // 90 seconds threshold
+
+              return (
+                <div
+                  key={device.id}
+                  className="bg-white border border-[#E2E8F0] rounded-2xl p-5 space-y-4 shadow-xs"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        isOnline ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-[#475569]"
+                      }`}>
+                        <Laptop className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-bold text-[#111827]">
+                            {device.name || "Shop Windows PC"}
+                          </h4>
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              isOnline
+                                ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                : "bg-slate-100 text-[#475569] border border-slate-300"
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-emerald-600 animate-pulse" : "bg-slate-400"}`} />
+                            {isOnline ? "Online" : "Offline"}
+                          </span>
+                        </div>
+                        <p className="text-[11px] font-mono text-[#475569] mt-0.5">
+                          ID: {device.id}
+                        </p>
+                      </div>
+                    </div>
+
+                    {isOwnerOrManager && (
+                      <button
+                        onClick={() => handleRevokeDevice(device.id)}
+                        disabled={revokingDeviceId === device.id}
+                        className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition"
+                        title="Revoke Device Credentials"
+                      >
+                        {revokingDeviceId === device.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
                   </div>
-                  <div className="text-[11px] text-slate-400 flex flex-wrap gap-x-4 gap-y-1 font-mono">
-                    <span>Host: <strong className="text-slate-300">{dev.hostname}</strong></span>
-                    <span>OS: <strong className="text-slate-300">{dev.windowsVersion}</strong></span>
-                    <span>Agent: <strong className="text-slate-300">v{dev.agentVersion}</strong></span>
-                  </div>
-                  <div className="text-[10px] text-slate-500 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    <span>Last heartbeat: {new Date(dev.lastHeartbeatAt).toLocaleTimeString()} ({new Date(dev.lastHeartbeatAt).toLocaleDateString()})</span>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px] bg-[#F8FAFC] p-3 rounded-xl border border-[#E2E8F0]">
+                    <div>
+                      <span className="text-[#475569]">Discovered Queues:</span>{" "}
+                      <span className="font-bold text-[#111827]">{device.printerCount || 0} printers</span>
+                    </div>
+                    <div>
+                      <span className="text-[#475569]">Agent Version:</span>{" "}
+                      <span className="font-mono text-[#111827]">{device.version || "1.0.0 LTS"}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-[#475569]">Last Heartbeat:</span>{" "}
+                      <span className="text-[#111827] font-medium">
+                        {device.lastSeen ? new Date(device.lastSeen).toLocaleTimeString() : "Never"}
+                      </span>
+                    </div>
                   </div>
                 </div>
-
-                {isOwnerOrManager && dev.status !== "REVOKED" && (
-                  <button
-                    type="button"
-                    disabled={revokingDeviceId === dev.id}
-                    onClick={() => handleRevokeDevice(dev.id)}
-                    className="py-1.5 px-3 rounded bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-500/30 text-[11px] font-semibold transition flex items-center gap-1.5 self-start sm:self-center"
-                  >
-                    {revokingDeviceId === dev.id ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-3.5 h-3.5" />
-                    )}
-                    <span>Revoke</span>
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Discovered Windows Printers Section */}
-      <div className="bg-[#111827] border border-[#1f2937] rounded-xl overflow-hidden shadow">
-        <div className="p-4 border-b border-[#1f2937] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <PrinterIcon className="w-4 h-4 text-emerald-400" />
-            <h3 className="text-sm font-bold text-white">Discovered Installed Windows Print Queues</h3>
-          </div>
-          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#1e293b] text-slate-300">
-            {printers.length} {printers.length === 1 ? "queue" : "queues"}
+      {/* Discovered Printers Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-[#111827] flex items-center gap-2">
+            <PrinterIcon className="w-4 h-4 text-emerald-600" />
+            <span>Discovered Windows Spooler Queues ({printers.length})</span>
+          </h3>
+          <span className="text-[11px] text-[#475569]">
+            Synced automatically from paired PC
           </span>
         </div>
 
         {printers.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 text-xs space-y-2">
-            <PrinterIcon className="w-8 h-8 mx-auto text-slate-600" />
-            <p className="font-semibold text-slate-300">No Windows Printer Queues Discovered</p>
-            <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
-              Once an S2P Windows Agent connects, it automatically reads installed Windows spooler queues and syncs them here.
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-8 text-center space-y-2">
+            <PrinterIcon className="w-8 h-8 text-slate-300 mx-auto" />
+            <p className="text-xs text-[#475569]">
+              No local printers discovered. Make sure your paired agent is running and has access to Windows Spooler.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
-            {printers.map((p) => (
-              <div
-                key={p.id}
-                className="bg-[#0b0f0e] border border-[#1f2937] rounded-lg p-4 space-y-2.5 text-xs hover:border-[#374151] transition"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="font-bold text-white text-sm flex items-center gap-1.5">
-                      <span>{p.displayName}</span>
-                      {p.isDefault && (
-                        <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-950/60 text-amber-300 border border-amber-500/30">
-                          DEFAULT
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[#475569] font-bold text-[11px]">
+                  <tr>
+                    <th className="py-3 px-4">Printer Name</th>
+                    <th className="py-3 px-4">Driver / Model</th>
+                    <th className="py-3 px-4">Type</th>
+                    <th className="py-3 px-4">Duplex</th>
+                    <th className="py-3 px-4">Color</th>
+                    <th className="py-3 px-4">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E2E8F0]">
+                  {printers.map((p) => (
+                    <tr key={p.id} className="hover:bg-slate-50 transition">
+                      <td className="py-3 px-4 font-bold text-[#111827]">
+                        {p.displayName || p.queueName}
+                      </td>
+                      <td className="py-3 px-4 text-[#475569]">
+                        {p.driverName || "Standard Driver"}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-[#475569]">
+                          {p.connectionType || "USB / Network"}
                         </span>
-                      )}
-                    </div>
-                    <div className="text-[11px] font-mono text-slate-400 mt-0.5">{p.queueName}</div>
-                  </div>
-
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      p.isOnline
-                        ? "bg-emerald-950/60 text-emerald-400 border border-emerald-500/30"
-                        : "bg-slate-800 text-slate-400 border border-slate-700"
-                    }`}
-                  >
-                    {p.isOnline ? "Online" : "Offline"}
-                  </span>
-                </div>
-
-                <div className="text-[11px] text-slate-400 space-y-1 font-mono">
-                  <div>Driver: <strong className="text-slate-300">{p.driverName}</strong></div>
-                  <div>Port: <strong className="text-slate-300">{p.portName}</strong></div>
-                  <div className="flex items-center gap-1">
-                    <span>Connection:</span>
-                    <span className="px-1.5 py-0.5 rounded bg-[#1e293b] text-emerald-400 font-bold text-[10px]">
-                      {p.connectionType}
-                    </span>
-                  </div>
-                </div>
-
-                {p.capabilities && (
-                  <div className="border-t border-[#1f2937] pt-2 flex flex-wrap gap-2 text-[10px]">
-                    <span className="px-1.5 py-0.5 rounded bg-[#141d18] text-slate-300">
-                      Sizes: {p.capabilities.paperSizes?.join(", ") || "A4"}
-                    </span>
-                    <span className={`px-1.5 py-0.5 rounded ${p.capabilities.colorSupported ? "bg-emerald-950/40 text-emerald-400" : "bg-slate-800 text-slate-400"}`}>
-                      Color: {p.capabilities.colorSupported ? "Yes" : "B&W Only"}
-                    </span>
-                    <span className={`px-1.5 py-0.5 rounded ${p.capabilities.duplexSupported ? "bg-emerald-950/40 text-emerald-400" : "bg-slate-800 text-slate-400"}`}>
-                      Duplex: {p.capabilities.duplexSupported ? "Yes" : "Single"}
-                    </span>
-                  </div>
-                )}
-              </div>
-            ))}
+                      </td>
+                      <td className="py-3 px-4 text-[#475569]">
+                        {p.capabilities?.duplexSupported ? "Supported" : "Single Only"}
+                      </td>
+                      <td className="py-3 px-4 text-[#475569]">
+                        {p.capabilities?.colorSupported ? "Color & B&W" : "B&W Only"}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Ready
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
 
       {/* Pairing Code Modal */}
       {isPairingModalOpen && pairingCodeData && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-[#111827] border border-[#1f2937] rounded-2xl p-6 space-y-5 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Laptop className="w-5 h-5 text-emerald-400" />
-                <span>Connect Windows Agent</span>
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
+              <h3 className="text-base font-bold text-[#111827] flex items-center gap-2">
+                <Laptop className="w-5 h-5 text-emerald-600" />
+                <span>Pair Windows Print Agent</span>
               </h3>
               <button
-                type="button"
                 onClick={() => setIsPairingModalOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-[#475569] hover:text-[#111827] text-lg font-bold"
               >
-                <XCircle className="w-5 h-5" />
+                ✕
               </button>
             </div>
 
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Run the S2P Windows Agent on your shop computer. Enter this short-lived pairing code when prompted.
+            <p className="text-xs text-[#475569] leading-relaxed">
+              Launch <code className="bg-slate-100 px-1 py-0.5 rounded text-emerald-700 font-bold">start-agent.bat</code> on your shop PC and type this single-use pairing code when prompted:
             </p>
 
-            {/* Code Box */}
-            <div className="bg-[#0b0f0e] border border-emerald-500/30 rounded-xl p-6 text-center space-y-3">
-              <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Single-Use Pairing Code</div>
-              <div className="font-mono text-4xl font-extrabold text-white tracking-widest selection:bg-emerald-500">
+            {/* 6-Digit Code Display */}
+            <div className="bg-[#F8FAFC] border-2 border-dashed border-emerald-500/40 rounded-xl p-5 text-center space-y-2">
+              <div className="text-3xl font-black font-mono tracking-widest text-[#111827]">
                 {pairingCodeData.code}
               </div>
-              <div className="flex items-center justify-center gap-2 text-xs text-amber-400">
-                <Clock className="w-3.5 h-3.5" />
-                <span>Expires in {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, "0")}</span>
+              <div className="flex items-center justify-center gap-1.5 text-[11px] text-[#475569]">
+                <Clock className="w-3.5 h-3.5 text-amber-500" />
+                <span>Expires in <strong className="text-[#111827]">{timeLeft}</strong> seconds</span>
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex items-center gap-3">
               <button
-                type="button"
                 onClick={copyCodeToClipboard}
-                className="flex-1 py-2.5 rounded-lg bg-[#1f2937] hover:bg-[#374151] text-white text-xs font-bold transition flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 rounded-xl border border-[#E2E8F0] hover:bg-slate-50 text-[#111827] font-bold text-xs transition flex items-center justify-center gap-2"
               >
-                {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                {copiedCode ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
                 <span>{copiedCode ? "Copied!" : "Copy Code"}</span>
               </button>
-
               <button
-                type="button"
                 onClick={() => setIsPairingModalOpen(false)}
-                className="py-2.5 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition"
+                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition"
               >
                 Done
               </button>
-            </div>
-
-            <div className="bg-[#161e1b] border border-[#24322c] p-3 rounded-lg text-[11px] text-slate-400 space-y-1">
-              <div className="font-bold text-emerald-400">Next Steps on Shop PC:</div>
-              <ol className="list-decimal pl-4 space-y-0.5">
-                <li>Open PowerShell in <code className="text-slate-200">apps/agent</code></li>
-                <li>Run: <code className="text-emerald-300 font-mono">dotnet run</code></li>
-                <li>Paste code <strong className="text-white font-mono">{pairingCodeData.code}</strong></li>
-              </ol>
             </div>
           </div>
         </div>
