@@ -1,37 +1,9 @@
-rules_version = '2';
+﻿rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    function isShopStaff(shopId) {
-      return isAuthenticated() &&
-        firestore.exists(/databases/(default)/documents/shopMembers/$(request.auth.uid + "_" + shopId)) &&
-        firestore.get(/databases/(default)/documents/shopMembers/$(request.auth.uid + "_" + shopId)).data.status == 'ACTIVE' &&
-        firestore.get(/databases/(default)/documents/shopMembers/$(request.auth.uid + "_" + shopId)).data.role in [
-          'OWNER', 'MANAGER', 'COUNTER_STAFF', 'PRINT_OPERATOR', 'FINISHING_STAFF'
-        ];
-    }
-
-    // STRICT PRIVATE STORAGE PIPELINE (Phase 3.1)
-    // Path: shops/{shopId}/orders/{orderId}/files/{fileId}/{folder}/{filename}
-    // Folders: original, processed, previews
-    match /shops/{shopId}/orders/{orderId}/files/{fileId}/{folder}/{filename} {
-      
-      // READ: Direct unauthenticated or guest client reads are DENIED.
-      // Customer documents are accessed via server-authorized short-lived signed URLs.
-      // Authorized staff may read directly via Firestore shopMembers verification.
-      allow read: if isShopStaff(shopId);
-
-      // WRITE: DENY ALL DIRECT CLIENT WRITES!
-      // Uploads must go through trusted server / Firebase Admin SDK exclusively.
-      // Prevents unauthenticated or malicious clients from uploading to guessed paths.
-      allow create, update, delete: if false;
-    }
-
-    // Default deny all other paths. No public directories!
+    // Zero direct client reads or writes!
+    // All file ingestion, previewing, and downloads strictly flow through
+    // authorized Next.js server endpoints using Firebase Admin SDK.
     match /{allPaths=**} {
       allow read, write: if false;
     }

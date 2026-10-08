@@ -10,6 +10,45 @@ export class RazorpayAdapter implements IPaymentProvider {
   ) {}
 
   public async createPaymentOrder(options: CreatePaymentOrderOptions): Promise<PaymentOrderResult> {
+    if (this.keyId && this.keySecret && !process.env.S2P_TEST_MODE) {
+      try {
+        const authHeader = 'Basic ' + Buffer.from(`${this.keyId}:${this.keySecret}`).toString('base64');
+        const res = await fetch('https://api.razorpay.com/v1/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader
+          },
+          body: JSON.stringify({
+            amount: options.amountPaise,
+            currency: options.currency || 'INR',
+            receipt: options.orderNumber,
+            notes: {
+              orderId: options.orderId,
+              orderNumber: options.orderNumber
+            }
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          return {
+            provider: 'RAZORPAY',
+            providerOrderId: data.id,
+            amountPaise: options.amountPaise,
+            currency: options.currency || 'INR',
+            metadata: {
+              keyId: this.keyId,
+              receipt: options.orderNumber,
+              live: true
+            }
+          };
+        }
+      } catch (err: unknown) {
+        console.warn('[RazorpayAdapter] Live order creation error, falling back to mock:', err);
+      }
+    }
+
     const providerOrderId = 'order_rzp_' + options.orderId + '_' + Date.now().toString(36);
     return {
       provider: 'RAZORPAY',
@@ -18,7 +57,8 @@ export class RazorpayAdapter implements IPaymentProvider {
       currency: options.currency || 'INR',
       metadata: {
         keyId: this.keyId || 'mock_rzp_key',
-        receipt: options.orderNumber
+        receipt: options.orderNumber,
+        live: false
       }
     };
   }

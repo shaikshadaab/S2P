@@ -25,7 +25,10 @@ import {
   RotateCcw,
   Loader2,
   Download,
-  QrCode
+  QrCode,
+  BarChart3,
+  Users,
+  Activity
 } from "lucide-react";
 import { useAuth } from "../../lib/firebase/auth-context";
 
@@ -35,6 +38,9 @@ const NAV_ITEMS = [
   { label: "Print Queue", href: "/dashboard/queue", icon: Layers, status: "Phase 10" },
   { label: "Printer Center", href: "/dashboard/printers", icon: Printer, status: "Phase 12" },
   { label: "Pricing & Rates", href: "/dashboard/pricing", icon: Tag, status: "Active Rates" },
+  { label: "Reports & KPIs", href: "/dashboard/reports", icon: BarChart3, status: "Analytics" },
+  { label: "Staff & RBAC", href: "/dashboard/staff", icon: Users, status: "Authorized" },
+  { label: "Diagnostics", href: "/dashboard/diagnostics", icon: Activity, status: "Health" },
   { label: "QR Standee", href: "/dashboard/standee", icon: QrCode, status: "Counter QR" },
   { label: "Settings", href: "/dashboard/settings", icon: Settings, status: "Active Phase 1" },
 ];
@@ -164,15 +170,6 @@ export default function DashboardLayout({
           {/* Brand & Shop Header */}
           <div className="p-5 border-b border-[#1c2621]">
             <div className="flex items-center gap-3">
-            <a
-              href="/S2P-Agent-Setup.exe"
-              download="S2P-Agent-Setup.exe"
-              className="text-xs font-bold px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition shadow"
-              title="Download Windows Print Agent (.exe)"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Download Agent (.exe)</span>
-            </a>
               <div className="w-10 h-10 rounded-lg bg-emerald-600 flex items-center justify-center font-black text-xl text-white tracking-wider shadow-lg shadow-emerald-950/60">
                 {BRAND_NAME}
               </div>
@@ -200,7 +197,7 @@ export default function DashboardLayout({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold transition ${
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition ${
                     isActive
                       ? "bg-emerald-600 text-white shadow-sm"
                       : "text-slate-300 hover:text-white hover:bg-[#161e1b]"
@@ -315,5 +312,3 @@ export default function DashboardLayout({
     </div>
   );
 }
-
-

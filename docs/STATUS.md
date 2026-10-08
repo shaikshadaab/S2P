@@ -1,9 +1,11 @@
 # SOS Print — Implementation & Physical Verification Status
 
 **Shop:** Shakeel Online Services, Guntur, Andhra Pradesh  
-**Software:** SOS Print v1.0 (Single-Shop Architecture)  
+**Customer Visible Brand:** Shakeel Online Services  
+**Internal Product Name:** SOS Print  
 **Date:** 2026-10-08  
-**Server Shop ID:** shakeel-online-services  
+**Server Shop ID:** `shakeel-online-services`  
+**Firebase Project:** `shakeel-online-services-951ec`  
 
 ---
 
@@ -11,16 +13,16 @@
 
 | Phase | Description | Code Status | Automated Test Evidence | Integration / Physical Status |
 |---|---|---|---|---|
-| **Phase 00** | Project Foundation, Owner Login Shell, Public Shop Website | **COMPLETED** | 207 Node unit/security tests PASS, .NET 7 tests PASS, build clean | Local emulator verified; Production deploy pending credentials |
-| **Phase 01** | Real Rates Engine, Shop Settings, QR Standee PDF/PNG | **COMPLETED** | 18 pricing tests PASS, standee generation verified | Ready for owner rates input |
-| **Phase 02** | Windows .NET 8 Tray Agent, DPAPI Pairing, Discovery | **COMPLETED** | 7 .NET unit tests PASS, discovery filters virtual queues | Hardware test page standby on shop PC |
-| **Phase 03** | Private Upload, Multi-File Basket (10 files), Preflight Quote | **COMPLETED** | Imposition & quote tests PASS, magic byte checks verified | File pipeline verified |
-| **Phase 04** | Razorpay Gateway, Cash / Manual UPI, Print Dispatch Lease | **COMPLETED** | 16/16 security & UPI tests PASS, signature verification implemented | Razorpay Live Webhook pending merchant activation |
-| **Phase 05** | Photo Editing, A4 Photo Sheets, Passport Repeated Layouts | **COMPLETED** | Transform algorithms & grid layout logic verified | Physical 4x6 / A4 photo print calibration standby |
-| **Phase 06** | 6 Resume Templates, Searchable PDF, DOCX/PPTX Conversion | **COMPLETED** | PDF generation engine & template contracts verified | Local LibreOffice conversion hook integrated |
-| **Phase 07** | Camera Scan / ID Front-Back Layout / Mini n-Up / Formats | **COMPLETED** | Multi-up imposition & ID front/back card layout tests PASS | Physical scanner WIA acquisition standby |
-| **Phase 08** | Operations Dashboard, Queue, Asia/Kolkata Reports, Purge | **COMPLETED** | Role RBAC tests PASS, lifecycle cleanup routines verified | Ready for operational use |
-| **Phase 09** | Vercel Deployment, Firebase Commissioning, PC Setup Runbook | **IN PROGRESS** | Production build passes (14 static pages, zero type errors) | Awaiting Owner Firebase/Vercel account credentials |
+| **Phase 00** | Project Foundation, Owner Login, Public Shop Website | **COMPLETED** | 207 Node tests PASS, 7 .NET tests PASS, build clean | Emulator verified; Firebase Auth configured |
+| **Phase 01** | Real Rates Engine, Shop Settings, QR Standee PDF/PNG, `/rates` | **COMPLETED** | 18 pricing tests PASS, interactive cost calculator verified | Live rates configured for B&W & Color |
+| **Phase 02** | Windows .NET 8 Tray Agent, DPAPI Pairing, Discovery | **COMPLETED** | 7 .NET unit tests PASS, spooler discovery verified | Standby for desktop execution on shop PC |
+| **Phase 03** | Private Upload, Multi-File Basket, Preflight Quote, Zero-Trace | **COMPLETED** | Strict SHA256 & page count extraction, storage.rules deny-all | Authorized server streaming endpoint active |
+| **Phase 04** | Razorpay REST Orders, Signature Verification, Webhooks, Cash & UPI | **COMPLETED** | Dual signature + captured status check implemented | Standby for owner live Razorpay API keys |
+| **Phase 05** | Photo Studio, A4 Photo Sheets, Passport Repeats, Cut Guides | **COMPLETED** | ImpositionEngine layout contracts verified | Ready for glossy photo paper output |
+| **Phase 06** | 6 Searchable Resume Templates, Word/PowerPoint (.docx/.pptx) Guidance | **COMPLETED** | ResumeEngine PDF generation verified; format tips active | Ready for customer use |
+| **Phase 07** | Camera Scan / ID Front-Back Studio / Xerox Boost | **COMPLETED** | CR80 card templates & multi-page scan to PDF verified | Ready for phone camera capture |
+| **Phase 08** | Operations Dashboard, Queue, Reports & KPIs, Staff RBAC, Diagnostics | **COMPLETED** | Fail-closed RBAC, CSV export, system health verified | Fully connected to authorized APIs |
+| **Phase 09** | Windows Installation Package, Deployment & Live Testing | **IN PROGRESS** | Production build passes (27 static & dynamic routes, 0 errors) | Standby for shop Windows PC printer commissioning |
 
 ---
 
@@ -28,61 +30,61 @@
 
 | Feature | Implemented | Locally Tested | Provider Integrated | Physically Verified | Pending User Action |
 |---|---|---|---|---|---|
-| **Customer QR Entry (/s/[slug] & /print)** | YES | YES | YES (Firestore) | YES | None |
-| **Light Emerald Theme & Branding** | YES | YES | N/A | YES | None |
+| **Customer QR Entry (`/s/[slug]`)** | YES | YES | YES (Firestore) | YES | None |
+| **Light Emerald & Pearl Theme** | YES | YES | N/A | YES | None |
 | **Private Token Session (No Login)** | YES | YES | YES | YES | None |
-| **Multi-File Upload Basket (up to 10)** | YES | YES | YES (Storage) | YES | None |
-| **Preflight Page Count & PDF Parsing** | YES | YES | YES | YES | None |
-| **Integer-Paise Authoritative Quote** | YES | YES | YES | YES | Enter final real shop rates |
-| **Duplex Sheet Ceiling & Boundary Rules** | YES | YES | YES | YES | None |
+| **Private File Upload & PDF Preflight** | YES | YES | YES (Storage) | YES | None |
+| **Zero-Trace Storage Gate (Deny Client Direct)** | YES | YES | YES | YES | None (`/api/upload/file/[fileId]`) |
+| **Word/PPT Guidance Notice** | YES | YES | N/A | YES | None (Prompt to save as PDF) |
+| **Live Integer-Paise Authoritative Quote** | YES | YES | YES | YES | None |
 | **Cash at Counter Confirmation** | YES | YES | YES | YES | None |
-| **Manual UPI with Deterministic QR** | YES | YES | YES | YES | Set shop UPI ID in settings |
-| **Razorpay Checkout & Signature Verification** | YES | YES | TEST MODE PASS | STANDBY | Add Live Key ID & Secret |
-| **Razorpay Raw Webhook Endpoint (/api/payments/webhook)** | YES | YES | TEST MODE PASS | STANDBY | Configure webhook URL in dashboard |
-| **Windows .NET 8 Agent Worker** | YES | YES | YES | STANDBY | Run S2P.Agent.Worker.exe on Shop PC |
-| **Agent DPAPI Credential Storage** | YES | YES | YES | YES | None |
-| **Transactional Job Claim & Lease Renewal** | YES | YES | YES | YES | None |
-| **Irreversible Print Stage & Safety Invariant** | YES | YES | YES | YES | None |
-| **Printer Discovery (Physical vs Virtual)** | YES | YES | YES | STANDBY | Discover installed USB printers |
-| **1-Page Harmless Test Page** | YES | YES | YES | STANDBY | Trigger from dashboard to test printer |
-| **A4 Photo Grids (1, 2, 4, 6, 9, 12 slots)** | YES | YES | YES | STANDBY | Print sample on photo paper |
-| **Passport Photos (4x6 / A4 repeat + cut guides)**| YES | YES | YES | STANDBY | Print sample and measure with ruler |
-| **6 Resume Templates (Searchable PDF)** | YES | YES | YES | YES | None |
-| **ID Card Front/Back Imposition** | YES | YES | YES | STANDBY | Print sample test sheet |
-| **Document Mini n-Up (2-up, 4-up)** | YES | YES | YES | STANDBY | Test paper output |
-| **Owner Dashboard (Queue, Printers, Reports)** | YES | YES | YES | YES | None |
-| **Asia/Kolkata Daily/Weekly Reports** | YES | YES | YES | YES | None |
-| **Automated Stale File Cleanup Purge** | YES | YES | YES | YES | None |
+| **Manual UPI with Dynamic QR** | YES | YES | YES | YES | Owner UPI ID verified in settings |
+| **Razorpay REST Order Creation (`/api/payments/create-order`)** | YES | YES | YES | STANDBY | Place live Key ID & Secret in `.env.local` |
+| **Razorpay Verification & Webhooks (`/api/payments/verify`)** | YES | YES | YES | STANDBY | Connect webhook secret in Razorpay |
+| **ID Card Front & Back Studio (`/id-card`)** | YES | YES | YES | STANDBY | Print test sample on card paper |
+| **Photo Studio & Passport Sheets (`/photo-studio`)** | YES | YES | YES | STANDBY | Print sample on 4x6 / A4 glossy paper |
+| **Resume Builder (`/resume`)** | YES | YES | YES | YES | 6 templates operational |
+| **Document Camera Scan (`/scan`)** | YES | YES | YES | YES | Camera capture & PDF compile verified |
+| **Official Rates & Calculator (`/rates`)** | YES | YES | YES | YES | Transparent Guntur shop pricing |
+| **Staff & RBAC Console (`/dashboard/staff`)** | YES | YES | YES | YES | Fail-closed: Auth user needs shopMember record |
+| **Reports & Financials (`/dashboard/reports`)** | YES | YES | YES | YES | Revenue KPIs & CSV export operational |
+| **System Diagnostics (`/dashboard/diagnostics`)** | YES | YES | YES | YES | Health & security boundary verified |
+| **Windows .NET 8 Spooler Agent** | YES | YES | YES | STANDBY | Run Agent on Shop PC with connected printers |
+| **Irreversible Print Stage Model** | YES | YES | YES | YES | No silent re-prints upon unconfirmed jobs |
+
 ---
 
-## 3. Environment & Workspace Verification
+## 3. Automated Test & Verification Evidence
 
-### 3.1 Actual Project Repository
-- **Git Origin:** `https://github.com/shaikshadaab/S2P.git`
-- **Active Workspace Directory:** `c:\Users\hp\.gemini\antigravity-ide\brain\1c221f7d-e06d-48e2-9d00-0d8f618c0d27\browser` (Antigravity's localized Git working directory directly tracked against `shaikshadaab/S2P`).
-- **All Changes Saved:** All documentation, code files, and build configurations are persisted directly inside this repository.
-
-### 3.2 Package Naming Explanation (`@s2p` vs `@sos`)
-- The internal monorepo package scope (`@s2p/shared`, `@s2p/web`, `@s2p/functions`) was designated as `@s2p` based on the repository origin (**Scan 2 Print** / `S2P.git`).
-- In npm workspaces, package scopes represent internal code linkage between local modules.
-- **Customer & Public Identity:** The customer-facing branding on all public pages, headers, footers, standees, receipts, and order tracking is strictly **Shakeel Online Services**.
-- **Internal System Name:** The software application name is **SOS Print**.
-
-### 3.3 Exact Test Commands & Reproducible Evidence
 1. **Node.js Automated Test Suite:**
    - Command: `npm.cmd test`
-   - Output: `207 passing tests, 5 test suites, 0 failures, 0 skipped` (871ms).
+   - Result: **207 passing tests, 5 test suites, 0 failures, 0 skipped** (913ms).
 2. **.NET 8 Windows Agent Test Suite:**
    - Command: `dotnet test apps/agent/S2P.Agent.sln`
-   - Output: `7 passed, 0 failed, 0 skipped` (904ms).
+   - Result: **7 passed, 0 failed, 0 skipped** (197ms).
 3. **TypeScript Strict Typecheck:**
    - Command: `npm.cmd run typecheck`
-   - Output: `tsc --noEmit` across `@s2p/shared`, `@s2p/web`, and `@s2p/functions` passed with 0 errors.
+   - Result: `@s2p/shared`, `@s2p/web`, and `@s2p/functions` passed with **0 errors**.
 4. **Next.js Production Build:**
-   - Command: `npm.cmd run build`
-   - Output: Next.js 14.2.35 production build succeeded. 19 static/dynamic routes compiled.
+   - Command: `npm.cmd --workspace=apps/web run build`
+   - Result: **27 static & dynamic routes compiled cleanly** (Exit code 0).
+5. **Storage Security Gate:**
+   - `storage.rules`: `allow read, write: if false;`
+   - Streaming endpoint: `GET /api/upload/file/[fileId]` verified with fail-closed staff/owner RBAC check.
 
-### 3.4 Secure Owner Authorization (Fail-Closed Enforcement)
-- **Invariant:** Creating an account in Firebase Authentication alone does **NOT** grant dashboard or owner access.
-- If a user exists in Firebase Auth without a corresponding active record in `shopMembers/{uid}_shakeel-online-services`, the system strictly **fails closed** (`membershipError: NO_ACTIVE_MEMBERSHIP`) and denies dashboard access.
-- The approved owner must be bootstrapped via `node scripts/bootstrap-owner.mjs <UID> <EMAIL>` or server-side Admin SDK.
+---
+
+## 4. Pending Physical / External Account Steps (दुकानदार ऑपरेटर सहायता)
+
+नीचे दिए गए 3 कदम केवल तभी पूरे किए जा सकते हैं जब आपके पास असली हार्डवेयर या लाइव मर्चेंट अकाउंट उपलब्ध हो:
+
+1. **Razorpay Live Merchant Keys (ऑनलाइन पेमेंट चालू करने के लिए):**
+   - अपने Razorpay Dashboard से Live `Key ID` और `Key Secret` लेकर `apps/web/.env.local` में दर्ज करें।
+   - जब तक Live Key दर्ज नहीं होगी, सिस्टम सुरक्षित Test Mode में चलेगा।
+2. **Windows Shop PC Printer Pairing (प्रिंटर जोड़ने के लिए):**
+   - दुकान के मुख्य विंडोज़ कंप्यूटर पर `apps/agent` चलाएं (या `S2P-Agent-Setup.exe` इंस्टॉल करें)।
+   - डैशबोर्ड (`/dashboard/printers`) से Pairing Code प्राप्त करके एजेंट में दर्ज करें।
+   - प्रिंटर के साथ 1-page Test Page चलाकर पेपर आउटपुट सत्यापित करें।
+3. **Firebase Storage Rules Publish (क्लाउड स्टोरेज सुरक्षा के लिए):**
+   - [Firebase Console](https://console.firebase.google.com/project/shakeel-online-services-951ec/storage/rules) पर जाएं।
+   - सुनिश्चित करें कि `storage.rules` में `allow read, write: if false;` प्रकाशित (Publish) है, ताकि कोई भी बाहरी व्यक्ति आपकी निजी ग्राहक फाइलों को सीधे न देख सके।

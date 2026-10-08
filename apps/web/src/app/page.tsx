@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
@@ -72,6 +72,12 @@ export default function HomePage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Link
+              href="/rates"
+              className="hidden sm:inline-flex text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
+            >
+              {lang === "en" ? "Rates" : "रेट लिस्ट"}
+            </Link>
             <Link
               href="/how-to-print"
               className="hidden sm:inline-flex text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
@@ -162,11 +168,14 @@ export default function HomePage() {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* 1. Document Printing */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md transition">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4">
+          <Link
+            href="/s/shakeel-online-services"
+            className="group bg-white border border-slate-200 hover:border-emerald-500 rounded-2xl p-6 hover:shadow-lg transition block"
+          >
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4 group-hover:scale-105 transition">
               <FileText className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">
+            <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-emerald-700 transition">
               {lang === "en" ? "Document Printing" : "दस्तावेज़ प्रिंटिंग"}
             </h3>
             <p className="text-xs text-slate-600 leading-relaxed mb-4">
@@ -175,17 +184,26 @@ export default function HomePage() {
                 : "PDF और मल्टी-फ़ाइल अपलोड (10 फ़ाइल तक)। A4/A3 पर ब्लैक एंड व्हाइट या कलर, सिंगल या दोनों तरफ़।"
               }
             </p>
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
-              PDF / Images / Docs
-            </span>
-          </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
+                PDF / Images / Docs
+              </span>
+              <span className="text-xs font-bold text-emerald-700 flex items-center gap-1 group-hover:translate-x-1 transition">
+                <span>Start</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
+          </Link>
 
           {/* 2. Passport Photos */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md transition">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4">
+          <Link
+            href="/photo-studio"
+            className="group bg-white border border-slate-200 hover:border-emerald-500 rounded-2xl p-6 hover:shadow-lg transition block"
+          >
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4 group-hover:scale-105 transition">
               <UserCheck className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">
+            <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-emerald-700 transition">
               {lang === "en" ? "Passport Photos" : "पासपोर्ट साइज़ फ़ोटो"}
             </h3>
             <p className="text-xs text-slate-600 leading-relaxed mb-4">
@@ -194,17 +212,26 @@ export default function HomePage() {
                 : "मानक mm साइज के साथ 4x6 फोटो शीट या A4 पन्नों पर कटिंग गाइड के साथ तैयार शीट।"
               }
             </p>
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
-              4x6 / A4 Photo Sheets
-            </span>
-          </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
+                4x6 / A4 Photo Sheets
+              </span>
+              <span className="text-xs font-bold text-emerald-700 flex items-center gap-1 group-hover:translate-x-1 transition">
+                <span>Photo Studio</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
+          </Link>
 
           {/* 3. Photo Sheets & Grids */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md transition">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4">
+          <Link
+            href="/photo-studio"
+            className="group bg-white border border-slate-200 hover:border-emerald-500 rounded-2xl p-6 hover:shadow-lg transition block"
+          >
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4 group-hover:scale-105 transition">
               <ImageIcon className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">
+            <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-emerald-700 transition">
               {lang === "en" ? "Photo Grids (1 to 12)" : "फ़ोटो ग्रिड शीट"}
             </h3>
             <p className="text-xs text-slate-600 leading-relaxed mb-4">
@@ -213,17 +240,26 @@ export default function HomePage() {
                 : "एक पन्ने पर 1, 2, 4, 6, 9 या 12 फोटो सेट करें। मोबाइल से क्रॉप, ज़ूम और रोटेशन की पूरी सुविधा।"
               }
             </p>
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
-              Full A4 Layouts
-            </span>
-          </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
+                Full A4 Layouts
+              </span>
+              <span className="text-xs font-bold text-emerald-700 flex items-center gap-1 group-hover:translate-x-1 transition">
+                <span>Create Grid</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
+          </Link>
 
           {/* 4. ID Card Front/Back */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md transition">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4">
+          <Link
+            href="/id-card"
+            className="group bg-white border border-slate-200 hover:border-emerald-500 rounded-2xl p-6 hover:shadow-lg transition block"
+          >
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4 group-hover:scale-105 transition">
               <CreditCard className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">
+            <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-emerald-700 transition">
               {lang === "en" ? "ID Card Front & Back" : "आईडी कार्ड आगे-पीछे"}
             </h3>
             <p className="text-xs text-slate-600 leading-relaxed mb-4">
@@ -232,17 +268,26 @@ export default function HomePage() {
                 : "आधार, वोटर आईडी, पैन कार्ड के दोनों हिस्सों को बिना कटे एक ही A4 शीट पर सही अनुपात में प्रिंट करें।"
               }
             </p>
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
-              Single Sheet Layout
-            </span>
-          </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
+                Single Sheet Layout
+              </span>
+              <span className="text-xs font-bold text-emerald-700 flex items-center gap-1 group-hover:translate-x-1 transition">
+                <span>ID Studio</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
+          </Link>
 
           {/* 5. Resume Templates */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md transition">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4">
+          <Link
+            href="/resume"
+            className="group bg-white border border-slate-200 hover:border-emerald-500 rounded-2xl p-6 hover:shadow-lg transition block"
+          >
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4 group-hover:scale-105 transition">
               <FileCheck className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">
+            <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-emerald-700 transition">
               {lang === "en" ? "6 Resume Templates" : "बायोडाटा / रिज़्यूमे मेकर"}
             </h3>
             <p className="text-xs text-slate-600 leading-relaxed mb-4">
@@ -251,29 +296,44 @@ export default function HomePage() {
                 : "6 प्रोफेशनल रिज़्यूमे टेम्पलेट्स। विवरण भरें और तुरंत प्रिंट-रेडी सर्च योग्य PDF प्राप्त करें।"
               }
             </p>
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
-              Clean PDF Output
-            </span>
-          </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
+                Clean PDF Output
+              </span>
+              <span className="text-xs font-bold text-emerald-700 flex items-center gap-1 group-hover:translate-x-1 transition">
+                <span>Resume Maker</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
+          </Link>
 
           {/* 6. Document Scanner / Xerox */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md transition">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4">
+          <Link
+            href="/scan"
+            className="group bg-white border border-slate-200 hover:border-emerald-500 rounded-2xl p-6 hover:shadow-lg transition block"
+          >
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4 group-hover:scale-105 transition">
               <Printer className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">
-              {lang === "en" ? "Xerox & Counter Scan" : "ज़ीरॉक्स व काउंटर स्कैन"}
+            <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-emerald-700 transition">
+              {lang === "en" ? "Xerox & Camera Scan" : "ज़ीरॉक्स व कैमरा स्कैन"}
             </h3>
             <p className="text-xs text-slate-600 leading-relaxed mb-4">
               {lang === "en"
-                ? "Physical paper scanning and copies assisted by shop operator using shop scanner, or upload camera photos with perspective correction."
-                : "दुकान के स्कैनर से ऑपरेटर द्वारा सीधे पेपर स्कैन व कॉपी, या फोन कैमरे से फोटो खींचकर सीधे प्रिंट।"
+                ? "Scan multipage physical documents with your smartphone camera, perspective correction, B&W contrast boost and compile to PDF."
+                : "फोन कैमरे से फोटो खींचकर सीधे ऑटो-क्रॉप, बी&डब्ल्यू कंट्रास्ट और कंपाइल्ड पीडीएफ बनाकर तुरंत प्रिंट करें।"
               }
             </p>
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
-              Operator Assisted
-            </span>
-          </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
+                Camera to PDF
+              </span>
+              <span className="text-xs font-bold text-emerald-700 flex items-center gap-1 group-hover:translate-x-1 transition">
+                <span>Scan Tool</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
+          </Link>
         </div>
       </section>
 
@@ -366,20 +426,25 @@ export default function HomePage() {
                 </Link>
               </li>
               <li>
+                <Link href="/rates" className="hover:text-emerald-400 transition">
+                  Rates &amp; Pricing (रेट लिस्ट)
+                </Link>
+              </li>
+              <li>
                 <Link href="/how-to-print" className="hover:text-emerald-400 transition">
                   How to Print (गाइड)
                 </Link>
               </li>
               <li>
                 <Link href="/contact" className="hover:text-emerald-400 transition">
-                  Contact & Location
+                  Contact &amp; Location
                 </Link>
               </li>
             </ul>
           </div>
 
           <div>
-            <div className="font-bold text-white text-sm mb-3">Policies & Security</div>
+            <div className="font-bold text-white text-sm mb-3">Policies &amp; Security</div>
             <ul className="space-y-2">
               <li>
                 <Link href="/privacy" className="hover:text-emerald-400 transition">
@@ -388,7 +453,7 @@ export default function HomePage() {
               </li>
               <li>
                 <Link href="/terms" className="hover:text-emerald-400 transition">
-                  Terms & Refund Policy
+                  Terms &amp; Refund Policy
                 </Link>
               </li>
               <li>
@@ -398,7 +463,7 @@ export default function HomePage() {
           </div>
 
           <div>
-            <div className="font-bold text-white text-sm mb-3">Staff & Administration</div>
+            <div className="font-bold text-white text-sm mb-3">Staff &amp; Administration</div>
             <ul className="space-y-2">
               <li>
                 <Link href="/dashboard" className="text-emerald-400 font-semibold hover:underline">

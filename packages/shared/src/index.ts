@@ -13,3 +13,4 @@ export * from './imposition/imposition-engine';
 export * from './detection/document-detector';
 
 export * from './payments/upi-utils';
+export * from './resume/resume-engine';
