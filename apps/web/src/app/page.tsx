@@ -221,14 +221,14 @@ export default function HomePage() {
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base shadow-md shadow-emerald-700/20 transition"
             >
               <Printer className="w-5 h-5" />
-              <span>Start Printing</span>
+              <span>Upload &amp; Print Documents</span>
               <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
             <Link
-              href="/rates"
+              href="#services"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-white border border-[#E2E8F0] text-[#111827] hover:bg-slate-50 font-semibold text-base transition"
             >
-              <span>View Rates</span>
+              <span>Explore Printing Tools</span>
             </Link>
           </div>
 
