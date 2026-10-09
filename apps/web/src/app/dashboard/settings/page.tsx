@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Settings,
+  MessageCircle,
   Shield,
   Building,
   Globe,
@@ -420,6 +421,34 @@ export default function DashboardSettingsPage() {
         </div>
       </div>
 
+            {/* Owner-Confirmed WhatsApp Support */}
+      <div className='bg-[#111827] border border-[#1f2937] rounded-xl p-6 space-y-4'>
+        <div className='flex items-center justify-between'>
+          <h3 className='text-sm font-bold text-white flex items-center gap-2'>
+            <MessageCircle className='w-4 h-4 text-emerald-400' />
+            <span>Owner-Confirmed WhatsApp Contact</span>
+          </h3>
+          <span className='text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30'>
+            CONFIRMED
+          </span>
+        </div>
+        <p className='text-xs text-slate-400 leading-relaxed'>
+          Confirmed business WhatsApp contact for Shakeel Online Services. Read by public website Contact page, footer, and support buttons.
+        </p>
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs'>
+          <div className='p-3.5 rounded-lg bg-[#161e1b] border border-[#24322c]'>
+            <span className='text-slate-400 block text-[11px] mb-1'>Contact Number</span>
+            <span className='text-white font-bold font-mono'>+91 95815 29381</span>
+          </div>
+          <div className='p-3.5 rounded-lg bg-[#161e1b] border border-[#24322c]'>
+            <span className='text-slate-400 block text-[11px] mb-1'>WhatsApp Direct Link</span>
+            <a href='https://wa.me/919581529381' target='_blank' rel='noopener noreferrer' className='text-emerald-400 font-mono font-bold hover:underline'>
+              https://wa.me/919581529381 &rarr;
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* Security Policies */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
         <div className="bg-[#111827] border border-[#1f2937] rounded-xl p-5 space-y-2">
@@ -435,10 +464,10 @@ export default function DashboardSettingsPage() {
         <div className="bg-[#111827] border border-[#1f2937] rounded-xl p-5 space-y-2">
           <h4 className="font-bold text-white flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Cross-Tenant Isolation</span>
+            <span>Customer Session Isolation</span>
           </h4>
           <p className="text-slate-400 leading-relaxed text-[11px]">
-            Firestore security rules ensure Shop A staff cannot read Shop B private orders, queue data, or customers.
+            Even within this shop, high-entropy tokens guarantee customers cannot view each other private documents or orders. Scoped access is strictly enforced.
           </p>
         </div>
       </div>

@@ -9,8 +9,8 @@ using S2P.Agent.Core.Services;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 Console.WriteLine("==========================================================");
-Console.WriteLine("           S2P — SCAN 2 PRINT WINDOWS AGENT v0.1          ");
-Console.WriteLine("      Pilot: Shakeel Online Services · Print Spooler      ");
+Console.WriteLine("          SOS PRINT — WINDOWS PRINT SPOOLER AGENT         ");
+Console.WriteLine("      Shakeel Online Services, Guntur · Real Spooler      ");
 Console.WriteLine("==========================================================\n");
 
 var argsList = args.ToList();

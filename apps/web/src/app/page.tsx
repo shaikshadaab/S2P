@@ -145,6 +145,8 @@ export default function HomePage() {
           <div className="flex items-center gap-2">
             <MapPin className="w-3.5 h-3.5 text-emerald-300" />
             <span>Guntur, Andhra Pradesh · Shakeel Online Services</span>
+            <span className='text-emerald-500'>•</span>
+            <a href='https://wa.me/919581529381' target='_blank' rel='noopener noreferrer' className='text-emerald-300 hover:text-white font-semibold transition'>WhatsApp: +91 95815 29381</a>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-emerald-300">Language:</span>
@@ -435,6 +437,8 @@ export default function HomePage() {
             <Link href="/contact" className="hover:text-[#111827]">Contact</Link>
             <Link href="/privacy" className="hover:text-[#111827]">Privacy</Link>
             <Link href="/terms" className="hover:text-[#111827]">Terms &amp; Refund</Link>
+            <a href='https://wa.me/919581529381' target='_blank' rel='noopener noreferrer' className='text-emerald-700 font-semibold hover:underline'>WhatsApp</a>
+            <Link href='/login' className='text-slate-400 hover:text-slate-700'>Owner Login</Link>
           </div>
         </div>
       </footer>

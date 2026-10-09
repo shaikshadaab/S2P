@@ -3,8 +3,8 @@ import "./globals.css";
 import { AuthProvider } from "../lib/firebase/auth-context";
 
 export const metadata: Metadata = {
-  title: "Shakeel Online Services — Print Documents & Photos | SOS Print",
-  description: "Quick, hassle-free document and photo printing at Shakeel Online Services, Guntur.",
+  title: "SOS Print — Printing at Shakeel Online Services, Guntur",
+  description: "Official printing portal for Shakeel Online Services, Guntur. Fast, affordable document, photo and ID card printing powered by SOS Print.",
   manifest: "/manifest.json",
 };
 

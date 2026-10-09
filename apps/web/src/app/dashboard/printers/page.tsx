@@ -209,15 +209,15 @@ export default function DashboardPrintersPage() {
           {/* Action Column */}
           <div className="flex flex-col items-stretch sm:items-end gap-3 shrink-0 w-full lg:w-auto">
             <a
-              href="/S2P-Agent-Package.zip"
-              download="S2P-Agent-Package.zip"
+              href="/SOS-Print-Agent-Package.zip"
+              download="SOS-Print-Agent-Package.zip"
               className="px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-700/20 transition flex items-center justify-center gap-2 text-center"
             >
               <Download className="w-4 h-4" />
               <span>Download Windows Print Agent (ZIP)</span>
             </a>
             <p className="text-[11px] text-[#475569] text-center sm:text-right">
-              Package: <span className="font-mono font-bold text-[#111827]">S2P-Agent-Package.zip (1.8 MB)</span>
+              Package: <span className="font-mono font-bold text-[#111827]">SOS-Print-Agent-Package.zip (5.0 MB)</span>
             </p>
           </div>
         </div>

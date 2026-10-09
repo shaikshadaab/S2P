@@ -1,10 +1,10 @@
 {
-  "name": "S2P — Scan 2 Print",
-  "short_name": "S2P",
-  "description": "Scan-to-Print Self-Service System for Shakeel Online Services",
-  "start_url": "/s/shakeel-online-services",
+  "name": "SOS Print â€” Shakeel Online Services",
+  "short_name": "SOS Print",
+  "description": "Mobile Document and Photo Printing for Shakeel Online Services, Guntur",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#090d0b",
+  "background_color": "#ffffff",
   "theme_color": "#059669",
   "icons": [
     {

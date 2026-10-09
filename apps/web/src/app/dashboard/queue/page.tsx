@@ -117,7 +117,7 @@ export default function QueueDashboardPage() {
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Layers className="w-5 h-5 text-emerald-400" />
-            <span>S2P Cloud Print Queue</span>
+            <span>SOS Print Spooler Queue</span>
           </h2>
           <p className="text-xs text-slate-400 mt-1">
             Authoritative order-to-spool queue for {PRIMARY_PILOT_SHOP.name}
