@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     let rzpOrderId: string;
 
-    if (keyId && keySecret) {
+    if (keyId && keySecret && process.env.S2P_TEST_MODE !== 'true') {
       // Live Razorpay API call
       const authHeader = 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64');
       const rzpRes = await fetch('https://api.razorpay.com/v1/orders', {
