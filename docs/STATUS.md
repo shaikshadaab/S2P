@@ -10,8 +10,11 @@
 **Firebase Project:** `shakeel-online-services-951ec`  
 **Owner UID:** `YSakxmoeNRX85x7eQKG2P7KYmPo2` (`shaikshadaab16@gmail.com`)  
 **Merchant UPI Status:** UNVERIFIED (Awaiting owner confirmation in Dashboard Settings; unverified UPI disabled from customer payment methods)  
-**Local Development URL:** `http://localhost:3000`  
-**Agent Standalone Package:** http://localhost:3000/SOS-Print-Agent-Package.zip (5.0 MB, SHA-256: A3EDEF14FB66B25E894D2C933812C067E4A7B2032E17CF8BF5A2E113773BE507)
+**Production HTTPS URL:** https://sos-print.vercel.app  
+**Production Aliased Domains:** `sos-print.vercel.app`, `sos-print-shaikshadaab951-1346s-projects.vercel.app`  
+**Deployed Commit:** `e5df7c1` (GitHub: `shaikshadaab/shakeel123` & `shaikshadaab/S2P`)  
+**Vercel Deployment ID:** `dpl_BKehZMgwfKTwaucptcLTCoemPHcs`  
+**Agent Standalone Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (5.0 MB, SHA-256: A3EDEF14FB66B25E894D2C933812C067E4A7B2032E17CF8BF5A2E113773BE507)
 
 ---
 
@@ -28,7 +31,7 @@
 | **Phase 06** | 6 Searchable Resume Templates, Word/PowerPoint (.docx/.pptx) Converter | **COMPLETED** | OfficeConverter (5 tests PASS); Multi-page ResumeEngine (3 tests PASS) | Ready for customer use (XLSX disabled) |
 | **Phase 07** | Camera Scan / ID Front-Back Studio / Xerox Boost | **COMPLETED** | CR80 card templates & multi-page scan to PDF verified | Ready for phone camera capture |
 | **Phase 08** | Operations Dashboard, Queue, Reports & KPIs, Staff RBAC, Diagnostics | **COMPLETED** | Fail-closed RBAC (8/8 endpoints tested), CSV export, system health verified | Fully connected to authorized APIs |
-| **Phase 09** | Windows Installation Package, Deployment & Live Testing | **IN PROGRESS** | Production build passes (31 static & dynamic routes, 0 errors) | Standby for shop Windows PC printer commissioning |
+| **Phase 09** | Windows Installation Package, Deployment & Live Testing | **DEPLOYED & VERIFIED** | 226 Node tests PASS, 7 .NET tests PASS, live E2E probe PASS | Live at https://sos-print.vercel.app (commit e5df7c1); Customer intake safely paused (`manualPause: true`) |
 
 ---
 
