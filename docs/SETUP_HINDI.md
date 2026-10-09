@@ -48,7 +48,7 @@
 0. **GitHub रिपॉजिटरी:**
    - कोड दो GitHub रिपॉजिटरी में सिंक है:
      - `https://github.com/shaikshadaab/shakeel123.git` (मुख्य डिप्लॉयमेंट रेपो)
-     - `https://github.com/shaikshadaab/S2P.git` (बैकअप / ओरिजिन)
+     - `https://github.com/shaikshadaab/SOS Print.git` (बैकअप / ओरिजिन)
 
 1. **Vercel में लॉगिन करें:**
    - [https://vercel.com/](https://vercel.com/) पर जाएं और GitHub अकाउंट से लॉगिन करें।
@@ -91,7 +91,7 @@
    - Windows Settings से एक सादा **Windows Test Page** प्रिंट करके पुष्टि करें कि प्रिंटर ठीक चल रहा है।
 
 2. **Windows Agent चलाना:**
-   - इस फोल्डर में तैयार S2P-Agent-Setup.exe चलाएं या pps/agent/src/S2P.Agent.Worker से चलाएं।
+   - इस फोल्डर में तैयार SOS Print-Agent-Setup.exe चलाएं या pps/agent/src/SOS Print.Agent.Worker से चलाएं।
    - वेबसाइट के Owner Dashboard (/dashboard/settings या /dashboard/printers) पर जाकर **Generate Pairing Code** दबाएं।
    - यह 6 अंकों का कोड मिलेगा (जैसे: 849201)।
    - Agent में यह कोड डालें। Agent तुरंत सर्वर से सुरक्षित DPAPI चाबी के साथ पेयर हो जाएगा।
