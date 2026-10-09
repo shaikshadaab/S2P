@@ -15,3 +15,6 @@ export * from './detection/document-detector';
 export * from './payments/upi-utils';
 export * from './resume/resume-engine';
 export * from './conversion/office-converter';
+
+export * from './detection/image-enhancement-types';
+export * from './detection/image-quality';

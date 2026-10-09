@@ -29,7 +29,7 @@ import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../../../lib/firebase/config";
 import { useAuth } from "../../../lib/firebase/auth-context";
 
-export function maskPhoneNumber(phone?: string | null): string {
+function maskPhoneNumber(phone?: string | null): string {
   if (!phone) return "—";
   const digitsOnly = phone.replace(/\D/g, "");
   if (digitsOnly.length >= 10) {

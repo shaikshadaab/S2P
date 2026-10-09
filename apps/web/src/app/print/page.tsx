@@ -50,6 +50,8 @@ import {
   Info
 } from "lucide-react";
 import { SosLogo } from "@/components/common/SosLogo";
+import EnhancedImageEditor from "@/components/common/EnhancedImageEditor";
+import { ImageDetectionEngine } from "@s2p/shared";
 
 interface UploadedFileRecord {
   id: string;
@@ -60,6 +62,9 @@ interface UploadedFileRecord {
   pageCount: number;
   processingStatus: string;
   sortOrder?: number;
+  localPreviewUrl?: string;
+  hasDerivative?: boolean;
+  detectedMode?: string;
 }
 
 export default function DirectPrintPage() {
@@ -93,6 +98,7 @@ export default function DirectPrintPage() {
   // File & Draft States
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFileRecord[]>([]);
   const [activeFileIndex, setActiveFileIndex] = useState<number>(0);
+  const [editingFile, setEditingFile] = useState<UploadedFileRecord | null>(null);
   const [orderDraftId, setOrderDraftId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadProgressMsg, setUploadProgressMsg] = useState<string>("");
@@ -225,6 +231,10 @@ export default function DirectPrintPage() {
           throw new Error(data.error || `Failed to process ${f.name}`);
         }
 
+        const isImg = f.type.startsWith("image/");
+        const previewUrl = isImg ? URL.createObjectURL(f) : undefined;
+        const detected = isImg ? ImageDetectionEngine.detectImageMode(1000, 1000, { filename: f.name }) : null;
+
         newRecords.push({
           id: data.file.id,
           safeDisplayName: data.file.safeDisplayName || f.name,
@@ -233,7 +243,10 @@ export default function DirectPrintPage() {
           sha256: data.file.sha256,
           pageCount: data.file.pageCount || 1,
           processingStatus: data.file.processingStatus,
-          sortOrder: uploadedFiles.length + i
+          sortOrder: uploadedFiles.length + i,
+          localPreviewUrl: previewUrl,
+          hasDerivative: false,
+          detectedMode: detected?.suggestedMode
         });
       }
 
@@ -566,6 +579,30 @@ export default function DirectPrintPage() {
                           <div className="text-[11px] text-slate-500 font-mono">
                             {file.pageCount} {file.pageCount === 1 ? "page" : "pages"} &bull; {(file.sizeBytes / 1024).toFixed(0)} KB
                           </div>
+                          {file.mimeType.startsWith("image/") && (
+                            <div className="flex items-center gap-2 mt-1">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingFile(file);
+                                }}
+                                className={`px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 transition cursor-pointer ${
+                                  file.hasDerivative
+                                    ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300"
+                                    : "bg-slate-100 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-300"
+                                }`}
+                              >
+                                <Sparkles className="w-3 h-3 text-emerald-600" />
+                                <span>{file.hasDerivative ? (lang === "HI" ? "एन्हांस्ड (पुनः एडिट)" : "Enhanced (Click to Edit)") : (lang === "HI" ? "ऑटो एन्हांस / एडिट" : "Auto-Enhance & Edit")}</span>
+                              </button>
+                              {file.detectedMode === "DOCUMENT" && !file.hasDerivative && (
+                                <span className="text-[10px] text-slate-400">
+                                  &bull; {lang === "HI" ? "डॉक्यूमेंट डिटेक्ट हुआ" : "Document detected"}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -1174,6 +1211,46 @@ export default function DirectPrintPage() {
           </a>
         </div>
       </main>
+      {/* Enhanced Image Editor Modal */}
+      {editingFile && (
+        <EnhancedImageEditor
+          fileId={editingFile.id}
+          imageUrl={editingFile.localPreviewUrl || `/api/upload/file/${editingFile.id}`}
+          originalFilename={editingFile.safeDisplayName}
+          initialMode={editingFile.detectedMode as any}
+          targetPaperSize={paperSize === "A3" ? "A3" : "A4"}
+          hasExistingDerivative={editingFile.hasDerivative}
+          onSaveDerivative={async (blob, metadata) => {
+            const formData = new FormData();
+            formData.append("fileId", editingFile.id);
+            formData.append("file", blob, `${editingFile.safeDisplayName}-enhanced.jpg`);
+            formData.append("metadata", JSON.stringify(metadata));
+
+            const res = await fetch("/api/upload/derivative", {
+              method: "POST",
+              body: formData
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+              throw new Error(data.error || "Failed to save enhanced image");
+            }
+
+            const newPreview = URL.createObjectURL(blob);
+            setUploadedFiles(prev =>
+              prev.map(f => f.id === editingFile.id ? { ...f, hasDerivative: true, localPreviewUrl: newPreview } : f)
+            );
+            // Invalidate quote to trigger fresh calculation
+            setQuote(null);
+          }}
+          onRevertOriginal={async () => {
+            setUploadedFiles(prev =>
+              prev.map(f => f.id === editingFile.id ? { ...f, hasDerivative: false } : f)
+            );
+            setQuote(null);
+          }}
+          onClose={() => setEditingFile(null)}
+        />
+      )}
     </div>
   );
 }

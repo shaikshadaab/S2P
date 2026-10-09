@@ -176,6 +176,36 @@
 
 ## 7. Newly Implemented Features & Verification Summary
 
+6. **Automatic Image Detection & Enhancement Engine:**
+   - **Auto-Detection (ImageDetectionEngine):** Analyzes aspect ratio and filename hints to automatically categorize uploads into:
+     - Document / Receipt (suggests shadow reduction & background whitening).
+     - Portrait / Passport (suggests 35x45mm crop with head oval & eye guidelines).
+     - ID Card (suggests CR80 85.6x54mm boundary alignment).
+     - General Photo (preserves natural saturation).
+   - **Non-Destructive Local Canvas Pipeline (ImageEnhancementEngine):**
+     - EXIF orientation normalization.
+     - Document boundary detection with editable corner handles.
+     - Deskew rotation (-15° to +15°).
+     - Shadow reduction & background illumination normalization.
+     - 3 enhancement modes: Clean Color (stamps & signatures preserved), Grayscale, High Contrast B&W.
+     - 3x3 unsharp mask sharpening for crisp text edges.
+   - **Print Quality Assessment (ImageQualityAssessor):**
+     - Calculates live effective DPI: pixels / (mm / 25.4).
+     - Displays quality HUD: 300+ DPI (Excellent), 200-299 DPI (Good), 150-199 DPI (Fair), <150 DPI (Low Resolution warning with smaller print recommendation).
+     - Invariant: Never silently blocks a valid print based on quality score alone.
+   - **Customer Editing Experience (EnhancedImageEditor):**
+     - 1-Click Auto-Enhance button.
+     - Real-time Hold-to-View Original toggle for instant comparison.
+     - Undo / Redo history & Reset All.
+     - Saves derivative via /api/upload/derivative (storageProcessedPath) while keeping original untouched (storageOriginalPath).
+     - Inbuilt Revert to Original action.
+   - **Owner Controls (Owner → Services → Image Processing):**
+     - Enable/disable auto-enhancement on customer uploads.
+     - Configure default document enhancement mode.
+     - Configurable minimum DPI quality warning threshold (150 / 200 / 300 DPI).
+     - Capabilities matrix clearly disclosing local browser execution and honest unavailability of generative face-altering inpainting.
+
+
 1. **Dedicated SOS Print Vector Logo:**
    - Vector logo assets: `apps/web/public/logo.svg`, `apps/web/public/icon.svg`, `apps/web/public/logo-mono.svg`.
    - Sharp React component `SosLogo.tsx` with scan-corner motif, folded paper sheet, emerald accent (`#059669`), and charcoal typography.
