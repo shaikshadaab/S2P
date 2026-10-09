@@ -52,11 +52,18 @@ export async function GET(
     }
 
     if (!isEnabled || !upiId) {
-      return NextResponse.json({
-        success: false,
-        error: 'UPI_NOT_CONFIGURED',
-        message: 'Shop has not enabled or configured Manual UPI payments.'
-      }, { status: 400 });
+      if (order.shopId === 'shakeel-online-services') {
+        upiId = '9581529381@ybl';
+        payeeName = 'Shakeel Online Services';
+        providerLabel = 'Direct UPI (YBL)';
+        isEnabled = true;
+      } else {
+        return NextResponse.json({
+          success: false,
+          error: 'UPI_NOT_CONFIGURED',
+          message: 'Shop has not enabled or configured Manual UPI payments.'
+        }, { status: 400 });
+      }
     }
 
     const amountRupees = order.totalPaise

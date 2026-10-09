@@ -25,11 +25,11 @@ interface CardPreset {
 }
 
 const PRESETS: CardPreset[] = [
-  { id: "aadhaar", name: "Aadhaar Card", nameHi: "आधार कार्ड", widthMm: 85.6, heightMm: 54 },
-  { id: "pan", name: "PAN Card", nameHi: "पैन कार्ड", widthMm: 85.6, heightMm: 54 },
-  { id: "voter", name: "Voter ID", nameHi: "वोटर आईडी", widthMm: 85.6, heightMm: 54 },
-  { id: "dl", name: "Driving License", nameHi: "ड्राइविंग लाइसेंस", widthMm: 85.6, heightMm: 54 },
-  { id: "custom", name: "Custom Size", nameHi: "कस्टम साइज़", widthMm: 85.6, heightMm: 54 }
+  { id: "aadhaar", name: "Aadhaar Card", nameHi: " ", widthMm: 85.6, heightMm: 54 },
+  { id: "pan", name: "PAN Card", nameHi: " ", widthMm: 85.6, heightMm: 54 },
+  { id: "voter", name: "Voter ID", nameHi: " ", widthMm: 85.6, heightMm: 54 },
+  { id: "dl", name: "Driving License", nameHi: " ", widthMm: 85.6, heightMm: 54 },
+  { id: "custom", name: "Custom Size", nameHi: " ", widthMm: 85.6, heightMm: 54 }
 ];
 
 export default function IdCardStudioPage() {
@@ -214,14 +214,14 @@ export default function IdCardStudioPage() {
               onClick={() => setLang(lang === "en" ? "hi" : "en")}
               className="text-xs font-semibold px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
             >
-              {lang === "en" ? "हिंदी में देखें" : "View in English"}
+              {lang === "en" ? "  " : "View in English"}
             </button>
             <Link
               href="/s/shakeel-online-services"
               className="text-xs font-semibold px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition flex items-center gap-1.5"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>{lang === "en" ? "Print at Shop" : "दुकान पर प्रिंट करें"}</span>
+              <span>{lang === "en" ? "Print at Shop" : "   "}</span>
             </Link>
           </div>
         </div>
@@ -232,15 +232,15 @@ export default function IdCardStudioPage() {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold mb-2">
             <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
-            <span>{lang === "en" ? "Front & Back Single Sheet Layout" : "एक ही पेज पर आगे और पीछे सेट करें"}</span>
+            <span>{lang === "en" ? "Front & Back Single Sheet Layout" : "        "}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
-            {lang === "en" ? "ID Card Front & Back Studio" : "आईडी कार्ड प्रिंटर (आगे और पीछे)"}
+            {lang === "en" ? "ID Card Front & Back Studio" : "  "}
           </h1>
           <p className="text-xs text-slate-500 mt-1">
             {lang === "en"
               ? "Combine Aadhaar, PAN, Voter ID or License front and back onto an A4 page without clipping or margins loss."
-              : "आधार, पैन या वोटर आईडी के दोनों हिस्सों को बिना कटे सही अनुपात में A4 शीट पर सेट करें।"}
+              : ",              A4    "}
           </p>
         </div>
 
@@ -250,7 +250,7 @@ export default function IdCardStudioPage() {
             {/* Presets */}
             <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                {lang === "en" ? "Card Type Preset" : "आईडी कार्ड प्रकार"}
+                {lang === "en" ? "Card Type Preset" : "  "}
               </h2>
               <div className="grid grid-cols-2 gap-2">
                 {PRESETS.map((p) => (
@@ -299,7 +299,7 @@ export default function IdCardStudioPage() {
             <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                  {lang === "en" ? "Upload Card Images" : "फ़ोटो अपलोड करें"}
+                  {lang === "en" ? "Upload Card Images" : "  "}
                 </h2>
                 {(frontImage || backImage) && (
                   <button
@@ -315,7 +315,7 @@ export default function IdCardStudioPage() {
               {/* Front Side Upload */}
               <div className="border border-slate-200 rounded-xl p-3 bg-slate-50/50 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800">1. Front Side (आगे का हिस्सा)</span>
+                  <span className="text-xs font-bold text-slate-800">1. Front Side</span>
                   {frontImage && (
                     <button
                       onClick={() => setFrontRotation((r) => (r + 90) % 360)}
@@ -337,7 +337,7 @@ export default function IdCardStudioPage() {
               {/* Back Side Upload */}
               <div className="border border-slate-200 rounded-xl p-3 bg-slate-50/50 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800">2. Back Side (पीछे का हिस्सा)</span>
+                  <span className="text-xs font-bold text-slate-800">2. Back Side</span>
                   {backImage && (
                     <button
                       onClick={() => setBackRotation((r) => (r + 90) % 360)}
@@ -360,7 +360,7 @@ export default function IdCardStudioPage() {
             {/* Layout & Enhancement Controls */}
             <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                {lang === "en" ? "Layout & Enhancement" : "लेआउट व प्रिंट मोड"}
+                {lang === "en" ? "Layout & Enhancement" : "   "}
               </h2>
 
               <div className="grid grid-cols-2 gap-2">
@@ -372,7 +372,7 @@ export default function IdCardStudioPage() {
                       : "border-slate-200 text-slate-700 hover:bg-slate-50"
                   }`}
                 >
-                  Stacked (ऊपर-नीचे)
+                  Stacked (-)
                 </button>
                 <button
                   onClick={() => setLayoutStyle("SIDE_BY_SIDE")}
@@ -382,7 +382,7 @@ export default function IdCardStudioPage() {
                       : "border-slate-200 text-slate-700 hover:bg-slate-50"
                   }`}
                 >
-                  Side by Side (अगल-बगल)
+                  Side by Side (-)
                 </button>
               </div>
 
@@ -418,7 +418,7 @@ export default function IdCardStudioPage() {
                 />
                 <span className="text-xs text-slate-700 font-medium flex items-center gap-1.5">
                   <Scissors className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Include Cutting Guidelines (कटिंग गाइड)</span>
+                  <span>Include Cutting Guidelines</span>
                 </span>
               </label>
             </div>

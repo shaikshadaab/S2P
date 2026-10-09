@@ -602,9 +602,9 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
               <div className="bg-emerald-50 border border-emerald-200/80 rounded-lg p-2.5 text-emerald-950 text-[11px] flex items-start gap-2 text-left">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold block text-emerald-950">Word &amp; PowerPoint फ़ाइलें (.docx / .pptx)</span>
+                  <span className="font-semibold block text-emerald-950">Word &amp; PowerPoint  (.docx / .pptx)</span>
                   <span className="text-emerald-800 text-[10px] leading-tight block mt-0.5">
-                    सिस्टम आपकी Word / PPT फ़ाइल को सुरक्षित रूप से सटीक प्रिंट-रेडी PDF में बदलकर तैयार कर देता है।
+                      Word / PPT       - PDF      
                   </span>
                 </div>
               </div>

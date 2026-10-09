@@ -93,7 +93,7 @@ export default function DirectPrintPage() {
   const [customerName, setCustomerName] = useState<string>("");
   const [customerPhoneDigits, setCustomerPhoneDigits] = useState<string>("");
   const [marketingConsent, setMarketingConsent] = useState<boolean>(false);
-  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "MANUAL_UPI" | "ONLINE_GATEWAY">("ONLINE_GATEWAY");
+  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "MANUAL_UPI" | "ONLINE_GATEWAY">("CASH");
 
   // File & Draft States
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFileRecord[]>([]);
@@ -114,8 +114,7 @@ export default function DirectPrintPage() {
   const [isSubmittingOrder, setIsSubmittingOrder] = useState<boolean>(false);
   const [orderError, setOrderError] = useState<string | null>(null);
 
-  // Language toggle for customer convenience
-  const [lang, setLang] = useState<"EN" | "HI">("EN");
+  // Clean English-only interface
 
   // Load canonical shop configuration
   useEffect(() => {
@@ -129,7 +128,7 @@ export default function DirectPrintPage() {
           if (data.upiConfig) {
             setShopUpiConfig(data.upiConfig);
             if (!data.upiConfig.isEnabled || !data.upiConfig.upiId) {
-              setPaymentMethod("ONLINE_GATEWAY");
+              setPaymentMethod("CASH");
             }
           }
         }
@@ -194,7 +193,7 @@ export default function DirectPrintPage() {
     if (!fileList || fileList.length === 0) return;
 
     if (uploadedFiles.length + fileList.length > 10) {
-      setUploadError(lang === "HI" ? "एक समय में अधिकतम 10 फाइलें अपलोड की जा सकती हैं।" : "Maximum 10 files allowed per order.");
+      setUploadError("Maximum 10 files allowed per order.");
       return;
     }
 
@@ -214,7 +213,7 @@ export default function DirectPrintPage() {
           throw new Error(`File ${f.name} exceeds 50MB limit.`);
         }
 
-        setUploadProgressMsg(lang === "HI" ? `फ़ाइल ${i + 1}/${filesArray.length} अपलोड हो रही है...` : `Uploading file ${i + 1} of ${filesArray.length}: ${f.name}...`);
+        setUploadProgressMsg(`Uploading file ${i + 1} of ${filesArray.length}: ${f.name}...`);
 
         const formData = new FormData();
         formData.append("file", f);
@@ -362,13 +361,13 @@ export default function DirectPrintPage() {
 
     const trimmedName = customerName.trim();
     if (!trimmedName || trimmedName.length < 2) {
-      setOrderError(lang === "HI" ? "कृपया अपना पूरा नाम दर्ज करें (कम से कम 2 अक्षर)।" : "Please enter your full name (at least 2 characters).");
+      setOrderError("Please enter your full name (at least 2 characters).");
       return;
     }
 
     const cleanPhone = customerPhoneDigits.replace(/\D/g, "");
     if (cleanPhone.length !== 10 || !/^[6-9]/.test(cleanPhone)) {
-      setOrderError(lang === "HI" ? "कृपया 10-अंकों का वैध भारतीय मोबाइल नंबर दर्ज करें (शुरुआत 6-9 से)।" : "Please enter a valid 10-digit Indian mobile number (e.g. 95815 29381).");
+      setOrderError("Please enter a valid 10-digit Indian mobile number (e.g. 95815 29381).");
       return;
     }
 
@@ -423,18 +422,16 @@ export default function DirectPrintPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setLang(lang === "EN" ? "HI" : "EN")}
-              className="px-2.5 py-1 rounded-lg border border-[#CBD5E1] bg-slate-50 hover:bg-slate-100 text-[11px] font-bold text-[#0F172A] transition cursor-pointer"
-            >
-              {lang === "EN" ? "हिंदी (Hindi)" : "English"}
-            </button>
-
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>{lang === "HI" ? "दुकान खुली है &bull; प्रिंट चालू" : "Shop Open &bull; Printing Live"}</span>
+              <span>Shop Open &bull; Printing Live</span>
             </div>
+            <Link
+              href="/"
+              className="hidden sm:inline-flex px-3 py-1 rounded-lg border border-[#CBD5E1] bg-white hover:bg-slate-50 text-xs font-bold text-[#0F172A] transition"
+            >
+              Full Website
+            </Link>
           </div>
         </div>
       </header>
@@ -446,15 +443,15 @@ export default function DirectPrintPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E2E8F0] pb-3">
             <div>
               <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider block">
-                {lang === "HI" ? "शकील ऑनलाइन सर्विसेज में प्रिंटिंग" : "Printing at Shakeel Online Services"}
+                {"Printing at Shakeel Online Services"}
               </span>
               <h1 className="text-xl sm:text-2xl font-black text-[#0F172A] tracking-tight mt-0.5">
-                {lang === "HI" ? "दस्तावेज़ अपलोड और प्रिंट" : "Upload &amp; Print Documents"}
+                {"Upload &amp; Print Documents"}
               </h1>
             </div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold self-start sm:self-auto">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>{lang === "HI" ? "कोई ऐप या अकाउंट ज़रूरी नहीं" : "No app or account required"}</span>
+              <span>{"No app or account required"}</span>
             </div>
           </div>
 
@@ -462,19 +459,19 @@ export default function DirectPrintPage() {
           <div className="grid grid-cols-4 gap-2 text-center text-[10px] font-bold text-[#64748B] pt-1">
             <div className={`p-2 rounded-xl transition ${uploadedFiles.length === 0 ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-slate-50 text-[#0F172A]"}`}>
               <span className="block text-xs font-mono font-black">1</span>
-              <span>{lang === "HI" ? "फ़ाइल चुनें" : "Upload Files"}</span>
+              <span>{"Upload Files"}</span>
             </div>
             <div className={`p-2 rounded-xl transition ${uploadedFiles.length > 0 && !quote ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-slate-50"}`}>
               <span className="block text-xs font-mono font-black">2</span>
-              <span>{lang === "HI" ? "सेटिंग्स" : "Settings"}</span>
+              <span>{"Settings"}</span>
             </div>
             <div className={`p-2 rounded-xl transition ${quote ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-slate-50"}`}>
               <span className="block text-xs font-mono font-black">3</span>
-              <span>{lang === "HI" ? "नाम &amp; फ़ोन" : "Your Details"}</span>
+              <span>{"Your Details"}</span>
             </div>
             <div className="p-2 rounded-xl bg-slate-50">
               <span className="block text-xs font-mono font-black">4</span>
-              <span>{lang === "HI" ? "पे &amp; कलेक्ट" : "Pay &amp; Track"}</span>
+              <span>{"Pay &amp; Track"}</span>
             </div>
           </div>
         </div>
@@ -485,11 +482,11 @@ export default function DirectPrintPage() {
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-emerald-600" />
               <h2 className="text-base font-black text-[#0F172A]">
-                {lang === "HI" ? "1. अपनी फ़ाइलें अपलोड करें (PDF / JPG / PNG)" : "1. Upload Your Files (PDF / JPG / PNG)"}
+                {"1. Upload Your Files (PDF / JPG / PNG)"}
               </h2>
             </div>
             <span className="text-xs text-[#64748B] font-mono">
-              {uploadedFiles.length}/10 {lang === "HI" ? "फ़ाइलें" : "files"}
+              {uploadedFiles.length}/10 {"files"}
             </span>
           </div>
 
@@ -515,10 +512,10 @@ export default function DirectPrintPage() {
                 <Loader2 className="w-10 h-10 text-emerald-600 animate-spin" />
                 <div className="space-y-1">
                   <div className="text-sm font-bold text-[#0F172A]">
-                    {uploadProgressMsg || (lang === "HI" ? "फ़ाइलें प्रोसेस हो रही हैं..." : "Processing your files...")}
+                    {uploadProgressMsg || ("Processing your files...")}
                   </div>
                   <div className="text-xs text-slate-500">
-                    {lang === "HI" ? "कृपया प्रतीक्षा करें..." : "Extracting page counts securely..."}
+                    {"Extracting page counts securely..."}
                   </div>
                 </div>
               </>
@@ -529,17 +526,17 @@ export default function DirectPrintPage() {
                 </div>
                 <div className="space-y-1">
                   <div className="text-base font-black text-[#0F172A]">
-                    {lang === "HI" ? "यहाँ क्लिक करके फ़ाइल चुनें या ड्रैग करें" : "Tap here to choose files or drag &amp; drop"}
+                    {"Tap here to choose files or drag &amp; drop"}
                   </div>
                   <p className="text-xs text-[#64748B]">
-                    {lang === "HI" ? "PDF, JPG, PNG &bull; अधिकतम 10 फ़ाइलें &bull; 50 MB प्रति फ़ाइल" : "PDF, JPG, PNG &bull; Up to 10 files &bull; 50 MB per file"}
+                    {"PDF, JPG, PNG &bull; Up to 10 files &bull; 50 MB per file"}
                   </p>
                 </div>
                 <button
                   type="button"
                   className="mt-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition"
                 >
-                  {lang === "HI" ? "फ़ाइलें चुनें" : "Browse Files"}
+                  {"Browse Files"}
                 </button>
               </>
             )}
@@ -555,7 +552,7 @@ export default function DirectPrintPage() {
           {uploadedFiles.length > 0 && (
             <div className="space-y-2 pt-2">
               <div className="text-xs font-bold text-[#0F172A] uppercase tracking-wider">
-                {lang === "HI" ? "अपलोड की गई फ़ाइलें:" : "Uploaded Document List:"}
+                {"Uploaded Document List:"}
               </div>
               <div className="divide-y divide-[#E2E8F0] border border-[#E2E8F0] rounded-xl overflow-hidden bg-white">
                 {uploadedFiles.map((file, idx) => {
@@ -594,11 +591,11 @@ export default function DirectPrintPage() {
                                 }`}
                               >
                                 <Sparkles className="w-3 h-3 text-emerald-600" />
-                                <span>{file.hasDerivative ? (lang === "HI" ? "एन्हांस्ड (पुनः एडिट)" : "Enhanced (Click to Edit)") : (lang === "HI" ? "ऑटो एन्हांस / एडिट" : "Auto-Enhance & Edit")}</span>
+                                <span>{file.hasDerivative ? ("Enhanced (Click to Edit)") : ("Auto-Enhance & Edit")}</span>
                               </button>
                               {file.detectedMode === "DOCUMENT" && !file.hasDerivative && (
                                 <span className="text-[10px] text-slate-400">
-                                  &bull; {lang === "HI" ? "डॉक्यूमेंट डिटेक्ट हुआ" : "Document detected"}
+                                  &bull; {"Document detected"}
                                 </span>
                               )}
                             </div>
@@ -657,7 +654,7 @@ export default function DirectPrintPage() {
             <div className="flex items-center gap-2 border-b border-[#E2E8F0] pb-3">
               <Printer className="w-5 h-5 text-emerald-600" />
               <h2 className="text-base font-black text-[#0F172A]">
-                {lang === "HI" ? "2. प्रिंट सेटिंग्स और आउटपुट" : "2. Print Options &amp; Copies"}
+                {"2. Print Options &amp; Copies"}
               </h2>
             </div>
 
@@ -665,7 +662,7 @@ export default function DirectPrintPage() {
               {/* Color Mode */}
               <div className="space-y-1.5">
                 <label className="font-bold text-[#0F172A] block">
-                  {lang === "HI" ? "रंग (Color Mode)" : "Color Mode"}
+                  {"Color Mode"}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -696,7 +693,7 @@ export default function DirectPrintPage() {
               {/* Duplex / Sides */}
               <div className="space-y-1.5">
                 <label className="font-bold text-[#0F172A] block">
-                  {lang === "HI" ? "साइड (Single / Double)" : "Sides"}
+                  {"Sides"}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -727,7 +724,7 @@ export default function DirectPrintPage() {
               {/* Copies */}
               <div className="space-y-1.5">
                 <label className="font-bold text-[#0F172A] block">
-                  {lang === "HI" ? "प्रतियां (Copies)" : "Copies"}
+                  {"Copies"}
                 </label>
                 <div className="flex items-center gap-2">
                   <button
@@ -758,7 +755,7 @@ export default function DirectPrintPage() {
               {/* Paper Size */}
               <div className="space-y-1.5">
                 <label className="font-bold text-[#0F172A] block">
-                  {lang === "HI" ? "कागज़ का साइज़" : "Paper Size"}
+                  {"Paper Size"}
                 </label>
                 <select
                   value={paperSize}
@@ -774,7 +771,7 @@ export default function DirectPrintPage() {
               {/* Orientation */}
               <div className="space-y-1.5">
                 <label className="font-bold text-[#0F172A] block">
-                  {lang === "HI" ? "दिशा (Orientation)" : "Orientation"}
+                  {"Orientation"}
                 </label>
                 <select
                   value={orientation}
@@ -782,15 +779,15 @@ export default function DirectPrintPage() {
                   className="w-full py-2 px-3 rounded-xl border border-[#CBD5E1] bg-white font-semibold text-xs"
                 >
                   <option value="AUTO">Auto (Recommended)</option>
-                  <option value="PORTRAIT">Portrait (लंबवत)</option>
-                  <option value="LANDSCAPE">Landscape (क्षैतिज)</option>
+                  <option value="PORTRAIT">Portrait</option>
+                  <option value="LANDSCAPE">Landscape</option>
                 </select>
               </div>
 
               {/* Fit / Scale */}
               <div className="space-y-1.5">
                 <label className="font-bold text-[#0F172A] block">
-                  {lang === "HI" ? "फ़िट मोड (Scaling)" : "Fit &amp; Scale"}
+                  {"Fit &amp; Scale"}
                 </label>
                 <select
                   value={scaling}
@@ -814,7 +811,7 @@ export default function DirectPrintPage() {
                     onChange={() => setPageSelectionType("ALL")}
                     className="text-emerald-600 focus:ring-emerald-500"
                   />
-                  <span>{lang === "HI" ? "सभी पृष्ठ (All Pages)" : "All Pages"} ({activePageCount})</span>
+                  <span>{"All Pages"} ({activePageCount})</span>
                 </label>
                 <label className="flex items-center gap-1.5 font-bold cursor-pointer">
                   <input
@@ -824,7 +821,7 @@ export default function DirectPrintPage() {
                     onChange={() => setPageSelectionType("CUSTOM")}
                     className="text-emerald-600 focus:ring-emerald-500"
                   />
-                  <span>{lang === "HI" ? "चुनिंदा पृष्ठ (Custom Range)" : "Custom Page Range"}</span>
+                  <span>{"Custom Page Range"}</span>
                 </label>
               </div>
 
@@ -860,7 +857,7 @@ export default function DirectPrintPage() {
 
               <div className="text-right">
                 <div className="text-[10px] text-emerald-800 uppercase font-bold">
-                  {lang === "HI" ? "सर्वर प्रमाणित मूल्य" : "Server Verified Quote"}
+                  {"Server Verified Quote"}
                 </div>
                 <div className="text-2xl font-black text-emerald-700 font-mono">
                   {isCalculatingQuote ? (
@@ -890,7 +887,7 @@ export default function DirectPrintPage() {
               <User className="w-5 h-5 text-emerald-600" />
               <div>
                 <h2 className="text-base font-black text-[#0F172A]">
-                  {lang === "HI" ? "3. ग्राहक विवरण और भुगतान" : "3. Customer Details &amp; Payment"}
+                  {"3. Customer Details &amp; Payment"}
                 </h2>
                 <p className="text-xs text-[#64748B]">
                   Used to identify your order at the counter and contact you about printing.
@@ -909,7 +906,7 @@ export default function DirectPrintPage() {
               {/* Customer Name */}
               <div className="space-y-1.5">
                 <label className="font-bold text-[#0F172A] block">
-                  {lang === "HI" ? "आपका पूरा नाम (Full Name) *" : "Full Name *"}
+                  {"Full Name *"}
                 </label>
                 <input
                   type="text"
@@ -920,14 +917,14 @@ export default function DirectPrintPage() {
                   className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 />
                 <span className="text-[10px] text-slate-500 block">
-                  {lang === "HI" ? "काउंटर पर ऑर्डर की पहचान के लिए उपयोग होगा" : "Used to identify your order at the counter"}
+                  {"Used to identify your order at the counter"}
                 </span>
               </div>
 
               {/* Mobile Number with Country Code */}
               <div className="space-y-1.5">
                 <label className="font-bold text-[#0F172A] block">
-                  {lang === "HI" ? "मोबाइल नंबर (Mobile Number) *" : "Mobile Number *"}
+                  {"Mobile Number *"}
                 </label>
                 <div className="flex items-center">
                   <span className="px-3 py-2.5 bg-slate-100 border border-r-0 border-[#CBD5E1] rounded-l-xl font-mono font-bold text-slate-700 text-xs">
@@ -944,7 +941,7 @@ export default function DirectPrintPage() {
                   />
                 </div>
                 <span className="text-[10px] text-slate-500 block">
-                  {lang === "HI" ? "प्रिंट तैयार होने पर संपर्क के लिए। ओटीपी की आवश्यकता नहीं।" : "Unverified mobile number. No account needed. Kept private."}
+                  {"Unverified mobile number. No account needed. Kept private."}
                 </span>
               </div>
             </div>
@@ -959,66 +956,67 @@ export default function DirectPrintPage() {
                 className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 mt-0.5"
               />
               <label htmlFor="marketingConsent" className="text-slate-600 cursor-pointer text-[11px] leading-relaxed">
-                {lang === "HI"
-                  ? "ऑर्डर तैयार होने का नोटिफिकेशन व्हाट्सएप पर प्राप्त करें (वैकल्पिक / Optional)।"
-                  : "Receive order completion notification and pickup alerts via WhatsApp (Optional, unchecked by default)."}
+                {"Receive order completion notification and pickup alerts via WhatsApp (Optional, unchecked by default)."}
               </label>
             </div>
 
             {/* Payment Method Selector */}
             <div className="space-y-2 text-xs">
               <label className="font-bold text-[#0F172A] block">
-                {lang === "HI" ? "भुगतान का माध्यम (Payment Method)" : "Choose Payment Method"}
+                Choose Payment Method
               </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("ONLINE_GATEWAY")}
-                  className={`p-3 rounded-xl border text-left transition cursor-pointer ${
-                    paymentMethod === "ONLINE_GATEWAY"
-                      ? "bg-emerald-50 border-emerald-500 text-emerald-900 shadow-xs"
-                      : "bg-white border-slate-200 hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 font-bold">
-                    <CreditCard className="w-4 h-4 text-emerald-600" />
-                    <span>Pay Online</span>
-                  </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">UPI, Cards, NetBanking (Razorpay)</div>
-                </button>
-
+                {/* A. Pay at Counter */}
                 <button
                   type="button"
                   onClick={() => setPaymentMethod("CASH")}
-                  className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                  className={`p-3.5 rounded-xl border text-left transition cursor-pointer ${
                     paymentMethod === "CASH"
-                      ? "bg-emerald-50 border-emerald-500 text-emerald-900 shadow-xs"
+                      ? "bg-emerald-50 border-emerald-500 text-emerald-900 ring-2 ring-emerald-500/20 shadow-xs"
                       : "bg-white border-slate-200 hover:bg-slate-50"
                   }`}
                 >
-                  <div className="flex items-center gap-1.5 font-bold">
+                  <div className="flex items-center gap-1.5 font-bold text-xs">
                     <Banknote className="w-4 h-4 text-emerald-600" />
-                    <span>Pay Cash</span>
+                    <span>Pay at Counter</span>
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">Pay at shop counter upon pickup</div>
+                  <div className="text-[11px] text-slate-500 mt-1">Pay cash directly at the counter upon collection</div>
                 </button>
 
+                {/* B. Pay by UPI */}
                 <button
                   type="button"
                   onClick={() => setPaymentMethod("MANUAL_UPI")}
-                  className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                  className={`p-3.5 rounded-xl border text-left transition cursor-pointer ${
                     paymentMethod === "MANUAL_UPI"
-                      ? "bg-emerald-50 border-emerald-500 text-emerald-900 shadow-xs"
+                      ? "bg-emerald-50 border-emerald-500 text-emerald-900 ring-2 ring-emerald-500/20 shadow-xs"
                       : "bg-white border-slate-200 hover:bg-slate-50"
                   }`}
                 >
-                  <div className="flex items-center gap-1.5 font-bold">
+                  <div className="flex items-center gap-1.5 font-bold text-xs">
                     <QrCode className="w-4 h-4 text-emerald-600" />
-                    <span>Shop UPI QR</span>
+                    <span>Pay by UPI</span>
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">Scan shop counter QR code</div>
+                  <div className="text-[11px] text-slate-500 mt-1 font-mono">Direct UPI to 9581529381@ybl</div>
                 </button>
+
+                {/* C. Online Gateway — Coming Soon (Disabled) */}
+                <div
+                  className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 text-slate-400 cursor-not-allowed select-none"
+                  title="Online card & netbanking gateway coming in future release"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-bold text-xs text-slate-500">
+                      <CreditCard className="w-4 h-4 text-slate-400" />
+                      <span>Online Gateway</span>
+                    </div>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800">
+                      Coming Soon
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-1">Cards &amp; NetBanking integration arriving soon</div>
+                </div>
               </div>
             </div>
 
@@ -1034,9 +1032,7 @@ export default function DirectPrintPage() {
                 <Printer className="w-5 h-5" />
               )}
               <span>
-                {lang === "HI"
-                  ? `ऑर्डर सबमिट करें &bull; ₹${quote.totalRupees.toFixed(2)}`
-                  : `Submit Order &bull; ₹${quote.totalRupees.toFixed(2)}`}
+                {`Submit Order &bull; ₹${quote.totalRupees.toFixed(2)}`}
               </span>
             </button>
           </form>
@@ -1044,7 +1040,7 @@ export default function DirectPrintPage() {
 
         {/* ============================================================ */}
         {/* SECTION 4: ADDITIONAL TOOLS — COMPACT SECONDARY POSITION     */}
-        {/* “Need something else? Try these tools” (Hindi: “ये भी try करें”) */}
+        {/* “Need something else? Try these tools” */}
         {/* ============================================================ */}
         <section className="bg-white border border-[#E2E8F0] rounded-2xl p-6 shadow-xs space-y-4">
           <div className="border-b border-[#E2E8F0] pb-3">
@@ -1052,7 +1048,7 @@ export default function DirectPrintPage() {
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-emerald-600" />
                 <h2 className="text-sm font-bold text-[#0F172A]">
-                  {lang === "HI" ? "ये भी try करें — अन्य सेवाएं" : "Need something else? Try these tools"}
+                  {"Need something else? Try these tools"}
                 </h2>
               </div>
               <span className="text-[11px] font-bold text-emerald-700 font-mono">
@@ -1060,9 +1056,7 @@ export default function DirectPrintPage() {
               </span>
             </div>
             <p className="text-xs text-[#64748B] mt-0.5">
-              {lang === "HI"
-                ? "पासपोर्ट फ़ोटो, रेज़्यूमे मेकर, आईडी कार्ड और अन्य विशेष प्रिंटिंग टूल्स:"
-                : "Specialized document templates and counter assistance tools configured for this shop:"}
+              {"Specialized document templates and counter assistance tools configured for this shop:"}
             </p>
           </div>
 
@@ -1172,23 +1166,26 @@ export default function DirectPrintPage() {
               </p>
             </Link>
 
-            {/* 6. Staff Xerox & Large Formats */}
-            <div className="p-3.5 rounded-xl border border-[#E2E8F0] bg-slate-50 flex flex-col justify-between space-y-2">
+            {/* 6. Mini Print */}
+            <Link
+              href="/mini-print"
+              className="p-3.5 rounded-xl border border-[#E2E8F0] hover:border-emerald-300 hover:bg-emerald-50/30 transition flex flex-col justify-between space-y-2 group"
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-slate-200 text-slate-700 flex items-center justify-center shrink-0">
-                  <Copy className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center shrink-0">
+                  <Layers className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-[#0F172A]">
-                    Counter Xerox &amp; A3
+                  <div className="text-xs font-bold text-[#0F172A] group-hover:text-emerald-700 transition">
+                    Mini Print (N-Up)
                   </div>
-                  <div className="text-[10px] text-slate-600 font-bold">Staff Assisted</div>
+                  <div className="text-[10px] text-teal-700 font-bold">2-Up / 4-Up Sheets</div>
                 </div>
               </div>
               <p className="text-[11px] text-[#64748B] leading-tight">
-                High-speed physical photocopying &amp; A3 posters at shop counter.
+                Save paper with multiple pages per sheet. Perfect for notes.
               </p>
-            </div>
+            </Link>
           </div>
         </section>
 

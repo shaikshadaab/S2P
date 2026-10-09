@@ -30,25 +30,25 @@ import {
   Users,
   Activity,
   Star,
-  LayoutGrid
+  LayoutGrid,
+  FileText,
+  CreditCard
 } from "lucide-react";
 import { useAuth } from "../../lib/firebase/auth-context";
 import { SosLogo } from "@/components/common/SosLogo";
 
 const NAV_ITEMS = [
-  { label: "Orders", href: "/dashboard", icon: ShoppingBag, status: "Live Feed" },
-  { label: "POS Counter", href: "/dashboard/pos", icon: Calculator, status: "Terminal" },
+  { label: "Overview", href: "/dashboard", icon: ShoppingBag, status: "Overview" },
+  { label: "Counter", href: "/dashboard/counter", icon: Calculator, status: "Cashier" },
+  { label: "Orders", href: "/dashboard/orders", icon: FileText, status: "Live Feed" },
   { label: "Print Queue", href: "/dashboard/queue", icon: Layers, status: "Queue" },
-  { label: "Printer Center", href: "/dashboard/printers", icon: Printer, status: "Devices" },
-  { label: "Services Catalog", href: "/dashboard/services", icon: LayoutGrid, status: "Config" },
-  { label: "Pricing & Rates", href: "/dashboard/pricing", icon: Tag, status: "Active Rates" },
-  { label: "Reports & KPIs", href: "/dashboard/reports", icon: BarChart3, status: "Analytics" },
-  { label: "Reviews", href: "/dashboard/reviews", icon: Star, status: "Feedback" },
-  { label: "Staff & RBAC", href: "/dashboard/staff", icon: Users, status: "Authorized" },
-  { label: "Diagnostics", href: "/dashboard/diagnostics", icon: Activity,
-  Star, status: "Health" },
-  { label: "QR & Poster", href: "/dashboard/standee", icon: QrCode, status: "Printable QR" },
+  { label: "Rates", href: "/dashboard/pricing", icon: Tag, status: "Active Rates" },
+  { label: "Printers", href: "/dashboard/printers", icon: Printer, status: "Devices" },
+  { label: "Payments", href: "/dashboard/payments", icon: CreditCard, status: "Audit" },
+  { label: "Shop QR & Poster", href: "/dashboard/standee", icon: QrCode, status: "Printable QR" },
+  { label: "Reports", href: "/dashboard/reports", icon: BarChart3, status: "Analytics" },
   { label: "Settings", href: "/dashboard/settings", icon: Settings, status: "Shop Info" },
+  { label: "Diagnostics", href: "/dashboard/diagnostics", icon: Activity, status: "Health" },
 ];
 
 export default function DashboardLayout({

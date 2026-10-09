@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft,
   Printer,
   Download,
   QrCode,
@@ -15,33 +14,18 @@ import {
   ExternalLink,
   Phone,
   Sparkles,
-  Info
+  FileText
 } from "lucide-react";
 import { PRIMARY_PILOT_SHOP, UpiPaymentUtils } from "@s2p/shared";
 import { SosLogo } from "@/components/common/SosLogo";
 
 export default function StandeePage() {
   const [size, setSize] = useState<"A4" | "A5">("A4");
-  const [language, setLanguage] = useState<"BILINGUAL" | "EN" | "HI">("BILINGUAL");
-  const [useProductionUrl, setUseProductionUrl] = useState<boolean>(true);
   const [copied, setCopied] = useState<boolean>(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [qrSvg, setQrSvg] = useState<string>("");
 
-  const preferredProductionUrl = "https://sos-print.vercel.app/print";
-  const [currentOrigin, setCurrentOrigin] = useState<string>("");
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setCurrentOrigin(`${window.location.origin}/print`);
-    }
-  }, []);
-
-  const destinationUrl = useProductionUrl
-    ? preferredProductionUrl
-    : (currentOrigin || preferredProductionUrl);
-
-  const isLocalhost = destinationUrl.includes("localhost") || destinationUrl.includes("127.0.0.1");
+  const destinationUrl = "https://sos-print.vercel.app/print";
 
   useEffect(() => {
     let isMounted = true;
@@ -76,39 +60,59 @@ export default function StandeePage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `SOS-Print-QR-${PRIMARY_PILOT_SHOP.id}.svg`;
+    link.download = `SOS-Print-Upload-QR-${PRIMARY_PILOT_SHOP.id}.svg`;
     link.click();
     URL.revokeObjectURL(url);
   };
 
   const whatsappShareText = encodeURIComponent(
-    `Print your documents easily at Shakeel Online Services, Guntur!\n\nUpload PDF or photos directly here (no app required):\n${destinationUrl}\n\nPick up your prints at our counter!`
+    `Print your documents easily at Shakeel Online Services, Guntur!\n\nUpload PDF or photos directly here (no app or login required):\n${destinationUrl}\n\nPick up your fresh prints at our counter!`
   );
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-16">
       {/* Dashboard Top Controls (Hidden during physical print) */}
       <div className="print:hidden space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-[#E2E8F0] p-5 rounded-2xl shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-[#E2E8F0] p-6 rounded-2xl shadow-xs">
           <div>
             <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 uppercase tracking-wider">
               <QrCode className="w-3.5 h-3.5" />
-              <span>Counter Marketing &amp; Self-Service Assets</span>
+              <span>Shop Marketing &amp; Self-Service Print Posters</span>
             </div>
             <h1 className="text-xl font-black text-[#0F172A] mt-0.5">
-              QR &amp; Counter Poster
+              Shop QR &amp; Printable Poster
             </h1>
             <p className="text-xs text-[#64748B] mt-0.5">
-              Print-ready high contrast QR poster and counter standee for {PRIMARY_PILOT_SHOP.name}.
+              Download high-resolution print-ready A4/A5 PDF posters and QR assets for {PRIMARY_PILOT_SHOP.name}.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* Download A4 PDF */}
+            <a
+              href="/api/poster?format=A4"
+              download="SOS-Print-Poster-A4.pdf"
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-xs cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download A4 PDF</span>
+            </a>
+
+            {/* Download A5 PDF */}
+            <a
+              href="/api/poster?format=A5"
+              download="SOS-Print-Poster-A5.pdf"
+              className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-xs cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download A5 PDF</span>
+            </a>
+
             {/* Download PNG */}
             {qrDataUrl && (
               <a
                 href={qrDataUrl}
-                download={`SOS-Print-QR-${PRIMARY_PILOT_SHOP.id}.png`}
+                download={`SOS-Print-Upload-QR-${PRIMARY_PILOT_SHOP.id}.png`}
                 className="px-3.5 py-2 bg-white hover:bg-slate-50 border border-[#CBD5E1] text-[#0F172A] rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-xs cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5 text-emerald-600" />
@@ -128,17 +132,6 @@ export default function StandeePage() {
               </button>
             )}
 
-            {/* WhatsApp Share Link */}
-            <a
-              href={`https://wa.me/?text=${whatsappShareText}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-xs cursor-pointer"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              <span>Share Link</span>
-            </a>
-
             {/* Print Trigger */}
             <button
               type="button"
@@ -156,7 +149,7 @@ export default function StandeePage() {
           <div className="flex flex-wrap items-center gap-4">
             {/* Format Selection */}
             <div className="flex items-center gap-2">
-              <span className="font-bold text-[#0F172A]">Poster Format:</span>
+              <span className="font-bold text-[#0F172A]">Preview Scale:</span>
               <div className="flex rounded-lg border border-[#CBD5E1] p-0.5 bg-slate-50">
                 <button
                   type="button"
@@ -178,46 +171,13 @@ export default function StandeePage() {
                 </button>
               </div>
             </div>
-
-            {/* Language Selection */}
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-[#0F172A]">Language:</span>
-              <div className="flex rounded-lg border border-[#CBD5E1] p-0.5 bg-slate-50">
-                <button
-                  type="button"
-                  onClick={() => setLanguage("BILINGUAL")}
-                  className={`px-2.5 py-1 rounded-md font-bold text-xs transition cursor-pointer ${
-                    language === "BILINGUAL" ? "bg-white text-emerald-700 shadow-xs" : "text-[#64748B] hover:text-[#0F172A]"
-                  }`}
-                >
-                  Bilingual (En + Hi)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLanguage("EN")}
-                  className={`px-2.5 py-1 rounded-md font-bold text-xs transition cursor-pointer ${
-                    language === "EN" ? "bg-white text-emerald-700 shadow-xs" : "text-[#64748B] hover:text-[#0F172A]"
-                  }`}
-                >
-                  English
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLanguage("HI")}
-                  className={`px-2.5 py-1 rounded-md font-bold text-xs transition cursor-pointer ${
-                    language === "HI" ? "bg-white text-emerald-700 shadow-xs" : "text-[#64748B] hover:text-[#0F172A]"
-                  }`}
-                >
-                  हिंदी
-                </button>
-              </div>
-            </div>
           </div>
 
           {/* Destination URL Display */}
           <div className="flex items-center gap-2">
+            <span className="text-slate-500 font-bold text-[11px]">QR Encodes:</span>
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#CBD5E1] bg-slate-50 font-mono text-[11px] text-[#0F172A]">
-              <Globe className="w-3.5 h-3.5 text-emerald-600" />
+              <Globe className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span className="truncate max-w-[220px]">{destinationUrl}</span>
             </div>
             <button
@@ -230,30 +190,11 @@ export default function StandeePage() {
             </button>
           </div>
         </div>
-
-        {/* Localhost Warning if applicable */}
-        {isLocalhost && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>
-                <strong>Localhost Preview Notice:</strong> Currently showing local development URL. For your physical shop standee, use the production URL so customer phones can scan from anywhere.
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setUseProductionUrl(!useProductionUrl)}
-              className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] shrink-0 cursor-pointer"
-            >
-              {useProductionUrl ? "Switch to Local URL" : "Switch to Production URL"}
-            </button>
-          </div>
-        )}
       </div>
 
       {/* ============================================================ */}
       {/* PRINTABLE POSTER / STANDEE PREVIEW CONTAINER                 */}
-      {/* Styled to exact A4 / A5 aspect ratio and clean printable CSS */}
+      {/* Clean high contrast A4 / A5 layout                          */}
       {/* ============================================================ */}
       <div
         className={`bg-white border-2 border-[#E2E8F0] shadow-xl mx-auto text-[#0F172A] flex flex-col justify-between transition-all duration-300 print:border-none print:shadow-none print:m-0 print:p-0 ${
@@ -271,7 +212,7 @@ export default function StandeePage() {
               SHAKEEL ONLINE SERVICES &bull; GUNTUR
             </div>
             <h2 className="text-lg sm:text-xl font-black tracking-tight text-[#0F172A] mt-0.5">
-              Self-Service Document Printing Portal
+              Scan to Upload &amp; Print
             </h2>
           </div>
 
@@ -280,13 +221,13 @@ export default function StandeePage() {
           </div>
         </div>
 
-        {/* Central High-Contrast QR Code Area */}
+        {/* Central High-Contrast Upload QR Code Area */}
         <div className="my-6 flex flex-col items-center justify-center space-y-3">
           <div className="p-4 rounded-3xl bg-white border-4 border-[#0F172A] shadow-md">
             {qrDataUrl ? (
               <img
                 src={qrDataUrl}
-                alt="Scan to Print QR Code"
+                alt="Scan to Upload QR Code"
                 className={`rounded-xl ${size === "A4" ? "w-56 h-56" : "w-44 h-44"}`}
               />
             ) : (
@@ -301,9 +242,7 @@ export default function StandeePage() {
               {destinationUrl.replace(/^https?:\/\//, "")}
             </div>
             <div className="text-[11px] font-bold text-emerald-700">
-              {language === "HI"
-                ? "कैमरा खोलकर QR स्कैन करें &bull; कोई ऐप ज़रूरी नहीं"
-                : "Point phone camera at QR &bull; No app required"}
+              Point phone camera at QR &bull; No app download required
             </div>
           </div>
         </div>
@@ -311,48 +250,43 @@ export default function StandeePage() {
         {/* Step-by-Step Instructions */}
         <div className="bg-slate-50 border border-[#E2E8F0] rounded-2xl p-4 space-y-2.5 text-xs">
           <div className="font-black text-[#0F172A] uppercase tracking-wider text-[11px] border-b border-[#E2E8F0] pb-1.5 flex items-center justify-between">
-            <span>{language === "HI" ? "प्रिंट करने के 5 आसान चरण" : "How to Print in 5 Easy Steps"}</span>
-            <span className="text-emerald-700">Shakeel Online Services</span>
+            <span>How to Print in 5 Easy Steps:</span>
+            <span className="text-emerald-700 font-bold">Shakeel Online Services</span>
           </div>
 
           <div className="space-y-2 text-[#334155]">
             <div className="flex items-start gap-2.5">
               <span className="w-5 h-5 rounded-full bg-emerald-600 text-white font-mono font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">1</span>
               <div>
-                <strong>{language === "HI" ? "QR कोड स्कैन करें:" : "Scan QR Code:"}</strong>{" "}
-                {language === "HI" ? "अपने फ़ोन कैमरे से ऊपर दिया गया कोड स्कैन करें।" : "Open your phone camera to scan the QR code above."}
+                <strong>Scan the QR:</strong> Open your smartphone camera or browser to scan the code.
               </div>
             </div>
 
             <div className="flex items-start gap-2.5">
               <span className="w-5 h-5 rounded-full bg-emerald-600 text-white font-mono font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">2</span>
               <div>
-                <strong>{language === "HI" ? "फ़ाइल अपलोड करें:" : "Upload Documents:"}</strong>{" "}
-                {language === "HI" ? "अपनी PDF या JPG/PNG तस्वीरें अपलोड करें।" : "Upload your PDF files or photos directly."}
+                <strong>Upload your documents:</strong> Select PDF files or photos from your gallery.
               </div>
             </div>
 
             <div className="flex items-start gap-2.5">
               <span className="w-5 h-5 rounded-full bg-emerald-600 text-white font-mono font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">3</span>
               <div>
-                <strong>{language === "HI" ? "सेटिंग्स चुनें:" : "Select Print Settings:"}</strong>{" "}
-                {language === "HI" ? "ब्लैक & व्हाइट या कलर, सिंगल या डुप्लेक्स साइड्स और कॉपीज़ चुनें।" : "Choose B&W or Colour, single or double sides, and number of copies."}
+                <strong>Choose settings:</strong> Set B&amp;W or Colour, 1-sided or 2-sided duplex, and number of copies.
               </div>
             </div>
 
             <div className="flex items-start gap-2.5">
               <span className="w-5 h-5 rounded-full bg-emerald-600 text-white font-mono font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">4</span>
               <div>
-                <strong>{language === "HI" ? "पेमेंट करें:" : "Complete Payment:"}</strong>{" "}
-                {language === "HI" ? "ऑनलाइन UPI से भुगतान करें या काउंटर पर नकद दें।" : "Pay online securely or confirm cash payment at the shop counter."}
+                <strong>Pay at the counter or by UPI:</strong> Choose Cash at Counter or direct transfer to 9581529381@ybl.
               </div>
             </div>
 
             <div className="flex items-start gap-2.5">
               <span className="w-5 h-5 rounded-full bg-emerald-600 text-white font-mono font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">5</span>
               <div>
-                <strong>{language === "HI" ? "प्रिंट प्राप्त करें:" : "Collect Your Prints:"}</strong>{" "}
-                {language === "HI" ? "ऑर्डर नंबर काउंटर पर बताकर अपना प्रिंट कलेक्ट करें।" : "Show your order number at the counter and collect your prints."}
+                <strong>Collect your print:</strong> Pick up your printed documents once staff confirms payment.
               </div>
             </div>
           </div>
@@ -360,12 +294,12 @@ export default function StandeePage() {
 
         {/* Secondary Tools Footer */}
         <div className="pt-4 border-t border-[#E2E8F0] text-center space-y-1.5">
-          <div className="text-[11px] font-bold text-[#64748B]">
-            Also Available at Counter: Passport Photos (₹100/set) &bull; Resume Maker &bull; Photo Grids &bull; ID Copy &bull; Lamination
+          <div className="text-[11px] font-bold text-[#475569]">
+            Also available: Passport Photos &bull; Resume Maker &bull; Photo Sheets &bull; Scan &amp; ID Copy
           </div>
           <div className="text-xs font-mono font-bold text-[#0F172A] flex items-center justify-center gap-2">
             <Phone className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Help Desk: WhatsApp +91 95815 29381</span>
+            <span>Customer WhatsApp: +91 9581529381</span>
           </div>
         </div>
       </div>

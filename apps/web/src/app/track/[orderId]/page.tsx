@@ -40,6 +40,76 @@ interface UpiQrData {
   reference: string;
 }
 
+
+function getCustomerStateDisplay(order: Order): { label: string; customerDescription: string; badgeColor: string } {
+  if (order.paymentStatus !== "PAID") {
+    if (order.paymentStatus === "MANUAL_UPI_REVIEW_PENDING") {
+      return {
+        label: "Awaiting Payment Confirmation",
+        customerDescription: "You submitted payment details. Staff at the counter is checking UPI transaction records.",
+        badgeColor: "bg-blue-50 text-blue-800 border-blue-200"
+      };
+    }
+    if (order.paymentStatus === "MANUAL_UPI_NOT_FOUND") {
+      return {
+        label: "Needs Staff Assistance",
+        customerDescription: "Staff was unable to locate this payment in records. Please check at the counter.",
+        badgeColor: "bg-rose-50 text-rose-800 border-rose-200"
+      };
+    }
+    return {
+      label: "Awaiting Payment Confirmation",
+      customerDescription: order.paymentMethod === "CASH"
+        ? "Please pay cash at the counter to start printing."
+        : "Transfer to shop UPI 9581529381@ybl and ask counter staff to confirm.",
+      badgeColor: "bg-amber-50 text-amber-800 border-amber-200"
+    };
+  }
+
+  switch (order.status) {
+    case "RECEIVED":
+    case "ACCEPTED":
+      return {
+        label: "Payment Confirmed",
+        customerDescription: "Payment verified by counter staff. Document prepared for print queue.",
+        badgeColor: "bg-emerald-50 text-emerald-800 border-emerald-200"
+      };
+    case "QUEUED_FOR_PRINT":
+      return {
+        label: "Queued for Printing",
+        customerDescription: "Your document is in the shop print queue, waiting for the connected printer.",
+        badgeColor: "bg-purple-50 text-purple-800 border-purple-200"
+      };
+    case "PRINTING":
+      return {
+        label: "Sent to Printer",
+        customerDescription: "Document submitted to Windows printer driver. Physical printing in progress.",
+        badgeColor: "bg-cyan-50 text-cyan-800 border-cyan-200"
+      };
+    case "READY":
+      return {
+        label: "Ready for Collection",
+        customerDescription: "Your print is ready! Please collect your documents from the counter.",
+        badgeColor: "bg-emerald-50 text-emerald-800 border-emerald-200"
+      };
+    case "COMPLETED":
+      return {
+        label: "Collected",
+        customerDescription: "Order collected. Thank you for printing at Shakeel Online Services!",
+        badgeColor: "bg-slate-100 text-slate-800 border-slate-300"
+      };
+    case "ON_HOLD":
+    case "PRINT_FAILED":
+    case "STATUS_UNKNOWN":
+    default:
+      return {
+        label: "Needs Staff Assistance",
+        customerDescription: "An issue occurred or staff placed order on review. Please speak to the operator.",
+        badgeColor: "bg-amber-50 text-amber-800 border-amber-200"
+      };
+  }
+}
+
 export default function OrderTrackingPage({ params }: { params: { orderId: string } }) {
   const [order, setOrder] = useState<Order | null>(null);
   const [upiQrData, setUpiQrData] = useState<UpiQrData | null>(null);
@@ -295,7 +365,7 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
     );
   }
 
-  const statusMeta = getOrderStatusDisplay(order.status);
+  const statusMeta = getCustomerStateDisplay(order);
   const formattedAmount = order.pricingSnapshot
     ? (order.pricingSnapshot.totalPaise / 100).toFixed(2)
     : "0.00";
@@ -343,7 +413,7 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
               <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
               <span>Current Status</span>
             </span>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+            <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${statusMeta.badgeColor}`}>
               {statusMeta.label}
             </span>
           </div>
@@ -400,31 +470,51 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
           {/* If manual UPI and PENDING */}
           {isManualUpi && isUpiPending && !isPaid && (
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center space-y-3">
-              <span className="text-xs font-bold text-slate-900 block">
-                {upiQrData?.providerLabel || "PhonePe / UPI QR"}
-              </span>
+              <div className="space-y-1">
+                <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block">
+                  Payment QR &bull; Shakeel Online Services
+                </span>
+                <p className="text-[11px] text-slate-600">
+                  Scan to pay exactly ₹{formattedAmount} for Order #{order.orderNumber}
+                </p>
+              </div>
 
               {upiQrData?.qrDataUrl ? (
-                <div className="w-44 h-44 bg-white p-2 rounded-xl mx-auto shadow-sm border border-slate-200 flex items-center justify-center">
-                  <img src={upiQrData.qrDataUrl} alt="UPI QR" className="w-full h-full object-contain" />
+                <div className="w-48 h-48 bg-white p-2.5 rounded-2xl mx-auto shadow-sm border-2 border-[#0F172A] flex items-center justify-center">
+                  <img src={upiQrData.qrDataUrl} alt="Payment QR" className="w-full h-full object-contain" />
                 </div>
               ) : (
-                <div className="w-44 h-44 bg-slate-100 rounded-xl mx-auto flex flex-col items-center justify-center">
+                <div className="w-48 h-48 bg-slate-100 rounded-2xl mx-auto flex flex-col items-center justify-center">
                   <Loader2 className="w-6 h-6 animate-spin text-emerald-600 mb-1" />
-                  <span className="text-[10px] text-slate-400">Loading QR...</span>
+                  <span className="text-[10px] text-slate-400">Generating Payment QR...</span>
                 </div>
               )}
 
-              <div className="text-xs space-y-0.5 text-slate-600">
-                <div className="font-mono text-[11px]">
-                  UPI ID: <strong className="text-slate-900">{upiQrData?.upiId || "Shop Counter"}</strong>
+              <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 text-[11px]">Shop UPI ID:</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono font-bold text-slate-900">9581529381@ybl</span>
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText("9581529381@ybl")}
+                      className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 transition"
+                    >
+                      Copy
+                    </button>
+                  </div>
                 </div>
                 {upiQrData?.reference && (
-                  <div className="text-[10px] text-slate-400 font-mono">
-                    Ref: {upiQrData.reference}
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] text-slate-500 font-mono">
+                    <span>Reference:</span>
+                    <span>{upiQrData.reference}</span>
                   </div>
                 )}
               </div>
+
+              <p className="text-[11px] text-emerald-800 font-medium bg-emerald-50 p-2.5 rounded-lg border border-emerald-200">
+                After paying, ask the counter staff to confirm your payment.
+              </p>
 
               {upiQrData?.uri && (
                 <a
@@ -515,22 +605,12 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
             </div>
           )}
 
-          {/* Option to pay online via Razorpay if not paid */}
+          {/* Online Gateway disabled / Coming soon notice */}
           {!isPaid && (
-            <div className="pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                disabled={isPayingRazorpay}
-                onClick={handlePayOnlineRazorpay}
-                className="w-full py-2.5 px-3 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow cursor-pointer"
-              >
-                {isPayingRazorpay ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
-                )}
-                <span>Pay Online with UPI / Cards (Razorpay)</span>
-              </button>
+            <div className="pt-2 border-t border-slate-100 text-center">
+              <span className="text-[11px] text-slate-400 font-medium">
+                Online Card / NetBanking Gateway — Coming Soon
+              </span>
             </div>
           )}
 

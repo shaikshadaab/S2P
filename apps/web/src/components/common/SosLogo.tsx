@@ -169,7 +169,7 @@ export function SosLogo({
           <div className={`font-bold tracking-widest uppercase mt-1 text-[#475569] ${dimensions.fontSub} ${
             isDark ? "text-slate-400" : "text-slate-500"
           }`}>
-            Shakeel Online Services
+            Shakeel Online Services, Guntur
           </div>
         )}
       </div>

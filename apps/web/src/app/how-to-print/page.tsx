@@ -19,7 +19,7 @@ export default function HowToPrintPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-12 flex-1 w-full">
         <div className="mb-8">
-          <h1 className="text-3xl font-black text-slate-900 mb-2">How to Print (प्रिंट कैसे करें)</h1>
+          <h1 className="text-3xl font-black text-slate-900 mb-2">How to Print</h1>
           <p className="text-sm text-slate-600">
             Follow these 4 simple steps to print documents and photos directly at Shakeel Online Services, Guntur.
           </p>
@@ -32,7 +32,7 @@ export default function HowToPrintPage() {
                 1
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900 mb-1">Scan QR or Open Link (QR स्कैन करें)</h3>
+                <h3 className="text-lg font-bold text-slate-900 mb-1">Scan QR or Open Link</h3>
                 <p className="text-sm text-slate-600 leading-relaxed">
                   Scan the QR code placed at our shop counter using your phone camera or Google Lens, or visit <code className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-mono">/print</code>. No app download or user signup is required.
                 </p>
@@ -46,7 +46,7 @@ export default function HowToPrintPage() {
                 2
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900 mb-1">Upload Documents or Photos (फ़ाइल अपलोड करें)</h3>
+                <h3 className="text-lg font-bold text-slate-900 mb-1">Upload Documents or Photos</h3>
                 <p className="text-sm text-slate-600 leading-relaxed">
                   Upload up to 10 files (PDF, JPG, PNG). Our system instantly checks the verified page count and provides an exact, honest price quote in rupees according to shop rates.
                 </p>
@@ -60,9 +60,9 @@ export default function HowToPrintPage() {
                 3
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900 mb-1">Select Preferences & Pay (सेटिंग्स चुनें और भुगतान करें)</h3>
+                <h3 className="text-lg font-bold text-slate-900 mb-1">Select Preferences & Pay</h3>
                 <p className="text-sm text-slate-600 leading-relaxed">
-                  Choose B&W or Color, Single or Double-sided, and number of copies. Pay conveniently via Cash at the shop counter, UPI QR code, or online via Razorpay.
+                  Choose B&W or Color, Single or Double-sided, and number of copies. Pay conveniently via Cash at the shop counter or direct UPI to 9581529381@ybl.
                 </p>
               </div>
             </div>
@@ -74,7 +74,7 @@ export default function HowToPrintPage() {
                 4
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900 mb-1">Collect Prints (प्रिंटर से प्रिंट कलेक्ट करें)</h3>
+                <h3 className="text-lg font-bold text-slate-900 mb-1">Collect Prints</h3>
                 <p className="text-sm text-slate-600 leading-relaxed">
                   Your job is securely transferred to our shop PC and printed directly on the printer tray. Collect your fresh documents from the counter staff.
                 </p>
@@ -89,7 +89,7 @@ export default function HowToPrintPage() {
             <p className="text-xs text-emerald-800">Start your print session immediately on your phone.</p>
           </div>
           <Link
-            href="/s/shakeel-online-services"
+            href="/print"
             className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition whitespace-nowrap"
           >
             Launch Print Portal

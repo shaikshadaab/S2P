@@ -84,3 +84,5 @@ apps/agent/publish/
 *.tsbuildinfo
 .vercel
 .env*
+
+.netlify

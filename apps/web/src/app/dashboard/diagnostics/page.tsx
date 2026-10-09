@@ -236,12 +236,12 @@ export default function DiagnosticsPage() {
       <div className="bg-slate-900/80 border border-emerald-900/40 rounded-xl p-5">
         <h3 className="text-sm font-bold text-emerald-400 mb-2 flex items-center gap-2">
           <Activity className="w-4 h-4" />
-          दुकानदार ऑपरेटर सहायता (Owner Guidance)
+             (Owner Guidance)
         </h3>
         <p className="text-xs text-slate-300 leading-relaxed">
-          सॉफ्टवेयर का बैकएंड, फायरबेस सुरक्षा नियम और रेज़रपे भुगतान सुरक्षा पूरी तरह सक्रिय हैं। 
-          जब दुकान के मुख्य कंप्यूटर पर विंडोज़ प्रिंटर एजेंट शुरू होगा, तब यह पेज अपने आप प्रिंटर का लाइव स्टेटस 
-          और तैयार पेपर ट्रे दिखाएगा। तब तक ग्राहकों के ऑर्डर सुरक्षित कतार में बने रहेंगे।
+            ,            
+                    ,          
+                        
         </p>
       </div>
     </div>

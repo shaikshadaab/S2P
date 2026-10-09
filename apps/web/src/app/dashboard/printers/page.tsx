@@ -218,41 +218,101 @@ export default function DashboardPrintersPage() {
             </a>
             <div className="text-[11px] text-[#475569] text-center sm:text-right space-y-0.5">
               <p>Package: <span className="font-mono font-bold text-[#111827]">SOS-Print-Agent-Package.zip (5.0 MB)</span></p>
-              <p className="text-[10px] font-mono text-slate-500">SHA-256: A3EDEF14...3773BE507</p>
-              <p className="text-[10px] text-emerald-700 font-semibold">Build: Release v1.0.0 (LTS)</p>
+              <p className="text-[10px] font-mono text-slate-500 break-all">SHA-256: A3EDEF146522E9B4895C86AE8DC0C226685B33F7BFF2FEAA23126783773BE507</p>
+              <p className="text-[10px] text-emerald-700 font-semibold">Build: Release v1.0.0 (LTS) · Source Commit: 1068489</p>
             </div>
           </div>
         </div>
 
-        {/* 3-Step Setup Instructions */}
-        <div className="mt-6 pt-5 border-t border-[#E2E8F0] grid sm:grid-cols-3 gap-4 text-xs">
-          <div className="flex items-start gap-2.5">
-            <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-xs">
-              1
-            </div>
-            <div>
-              <div className="font-bold text-[#111827]">Extract to Shop PC</div>
-              <p className="text-[11px] text-[#475569] mt-0.5">Unzip the archive to a folder like <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px]">C:\SOSPrint-Agent</code>.</p>
-            </div>
+        {/* 10-Step Windows Agent Setup Checklist */}
+        <div className="mt-6 pt-5 border-t border-[#E2E8F0]">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#111827] flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>Standard 10-Step Agent Setup &amp; Commissioning Procedure</span>
+            </h3>
+            <span className="text-[11px] text-[#475569] font-medium">Windows User Session</span>
           </div>
 
-          <div className="flex items-start gap-2.5">
-            <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-xs">
-              2
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+            <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 flex flex-col justify-between">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-[10px]">1</span>
+                <span className="font-bold text-[#111827]">Driver Setup</span>
+              </div>
+              <p className="text-[11px] text-[#475569]">Install official Windows print driver for your physical printer.</p>
             </div>
-            <div>
-              <div className="font-bold text-[#111827]">Start Agent Process</div>
-              <p className="text-[11px] text-[#475569] mt-0.5">Double-click <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px]">start-agent.bat</code> to launch the terminal worker.</p>
-            </div>
-          </div>
 
-          <div className="flex items-start gap-2.5">
-            <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-xs">
-              3
+            <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 flex flex-col justify-between">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-[10px]">2</span>
+                <span className="font-bold text-[#111827]">Test Page</span>
+              </div>
+              <p className="text-[11px] text-[#475569]">Confirm a Windows standard test page prints successfully.</p>
             </div>
-            <div>
-              <div className="font-bold text-[#111827]">Pair with 6-Digit Code</div>
-              <p className="text-[11px] text-[#475569] mt-0.5">Click &quot;Pair New Device&quot; below and type the pairing code in the agent prompt.</p>
+
+            <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 flex flex-col justify-between">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-[10px]">3</span>
+                <span className="font-bold text-[#111827]">Extract Agent</span>
+              </div>
+              <p className="text-[11px] text-[#475569]">Download and unzip package to e.g. <code className="bg-slate-200 px-1 py-0.5 rounded text-[10px]">C:\SOSPrint</code>.</p>
+            </div>
+
+            <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 flex flex-col justify-between">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-[10px]">4</span>
+                <span className="font-bold text-[#111827]">Hosted URL</span>
+              </div>
+              <p className="text-[11px] text-[#475569]">Configure <code className="bg-slate-200 px-1 py-0.5 rounded text-[10px]">https://sos-print.vercel.app</code> in config if needed.</p>
+            </div>
+
+            <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 flex flex-col justify-between">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-[10px]">5</span>
+                <span className="font-bold text-[#111827]">Pairing Code</span>
+              </div>
+              <p className="text-[11px] text-[#475569]">Click &quot;Pair New Windows PC&quot; below to generate a single-use code.</p>
+            </div>
+
+            <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 flex flex-col justify-between">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-[10px]">6</span>
+                <span className="font-bold text-[#111827]">Enter Code</span>
+              </div>
+              <p className="text-[11px] text-[#475569]">Enter the 6-digit code in the Windows agent terminal.</p>
+            </div>
+
+            <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 flex flex-col justify-between">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-[10px]">7</span>
+                <span className="font-bold text-[#111827]">Review Printers</span>
+              </div>
+              <p className="text-[11px] text-[#475569]">Review detected local and network print queues reported by agent.</p>
+            </div>
+
+            <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 flex flex-col justify-between">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-[10px]">8</span>
+                <span className="font-bold text-[#111827]">Map Services</span>
+              </div>
+              <p className="text-[11px] text-[#475569]">Assign paper sizes, colour/mono profiles, and duplex settings.</p>
+            </div>
+
+            <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 flex flex-col justify-between">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-[10px]">9</span>
+                <span className="font-bold text-[#111827]">Authorized Test</span>
+              </div>
+              <p className="text-[11px] text-[#475569]">Trigger an authorized test print from the dashboard queue.</p>
+            </div>
+
+            <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 flex flex-col justify-between">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-[10px]">10</span>
+                <span className="font-bold text-[#111827]">Confirm Output</span>
+              </div>
+              <p className="text-[11px] text-[#475569]">Verify physical paper output before unpausing customer intake.</p>
             </div>
           </div>
         </div>

@@ -791,7 +791,7 @@ export async function createAuthoritativeOrder(
   }
 
   // Execute single concurrency-safe transaction
-  return await db.runTransaction(async (transaction) => {
+  const txResult = await db.runTransaction(async (transaction) => {
     // 1. Read Draft
     const draftRef = db.collection('orderDrafts').doc(draftId);
     const draftDoc = await transaction.get(draftRef);
@@ -1210,7 +1210,7 @@ export async function updateOrderStatusAtomic(
     throw new Error('Authentication required.');
   }
 
-  return await db.runTransaction(async (transaction) => {
+  const txResult = await db.runTransaction(async (transaction) => {
     const orderRef = db.collection('orders').doc(orderId);
     const orderDoc = await transaction.get(orderRef);
     if (!orderDoc.exists) throw new Error('Order not found.');
@@ -1424,6 +1424,17 @@ export async function updateOrderStatusAtomic(
       order: updatedOrder
     };
   });
+
+  if (txResult && (txResult as any).success && (action === 'MARK_CASH_PAID' || action === 'CONFIRM_UPI_PAID')) {
+    try {
+      const { autoDispatchOrderForPrint } = await import('./print-job-service');
+      await autoDispatchOrderForPrint(db, (txResult as any).order.id, (txResult as any).order.shopId);
+    } catch (dispErr: any) {
+      console.warn('[updateOrderStatusAtomic] Auto dispatch warning:', dispErr?.message);
+    }
+  }
+
+  return txResult;
 }
 
 /**

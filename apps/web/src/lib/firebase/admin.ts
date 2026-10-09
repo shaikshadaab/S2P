@@ -155,12 +155,14 @@ class SmartStorageBucket {
         try {
           await cloudFile.save(buffer, options);
         } catch (err: any) {
-          if (err?.message?.includes('bucket does not exist') || err?.code === 404 || err?.message?.includes('billing')) {
-            console.warn('[Storage] Remote bucket unprovisioned; saving to local workspace storage fallback:', filePath);
+          const isProd = process.env.NODE_ENV === 'production' && !process.env.S2P_LOCAL_DEV;
+          if (!isProd && (err?.message?.includes('bucket does not exist') || err?.code === 404 || err?.message?.includes('billing'))) {
+            console.warn('[Storage] Remote bucket unprovisioned; saving to local workspace storage fallback in dev:', filePath);
             await localFile.save(buffer, options);
             return;
           }
-          throw err;
+          console.error('[Storage Error] Cloud file save failed:', err?.message);
+          throw new Error('STORAGE_UNAVAILABLE: Private Firebase Storage bucket is not accessible or unprovisioned in production. Upload failed safely.');
         }
       },
       exists: async (): Promise<[boolean]> => {

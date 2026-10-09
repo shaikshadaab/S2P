@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -11,10 +11,13 @@ import {
   CheckCircle2,
   ArrowRight,
   ChevronLeft,
-  Loader2
+  Loader2,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { useAuth } from "../../lib/firebase/auth-context";
-import { BRAND_NAME, BRAND_FULL_NAME, PRIMARY_PILOT_SHOP } from "@s2p/shared";
+import { BRAND_NAME, PRIMARY_PILOT_SHOP } from "@s2p/shared";
+import { SosLogo } from "@/components/common/SosLogo";
 
 function LoginForm() {
   const router = useRouter();
@@ -25,14 +28,11 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resetSuccess, setResetSuccess] = useState<string | null>(null);
   const [showForgot, setShowForgot] = useState(false);
-
-  const isEmulator =
-    process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === "true" &&
-    process.env.NODE_ENV !== "production";
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -47,7 +47,7 @@ function LoginForm() {
     setIsSubmitting(true);
 
     try {
-      await login(email, password);
+      await login(email.trim(), password);
       router.push(nextUrl);
     } catch (err: unknown) {
       const fbErr = err as { code?: string; message?: string };
@@ -56,11 +56,11 @@ function LoginForm() {
         fbErr.code === "auth/user-not-found" ||
         fbErr.code === "auth/wrong-password"
       ) {
-        setError("Invalid email or password. Please verify your credentials.");
+        setError("Invalid email or password. Please verify your credentials or use Forgot Password.");
       } else if (fbErr.code === "auth/too-many-requests") {
-        setError("Too many failed login attempts. Please try again later.");
+        setError("Too many failed login attempts. Please wait a few minutes or reset your password.");
       } else {
-        setError(fbErr.message || "Authentication failed. Please verify connection.");
+        setError(fbErr.message || "Authentication failed. Please verify your network connection.");
       }
     } finally {
       setIsSubmitting(false);
@@ -69,15 +69,16 @@ function LoginForm() {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
-      setError("Please enter your registered email address above.");
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      setError("Please enter your registered email address first.");
       return;
     }
     setError(null);
     setIsSubmitting(true);
     try {
-      await resetPassword(email);
-      setResetSuccess(`Password reset email sent to ${email}. Check your inbox.`);
+      await resetPassword(cleanEmail);
+      setResetSuccess(`Password reset email sent to ${cleanEmail}. Check your inbox or spam folder.`);
       setShowForgot(false);
     } catch (err: unknown) {
       const fbErr = err as { message?: string };
@@ -88,24 +89,17 @@ function LoginForm() {
   };
 
   return (
-    <div className="bg-[#111827] border border-[#1f2937] rounded-2xl p-6 sm:p-8 shadow-2xl">
-      {isEmulator && (
-        <div className="mb-5 p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-300 text-[11px] flex items-center justify-between">
-          <span className="font-mono">Emulator Environment</span>
-          <span className="text-[10px] text-amber-400/80">Use seeded staff accounts</span>
-        </div>
-      )}
-
+    <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 sm:p-8 shadow-md space-y-5">
       {error && (
-        <div className="mb-5 p-3.5 rounded-xl bg-red-950/50 border border-red-500/30 text-red-300 text-xs flex items-start gap-2.5">
-          <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+        <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2.5">
+          <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
       )}
 
       {resetSuccess && (
-        <div className="mb-5 p-3.5 rounded-xl bg-emerald-950/50 border border-emerald-500/30 text-emerald-300 text-xs flex items-start gap-2.5">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2.5">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
           <span>{resetSuccess}</span>
         </div>
       )}
@@ -113,55 +107,69 @@ function LoginForm() {
       {!showForgot ? (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Email Address
+            <label className="block text-xs font-bold text-[#111827] mb-1.5">
+              Owner / Staff Email Address
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="staff@shakeelprints.com"
-                className="w-full bg-[#161e1b] border border-[#24322c] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition"
+                placeholder="shaikshadaab16@gmail.com"
+                className="w-full bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#111827] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
               />
             </div>
+            <p className="text-[11px] text-[#475569] mt-1">
+              Authorized Firebase account registered for {PRIMARY_PILOT_SHOP.name}.
+            </p>
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-slate-300">
+              <label className="block text-xs font-bold text-[#111827]">
                 Password
               </label>
               <button
                 type="button"
                 onClick={() => setShowForgot(true)}
-                className="text-[11px] text-emerald-400 hover:text-emerald-300 transition"
+                className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 transition cursor-pointer"
               >
-                Forgot password?
+                Forgot Password?
               </button>
             </div>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full bg-[#161e1b] border border-[#24322c] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition"
+                className="w-full bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl pl-10 pr-11 py-2.5 text-sm text-[#111827] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-sm tracking-wide shadow-lg shadow-emerald-950/60 transition flex items-center justify-center gap-2 mt-2"
+            className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm tracking-wide shadow-md shadow-emerald-700/20 transition flex items-center justify-center gap-2 mt-2 cursor-pointer"
           >
             {isSubmitting ? (
-              <span>Authenticating...</span>
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Signing In...</span>
+              </>
             ) : (
               <>
                 <span>Sign In to Dashboard</span>
@@ -172,26 +180,26 @@ function LoginForm() {
         </form>
       ) : (
         <form onSubmit={handleForgotPassword} className="space-y-4">
-          <div className="text-left mb-2">
-            <h3 className="text-sm font-bold text-white">Reset Password</h3>
-            <p className="text-xs text-slate-400 mt-1">
-              We will send a password restoration link to your registered email address.
+          <div className="text-left space-y-1">
+            <h3 className="text-sm font-bold text-[#111827]">Reset Owner Password</h3>
+            <p className="text-xs text-[#475569]">
+              Enter your registered Firebase email address. A password reset link will be sent to your inbox.
             </p>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Email Address
+            <label className="block text-xs font-bold text-[#111827] mb-1.5">
+              Registered Email Address
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="staff@shakeelprints.com"
-                className="w-full bg-[#161e1b] border border-[#24322c] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition"
+                placeholder="shaikshadaab16@gmail.com"
+                className="w-full bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#111827] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
               />
             </div>
           </div>
@@ -200,16 +208,23 @@ function LoginForm() {
             <button
               type="button"
               onClick={() => setShowForgot(false)}
-              className="flex-1 py-2.5 rounded-xl bg-[#161e1b] border border-[#24322c] text-slate-300 hover:text-white text-xs font-bold transition"
+              className="flex-1 py-2.5 rounded-xl bg-white border border-[#CBD5E1] text-[#475569] hover:bg-slate-50 text-xs font-bold transition cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold transition"
+              className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              {isSubmitting ? "Sending..." : "Send Reset Link"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Sending...</span>
+                </>
+              ) : (
+                <span>Send Reset Link</span>
+              )}
             </button>
           </div>
         </form>
@@ -220,62 +235,59 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-[#090d0b] text-[#f8fafc] flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
-      <header className="border-b border-[#1c2621] px-6 py-4 bg-[#0b0f0e]/80 backdrop-blur">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#111827] flex flex-col justify-between selection:bg-emerald-600 selection:text-white">
+      <header className="border-b border-[#E2E8F0] px-6 py-4 bg-white shadow-xs">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 text-slate-300 hover:text-white transition">
+          <Link href="/" className="flex items-center gap-2 text-[#475569] hover:text-[#111827] transition font-bold text-xs">
             <ChevronLeft className="w-4 h-4" />
-            <span className="text-xs font-semibold">Back to Home</span>
+            <span>Back to Home</span>
           </Link>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs text-slate-400 font-mono">Staff Authentication Portal</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+            <span className="text-xs text-[#475569] font-mono font-medium">Owner &amp; Staff Access Portal</span>
           </div>
         </div>
       </header>
 
       <main className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="w-14 h-14 rounded-xl bg-emerald-600 flex items-center justify-center font-black text-2xl text-white tracking-wider shadow-xl shadow-emerald-950/80 mx-auto mb-4 border border-emerald-500/30">
-              {BRAND_NAME}
+        <div className="w-full max-w-md space-y-6">
+          <div className="text-center space-y-2">
+            <div className="flex justify-center mb-3">
+              <SosLogo variant="horizontal" size="lg" />
             </div>
-            <h1 className="text-2xl font-black text-white tracking-tight">
-              {BRAND_FULL_NAME}
+            <h1 className="text-2xl font-black text-[#111827] tracking-tight">
+              Owner &amp; Staff Sign In
             </h1>
-            <p className="text-xs text-emerald-400 font-semibold tracking-wide uppercase mt-1">
-              {PRIMARY_PILOT_SHOP.name}
-            </p>
-            <p className="text-xs text-slate-400 mt-1">
-              Staff &amp; Owner Authentication Terminal
+            <p className="text-xs text-[#475569] max-w-sm mx-auto">
+              Secure administrative access for {PRIMARY_PILOT_SHOP.name}. Customers do not require an account to upload or print documents.
             </p>
           </div>
 
           <Suspense
             fallback={
-              <div className="bg-[#111827] border border-[#1f2937] rounded-2xl p-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
-                <span>Loading authentication terminal...</span>
+              <div className="bg-white border border-[#E2E8F0] rounded-2xl p-8 text-center text-xs text-[#475569] flex items-center justify-center gap-2 shadow-xs">
+                <Loader2 className="w-4 h-4 text-emerald-600 animate-spin" />
+                <span>Loading sign in terminal...</span>
               </div>
             }
           >
             <LoginForm />
           </Suspense>
 
-          <div className="mt-6 text-center space-y-1">
-            <div className="inline-flex items-center gap-1.5 text-[11px] text-slate-400">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Multi-Tenant RBAC &amp; Tenant Isolation Active</span>
+          <div className="text-center space-y-1">
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Fail-Closed Membership Authorization</span>
             </div>
-            <p className="text-[10px] text-slate-400">
-              Only authorized staff of {PRIMARY_PILOT_SHOP.name} can access administrative print queues.
+            <p className="text-[10px] text-[#64748B]">
+              Only approved staff for shop {PRIMARY_PILOT_SHOP.id} can view orders or printer queues.
             </p>
           </div>
         </div>
       </main>
 
-      <footer className="border-t border-[#1c2621] py-4 text-center text-xs text-slate-400">
-        &copy; {new Date().getFullYear()} {BRAND_FULL_NAME}. Operating System for {PRIMARY_PILOT_SHOP.name}.
+      <footer className="border-t border-[#E2E8F0] py-4 text-center text-xs text-[#64748B] bg-white">
+        &copy; {new Date().getFullYear()} {BRAND_NAME} &bull; Shakeel Online Services, Guntur.
       </footer>
     </div>
   );

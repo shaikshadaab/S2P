@@ -86,13 +86,13 @@ export default function RatesPage() {
               onClick={() => setLang(lang === "en" ? "hi" : "en")}
               className="text-xs font-semibold px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
             >
-              {lang === "en" ? "हिंदी में देखें" : "View in English"}
+              {lang === "en" ? "  " : "View in English"}
             </button>
             <Link
               href="/print"
               className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition"
             >
-              {lang === "en" ? "Print Now" : "प्रिंट शुरू करें"}
+              {lang === "en" ? "Print Now" : "  "}
             </Link>
           </div>
         </div>
@@ -104,15 +104,15 @@ export default function RatesPage() {
         <div className="text-center max-w-2xl mx-auto space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>{lang === "en" ? "Official Counter Rates" : "दुकान के आधिकारिक रेट्स"}</span>
+            <span>{lang === "en" ? "Official Counter Rates" : "   "}</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-            {lang === "en" ? "Transparent Printing & Xerox Rates" : "पारदर्शी प्रिंटिंग व ज़ीरॉक्स दरें"}
+            {lang === "en" ? "Transparent Printing & Xerox Rates" : "    "}
           </h1>
           <p className="text-sm text-slate-600">
             {lang === "en"
               ? "Accurate rates configured directly by Shakeel Online Services, Guntur. Exact integer paise billing, zero hidden fees."
-              : "शकील ऑनलाइन सर्विसेज, गुंटूर द्वारा निर्धारित आधिकारिक दरें। कोई छुपा हुआ शुल्क नहीं।"
+              : "  ,          "
             }
           </p>
         </div>
@@ -127,10 +127,10 @@ export default function RatesPage() {
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 text-base">
-                  {lang === "en" ? "Document Printing (A4 & A3)" : "दस्तावेज़ प्रिंटिंग (A4 & A3)"}
+                  {lang === "en" ? "Document Printing (A4 & A3)" : "  (A4 & A3)"}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  {lang === "en" ? "Laser & Inkjet high clarity" : "हाई-क्वालिटी लेजर व इंक प्रिंट"}
+                  {lang === "en" ? "Laser & Inkjet high clarity" : "-    "}
                 </p>
               </div>
             </div>
@@ -175,10 +175,10 @@ export default function RatesPage() {
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 text-base">
-                  {lang === "en" ? "Photo Prints & ID Cards" : "फोटो प्रिंट्स व आईडी कार्ड"}
+                  {lang === "en" ? "Photo Prints & ID Cards" : "    "}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  {lang === "en" ? "Glossy / Matte premium paper" : "ग्लॉसी फोटो पेपर व आईडी लेआउट्स"}
+                  {lang === "en" ? "Glossy / Matte premium paper" : "     "}
                 </p>
               </div>
             </div>
@@ -214,10 +214,10 @@ export default function RatesPage() {
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 text-base">
-                  {lang === "en" ? "Finishing & Binding" : "बाइंडिंग व लैमिनेशन"}
+                  {lang === "en" ? "Finishing & Binding" : "  "}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  {lang === "en" ? "Professional project presentation" : "प्रोजेक्ट, थीसिस व दस्तावेज़ सुरक्षा"}
+                  {lang === "en" ? "Professional project presentation" : ",    "}
                 </p>
               </div>
             </div>
@@ -241,7 +241,7 @@ export default function RatesPage() {
               </div>
               <div className="flex justify-between items-center text-xs py-1.5">
                 <span className="font-medium text-slate-700">Stapling &amp; Corner Corner Clip</span>
-                <span className="font-bold text-emerald-700 font-mono">FREE / मुफ्त</span>
+                <span className="font-bold text-emerald-700 font-mono">FREE / </span>
               </div>
             </div>
           </div>
@@ -254,10 +254,10 @@ export default function RatesPage() {
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 text-base">
-                  {lang === "en" ? "Scanning & Xerox Services" : "स्कैनिंग व ज़ीरॉक्स सेवाएँ"}
+                  {lang === "en" ? "Scanning & Xerox Services" : "   "}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  {lang === "en" ? "Fast digital copies & uploads" : "डिजिटल स्कैन व तत्काल ज़ीरॉक्स"}
+                  {lang === "en" ? "Fast digital copies & uploads" : "    "}
                 </p>
               </div>
             </div>
@@ -277,7 +277,7 @@ export default function RatesPage() {
               </div>
               <div className="flex justify-between items-center text-xs py-1.5 border-b border-slate-100">
                 <span className="font-medium text-slate-700">Send Scan to WhatsApp / Email</span>
-                <span className="font-bold text-emerald-700 font-mono">FREE / मुफ्त</span>
+                <span className="font-bold text-emerald-700 font-mono">FREE / </span>
               </div>
               <div className="flex justify-between items-center text-xs py-1.5">
                 <span className="font-medium text-slate-700">Minimum Order Charge</span>
@@ -295,12 +295,12 @@ export default function RatesPage() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-slate-900">
-                {lang === "en" ? "Instant Cost Calculator" : "प्रिंट खर्च कैलकुलेटर"}
+                {lang === "en" ? "Instant Cost Calculator" : "  "}
               </h2>
               <p className="text-xs text-slate-500">
                 {lang === "en"
                   ? "Test your exact quantity and options against the shop's pricing engine"
-                  : "पन्नों और प्रतियों की संख्या डालकर तुरंत सटीक अनुमानित खर्च देखें"
+                  : "          "
                 }
               </p>
             </div>
