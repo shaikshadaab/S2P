@@ -329,7 +329,7 @@ export default function HomePage() {
       </section>
 
       {/* Prominent "What would you like to print?" Section */}
-      <section className="max-w-6xl mx-auto px-6 py-16 w-full">
+      <section id="services" className="max-w-6xl mx-auto px-6 py-16 w-full">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold mb-3">
             <Printer className="w-3.5 h-3.5 text-emerald-600" />
