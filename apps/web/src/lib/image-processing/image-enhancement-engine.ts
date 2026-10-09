@@ -142,16 +142,20 @@ export class ImageEnhancementEngine {
     const pixels = imgData.data;
     const len = pixels.length;
 
+    const mode = settings.documentEnhanceMode;
+    const isDoc = mode !== 'ORIGINAL';
+
     // A. Brightness & Contrast pre-multipliers
-    const brightnessFactor = (settings.brightness || 0) * 2.55; // -127 to +127
+    // For documents, paper-ink contrast midpoint is 200 rather than photo midpoint 128
+    // so faint handwriting (<200) is darkened while paper (>200) is whitened
+    const midpoint = isDoc ? 200 : 128;
+    const brightnessFactor = (settings.brightness || 0) * 2.55;
     const contrastRatio = ((settings.contrast || 0) + 100) / 100;
-    const contrastFactor = contrastRatio * contrastRatio;
+    const contrastFactor = isDoc ? contrastRatio : (contrastRatio * contrastRatio);
 
     // B. White point & Shadow normalization factors
     const shadowReduction = Math.min(100, Math.max(0, settings.shadowReduction ?? 30));
     const shadowBoost = shadowReduction * 0.45;
-
-    const mode = settings.documentEnhanceMode;
 
     if (mode !== 'ORIGINAL') {
       for (let i = 0; i < len; i += 4) {
@@ -159,24 +163,25 @@ export class ImageEnhancementEngine {
         let g = pixels[i + 1];
         let b = pixels[i + 2];
 
-        // Apply Brightness & Contrast
+        // Apply Brightness
         if (settings.brightness !== 0) {
           r = Math.min(255, Math.max(0, r + brightnessFactor));
           g = Math.min(255, Math.max(0, g + brightnessFactor));
           b = Math.min(255, Math.max(0, b + brightnessFactor));
         }
 
+        // Apply Adaptive Document Contrast around midpoint 200
         if (settings.contrast !== 0) {
-          r = Math.min(255, Math.max(0, (r - 128) * contrastFactor + 128));
-          g = Math.min(255, Math.max(0, (g - 128) * contrastFactor + 128));
-          b = Math.min(255, Math.max(0, (b - 128) * contrastFactor + 128));
+          r = Math.min(255, Math.max(0, (r - midpoint) * contrastFactor + midpoint));
+          g = Math.min(255, Math.max(0, (g - midpoint) * contrastFactor + midpoint));
+          b = Math.min(255, Math.max(0, (b - midpoint) * contrastFactor + midpoint));
         }
 
         const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
 
-        // Shadow reduction: lifts mid-tone/background shadows towards paper white
-        if (shadowBoost > 0 && luminance > 120) {
-          const lift = ((luminance - 120) / 135) * shadowBoost;
+        // Shadow reduction: lifts mid-tone paper shadows towards clean white
+        if (shadowBoost > 0 && luminance >= 160 && luminance < 225) {
+          const lift = ((luminance - 160) / 65) * shadowBoost;
           r = Math.min(255, r + lift);
           g = Math.min(255, g + lift);
           b = Math.min(255, b + lift);
@@ -188,16 +193,16 @@ export class ImageEnhancementEngine {
           pixels[i + 1] = gray;
           pixels[i + 2] = gray;
         } else if (mode === 'HIGH_CONTRAST') {
-          // Sharp thresholding for receipts/text, preserving dark text
           const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-          const val = lum > 140 ? 255 : Math.max(0, lum * 0.7);
+          const val = lum >= 170 ? 255 : Math.max(0, lum * 0.65);
           pixels[i] = val;
           pixels[i + 1] = val;
           pixels[i + 2] = val;
         } else if (mode === 'COLOR_ENHANCED') {
-          // Whiten clean background while keeping colored stamps/signatures vibrant
-          if (luminance > 210) {
-            const paperWhitening = ((luminance - 210) / 45) * 35;
+          // Whiten genuine paper background (luminance >= 220) while preserving colored stamps and signatures
+          const updatedLum = 0.299 * r + 0.587 * g + 0.114 * b;
+          if (updatedLum >= 220) {
+            const paperWhitening = ((updatedLum - 220) / 35) * 35;
             r = Math.min(255, r + paperWhitening);
             g = Math.min(255, g + paperWhitening);
             b = Math.min(255, b + paperWhitening);

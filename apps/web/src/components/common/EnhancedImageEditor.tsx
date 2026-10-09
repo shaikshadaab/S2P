@@ -430,7 +430,7 @@ export default function EnhancedImageEditor({
         {/* Original Untouched Notice */}
         <div className="absolute top-4 left-4 bg-black/75 backdrop-blur-sm px-2.5 py-1 rounded-lg text-[11px] text-zinc-300 font-mono border border-zinc-800 flex items-center gap-1.5">
           <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-          <span>Original file preserved untouched</span>
+          <span>Original preserved untouched • Local browser enhancement (No third-party AI). Uploads to private shop storage solely for printing.</span>
         </div>
 
         {/* Revert to Original Action */}
@@ -520,7 +520,7 @@ export default function EnhancedImageEditor({
             {/* Mode Suggestions */}
             <div className="space-y-1.5">
               <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-                Suggested Editing Mode (Click to switch):
+                Suggested Editing Mode (Heuristic suggestion based on image ratio & filename — Not facial recognition. Full manual override available):
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button
@@ -652,9 +652,22 @@ export default function EnhancedImageEditor({
                   })}
                   className="accent-emerald-500"
                 />
-                <span>Passport Oval Guides</span>
+                <span>Reference Oval Guides (35x45mm)</span>
               </label>
             </div>
+
+            {/* Authority Compliance Disclaimer */}
+            {settings.passportGuide && (
+              <div className="p-2.5 rounded-lg bg-amber-950/60 border border-amber-800/70 text-[11px] text-amber-200 space-y-1">
+                <div className="font-bold flex items-center gap-1.5 text-amber-300">
+                  <Info className="w-3.5 h-3.5 shrink-0" />
+                  <span>Reference Guidelines (Not Guaranteed Universal Compliance)</span>
+                </div>
+                <p className="text-zinc-300 text-[10px]">
+                  Government passport, visa, and exam authorities vary in their exact background, ear visibility, and head margin specifications. Please verify your intended document requirements before ordering.
+                </p>
+              </div>
+            )}
 
             {/* Straighten / Deskew Angle */}
             <div className="space-y-1">

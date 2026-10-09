@@ -539,7 +539,7 @@ export default function DashboardServicesPage() {
             <div className="border-b border-[#E2E8F0] pb-2">
               <h3 className="text-sm font-bold text-[#111827]">Processing Engine Capabilities &amp; Privacy Contract</h3>
               <p className="text-xs text-[#475569] mt-0.5">
-                Real-time browser canvas execution ensures customer documents never leave the client for AI processing.
+                Enhancement runs locally in browser (No third-party AI). Print files upload securely to private Firebase Storage only for print dispatch.
               </p>
             </div>
 
@@ -588,7 +588,7 @@ export default function DashboardServicesPage() {
                 <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                 <div>
                   <strong className="text-amber-900 block">Generative Background Inpainting</strong>
-                  <span className="text-amber-700 text-[11px]">Honestly Unavailable — Generative facial alteration prohibited to preserve biometric identity.</span>
+                  <span className="text-amber-700 text-[11px]">Honestly Unavailable — Generative facial alteration disabled to preserve authentic document identity.</span>
                 </div>
               </div>
             </div>
