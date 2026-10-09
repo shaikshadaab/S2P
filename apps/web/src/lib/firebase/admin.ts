@@ -82,7 +82,7 @@ export const adminStorage: Storage = getStorage(adminApp);
 export const adminAuth: Auth = getAuth(adminApp);
 
 
-const localStorageDir = path.resolve(process.cwd(), '.storage');
+const localStorageDir = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.VERCEL_ENV ? path.resolve('/tmp', '.storage') : path.resolve(process.cwd(), '.storage');
 
 class LocalStorageFile {
   private localPath: string;
