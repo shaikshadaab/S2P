@@ -1,10 +1,12 @@
 # SOS Print — Implementation & Physical Verification Status
 
 **Shop:** Shakeel Online Services, Guntur, Andhra Pradesh  
-**Customer Visible Brand:** Shakeel Online Services  
+**Customer Visible Brand:** SOS Print (Printing at Shakeel Online Services)  
 **Internal Product Name:** SOS Print  
 **Date:** 2026-10-09  
-**Server Shop ID:** `shakeel-online-services`  \n**Deployment Repo:** `https://github.com/shaikshadaab/shakeel123.git`  
+**Server Shop ID:** `shakeel-online-services`  
+**Deployment Repo:** `https://github.com/shaikshadaab/shakeel123.git`  
+**Vercel Project:** `sos-print`  
 **Firebase Project:** `shakeel-online-services-951ec`  
 **Owner UID:** `YSakxmoeNRX85x7eQKG2P7KYmPo2` (`shaikshadaab16@gmail.com`)  
 **Merchant UPI Status:** UNVERIFIED (Awaiting owner confirmation in Dashboard Settings; unverified UPI disabled from customer payment methods)  

@@ -18,6 +18,20 @@ const nextConfig = {
     }
     return config;
   },
+  async redirects() {
+    return [
+      {
+        source: '/owner/login',
+        destination: '/login',
+        permanent: false,
+      },
+      {
+        source: '/owner',
+        destination: '/dashboard',
+        permanent: false,
+      },
+    ];
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },

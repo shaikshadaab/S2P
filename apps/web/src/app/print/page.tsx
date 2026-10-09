@@ -165,10 +165,10 @@ export default function PrintHubPage() {
             </Link>
             <div>
               <Link href="/" className="font-extrabold tracking-tight text-base hover:text-emerald-700 transition">
-                Shakeel Online Services
+                SOS Print
               </Link>
               <p className="text-[11px] text-[#475569] font-medium leading-none mt-0.5">
-                Print Hub · Guntur, AP
+                Printing at Shakeel Online Services
               </p>
             </div>
           </div>

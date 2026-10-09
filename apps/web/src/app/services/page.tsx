@@ -158,9 +158,9 @@ export default function ServicesPage() {
             </Link>
             <div>
               <Link href="/" className="font-extrabold tracking-tight text-[#111827] text-lg hover:text-emerald-700 transition">
-                Shakeel Online Services
+                SOS Print
               </Link>
-              <p className="text-xs text-[#475569] font-medium leading-none mt-0.5">Guntur, Andhra Pradesh</p>
+              <p className="text-xs text-[#475569] font-medium leading-none mt-0.5">Printing at Shakeel Online Services</p>
             </div>
           </div>
           <div className="flex items-center gap-3">

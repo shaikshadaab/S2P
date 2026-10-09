@@ -182,7 +182,7 @@ export default function DashboardPrintersPage() {
             </div>
 
             <h2 className="text-xl font-black text-[#111827] tracking-tight">
-              Download Windows Print Agent Package
+              Download SOS Print Windows Agent
             </h2>
 
             <p className="text-xs text-[#475569] leading-relaxed">
@@ -214,11 +214,13 @@ export default function DashboardPrintersPage() {
               className="px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-700/20 transition flex items-center justify-center gap-2 text-center"
             >
               <Download className="w-4 h-4" />
-              <span>Download Windows Print Agent (ZIP)</span>
+              <span>Download SOS Print Windows Agent (ZIP)</span>
             </a>
-            <p className="text-[11px] text-[#475569] text-center sm:text-right">
-              Package: <span className="font-mono font-bold text-[#111827]">SOS-Print-Agent-Package.zip (5.0 MB)</span>
-            </p>
+            <div className="text-[11px] text-[#475569] text-center sm:text-right space-y-0.5">
+              <p>Package: <span className="font-mono font-bold text-[#111827]">SOS-Print-Agent-Package.zip (5.0 MB)</span></p>
+              <p className="text-[10px] font-mono text-slate-500">SHA-256: A3EDEF14...3773BE507</p>
+              <p className="text-[10px] text-emerald-700 font-semibold">Build: Release v1.0.0 (LTS)</p>
+            </div>
           </div>
         </div>
 
@@ -250,7 +252,7 @@ export default function DashboardPrintersPage() {
             </div>
             <div>
               <div className="font-bold text-[#111827]">Pair with 6-Digit Code</div>
-              <p className="text-[11px] text-[#475569] mt-0.5">Click "Pair New Device" below and type the pairing code in the agent prompt.</p>
+              <p className="text-[11px] text-[#475569] mt-0.5">Click &quot;Pair New Device&quot; below and type the pairing code in the agent prompt.</p>
             </div>
           </div>
         </div>
@@ -322,7 +324,7 @@ export default function DashboardPrintersPage() {
             <div className="space-y-1">
               <h4 className="text-sm font-bold text-[#111827]">No Windows PC Paired Yet</h4>
               <p className="text-xs text-[#475569] max-w-sm mx-auto">
-                Download the Windows Agent above, extract on your shop PC, and click "Pair New Windows PC" to register it with this dashboard.
+                Download the Windows Agent above, extract on your shop PC, and click &quot;Pair New Windows PC&quot; to register it with this dashboard.
               </p>
             </div>
             {isOwnerOrManager && (

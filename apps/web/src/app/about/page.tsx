@@ -30,9 +30,9 @@ export default function AboutPage() {
             </Link>
             <div>
               <Link href="/" className="font-extrabold tracking-tight text-slate-900 text-lg hover:text-emerald-700 transition">
-                Shakeel Online Services
+                SOS Print
               </Link>
-              <p className="text-xs text-slate-500 font-medium">Guntur, Andhra Pradesh</p>
+              <p className="text-xs text-slate-500 font-medium">Printing at Shakeel Online Services</p>
             </div>
           </div>
           <div className="flex items-center gap-3">

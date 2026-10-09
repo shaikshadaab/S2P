@@ -79,3 +79,6 @@ apps/web/public/installer/
 .storage/
 apps/web/.storage/
 apps/agent/publish/
+
+# TypeScript Build Cache
+*.tsbuildinfo

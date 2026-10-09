@@ -9,7 +9,7 @@ export default function HowToPrintPage() {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900">
             <ArrowLeft className="w-4 h-4" />
-            <span>Shakeel Online Services Home</span>
+            <span>SOS Print &middot; Shakeel Online Services</span>
           </Link>
           <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
             SOS Print Guide

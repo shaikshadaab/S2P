@@ -21,7 +21,11 @@ import {
   Layers,
   FileType,
   Copy,
-  Maximize2
+  Maximize2,
+  Smartphone,
+  Eye,
+  Sliders,
+  MessageCircle
 } from "lucide-react";
 
 export default function HomePage() {
@@ -174,16 +178,13 @@ export default function HomePage() {
               <Printer className="w-5 h-5 text-white" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold tracking-tight text-[#111827] text-lg">
-                  Shakeel Online Services
-                </span>
-                <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+              <Link href="/" className="flex items-center gap-2">
+                <span className="font-extrabold tracking-tight text-[#111827] text-lg hover:text-emerald-700 transition">
                   SOS Print
                 </span>
-              </div>
+              </Link>
               <p className="text-xs text-[#475569] font-medium leading-none mt-0.5">
-                {lang === "en" ? "Print Documents, Photos & ID Cards" : "दस्तावेज़, फ़ोटो और आईडी कार्ड प्रिंट सेवा"}
+                Printing at Shakeel Online Services
               </p>
             </div>
           </div>
@@ -225,7 +226,7 @@ export default function HomePage() {
               {lang === "en" ? "Contact" : "संपर्क"}
             </Link>
             <Link
-              href="/s/shakeel-online-services"
+              href="/print"
               className="text-xs font-bold px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs transition flex items-center gap-1.5"
             >
               <QrCode className="w-3.5 h-3.5" />
@@ -247,33 +248,33 @@ export default function HomePage() {
             </span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl font-black text-[#111827] tracking-tight leading-tight mb-4">
+          <h1 className="text-4xl sm:text-6xl font-black text-[#111827] tracking-tight leading-tight mb-4">
             {lang === "en" ? (
               <>
-                Fast, High Quality Printing at <br />
-                <span className="text-emerald-700">Shakeel Online Services</span>
+                Your files. Your settings. <br />
+                <span className="text-emerald-600">Your prints.</span>
               </>
             ) : (
               <>
-                शकील ऑनलाइन सर्विसेज पर <br />
-                <span className="text-emerald-700">तेज़ और उच्च गुणवत्ता वाली प्रिंटिंग</span>
+                आपकी फाइलें. आपकी सेटिंग्स. <br />
+                <span className="text-emerald-600">आपके प्रिंट्स.</span>
               </>
             )}
           </h1>
 
-          <p className="text-base text-[#475569] max-w-2xl mx-auto mb-8 leading-relaxed">
+          <p className="text-base sm:text-lg text-[#475569] max-w-2xl mx-auto mb-8 leading-relaxed">
             {lang === "en"
-              ? "Scan our counter QR code or upload files directly from your smartphone. Set your copies, color, and duplex preferences, pay instantly via Cash or UPI, and get your prints ready immediately."
-              : "काउंटर पर लगा QR कोड स्कैन करें या अपने फोन से सीधे फाइल अपलोड करें। कलर, कॉपी और साइड चुनें, कैश या UPI से भुगतान करें और तुरंत प्रिंट प्राप्त करें।"}
+              ? "Upload directly from your smartphone, review an accurate print preview with clear shop rates, pay via Cash or UPI at the counter, and collect your fresh prints immediately at Shakeel Online Services, Guntur."
+              : "अपने मोबाइल से फाइल अपलोड करें, असली रेट्स के साथ प्रीव्यू देखें, काउंटर पर कैश या UPI से भुगतान करें और शकील ऑनलाइन सर्विसेज, गुंटूर से तुरंत प्रिंट प्राप्त करें।"}
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
             <Link
-              href="/s/shakeel-online-services"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base shadow-xs transition"
+              href="/print"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base shadow-md shadow-emerald-700/20 transition"
             >
-              <QrCode className="w-5 h-5" />
-              <span>{lang === "en" ? "Start Printing (Upload)" : "प्रिंट शुरू करें (फ़ाइल अपलोड)"}</span>
+              <Printer className="w-5 h-5" />
+              <span>{lang === "en" ? "Start Printing" : "प्रिंट शुरू करें"}</span>
               <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
             <Link
@@ -282,6 +283,106 @@ export default function HomePage() {
             >
               <span>{lang === "en" ? "View Rates" : "रेट लिस्ट देखें"}</span>
             </Link>
+          </div>
+
+          {/* Section 3: Original Phone / QR / Document / Printer Illustration */}
+          <div className="max-w-2xl mx-auto p-6 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] shadow-xs mt-6">
+            <div className="grid grid-cols-4 items-center gap-3 text-center">
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 rounded-2xl bg-white border border-[#E2E8F0] shadow-xs flex items-center justify-center text-emerald-600 mb-2">
+                  <Smartphone className="w-6 h-6" />
+                </div>
+                <span className="text-[11px] font-bold text-[#111827]">
+                  {lang === "en" ? "1. Your Phone" : "1. आपका फोन"}
+                </span>
+                <span className="text-[10px] text-[#475569]">{lang === "en" ? "Scan or Open" : "स्कैन करें"}</span>
+              </div>
+
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 rounded-2xl bg-white border border-[#E2E8F0] shadow-xs flex items-center justify-center text-emerald-600 mb-2">
+                  <QrCode className="w-6 h-6" />
+                </div>
+                <span className="text-[11px] font-bold text-[#111827]">
+                  {lang === "en" ? "2. Counter QR" : "2. काउंटर QR"}
+                </span>
+                <span className="text-[10px] text-[#475569]">{lang === "en" ? "Instant Connect" : "सीधा कनेक्ट"}</span>
+              </div>
+
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 rounded-2xl bg-white border border-[#E2E8F0] shadow-xs flex items-center justify-center text-emerald-600 mb-2">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <span className="text-[11px] font-bold text-[#111827]">
+                  {lang === "en" ? "3. PDF Preflight" : "3. प्रीव्यू व सेटिंग्स"}
+                </span>
+                <span className="text-[10px] text-[#475569]">{lang === "en" ? "Exact Pages" : "पेज व कॉपी"}</span>
+              </div>
+
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 rounded-2xl bg-white border border-[#E2E8F0] shadow-xs flex items-center justify-center text-emerald-600 mb-2">
+                  <Printer className="w-6 h-6" />
+                </div>
+                <span className="text-[11px] font-bold text-[#111827]">
+                  {lang === "en" ? "4. Shop Spooler" : "4. दुकान का प्रिंटर"}
+                </span>
+                <span className="text-[10px] text-[#475569]">{lang === "en" ? "Instant Print" : "तुरंत प्रिंट"}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 4: 3 Key Benefits */}
+      <section className="bg-white border-b border-[#E2E8F0] py-12 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="p-6 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                <Smartphone className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#111827] mb-1">
+                  {lang === "en" ? "No App Installation Required" : "कोई ऐप डाउनलोड जरूरी नहीं"}
+                </h3>
+                <p className="text-xs text-[#475569] leading-relaxed">
+                  {lang === "en"
+                    ? "Works seamlessly in any mobile browser (Chrome, Safari). No Play Store downloads, no storage clutter."
+                    : "किसी भी फोन ब्राउज़र पर तुरंत काम करता है। कोई ऐप इंस्टॉल करने या अकाउंट बनाने का झंझट नहीं।"}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                <Eye className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#111827] mb-1">
+                  {lang === "en" ? "Preview Before You Pay" : "भुगतान से पहले असली प्रीव्यू"}
+                </h3>
+                <p className="text-xs text-[#475569] leading-relaxed">
+                  {lang === "en"
+                    ? "Verify verified page count, orientation, margins, and itemized rupee breakdown before making payment."
+                    : "पेमेंट करने से पहले पन्नों की सही गिनती, ओरिएंटेशन, और पूरे बिल का पारदर्शी ब्रेकडाउन देखें।"}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                <Sliders className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#111827] mb-1">
+                  {lang === "en" ? "Clear, Honest Printing Settings" : "स्पष्ट और पारदर्शी सेटिंग्स"}
+                </h3>
+                <p className="text-xs text-[#475569] leading-relaxed">
+                  {lang === "en"
+                    ? "Customize single-sided or duplex, B&W or colour, copies, and custom page ranges with zero guesswork."
+                    : "एक तरफ या दोनों तरफ, ब्लैक एंड व्हाइट या कलर, प्रतियां और कस्टम पेज रेंज आसानी से चुनें।"}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -418,18 +519,225 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* 7. Actual Backend-Connected Shop Printing Rates */}
+      <section className="max-w-5xl mx-auto px-6 py-16 w-full">
+        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-8 shadow-xs">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 pb-6 border-b border-[#E2E8F0]">
+            <div>
+              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 uppercase tracking-wider">
+                Official Rates
+              </span>
+              <h2 className="text-2xl font-extrabold text-[#111827] mt-2">
+                {lang === "en" ? "Real Shop Printing Rates" : "दुकान की आधिकारिक दरें"}
+              </h2>
+              <p className="text-xs text-[#475569] mt-0.5">
+                Configured and honoured at Shakeel Online Services, Guntur
+              </p>
+            </div>
+            <Link
+              href="/rates"
+              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition inline-flex items-center gap-1.5"
+            >
+              <span>{lang === "en" ? "Open Full Rate Calculator" : "पूरा रेट कैलकुलेटर"}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+              <span className="text-xs text-[#475569] block">A4 Black &amp; White</span>
+              <span className="text-2xl font-black text-[#111827] font-mono mt-1 block">₹2.00</span>
+              <span className="text-[11px] text-emerald-700 font-semibold block mt-1">per printed side</span>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+              <span className="text-xs text-[#475569] block">A4 B&amp;W Duplex</span>
+              <span className="text-2xl font-black text-[#111827] font-mono mt-1 block">₹3.00</span>
+              <span className="text-[11px] text-emerald-700 font-semibold block mt-1">per output sheet</span>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+              <span className="text-xs text-[#475569] block">A4 Colour Print</span>
+              <span className="text-2xl font-black text-[#111827] font-mono mt-1 block">₹10.00</span>
+              <span className="text-[11px] text-emerald-700 font-semibold block mt-1">per printed side</span>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+              <span className="text-xs text-[#475569] block">Passport Photos</span>
+              <span className="text-2xl font-black text-[#111827] font-mono mt-1 block">₹100.00</span>
+              <span className="text-[11px] text-emerald-700 font-semibold block mt-1">per configured set</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 8. Accurate File-Handling & Privacy Explanation */}
+      <section className="bg-white border-y border-[#E2E8F0] py-16 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <ShieldCheck className="w-10 h-10 text-emerald-600 mx-auto mb-3" />
+            <h2 className="text-2xl font-extrabold text-[#111827] mb-2">
+              {lang === "en" ? "Accurate File Handling &amp; Privacy" : "दस्तावेज़ सुरक्षा और गोपनीयता"}
+            </h2>
+            <p className="text-xs text-[#475569]">
+              How your files are securely stored, processed, and cleaned up
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-6 text-xs text-[#475569] leading-relaxed">
+            <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-5">
+              <div className="font-bold text-[#111827] text-sm mb-1">Private Scoped Grants</div>
+              <p>Uploaded documents are stored in private Firebase Storage. Public access is denied by default; files are accessed only via short-lived server tokens.</p>
+            </div>
+            <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-5">
+              <div className="font-bold text-[#111827] text-sm mb-1">Customer Token Isolation</div>
+              <p>Each customer receives high-entropy session credentials. One customer cannot see, access, or download another customer&apos;s files or quotes.</p>
+            </div>
+            <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-5">
+              <div className="font-bold text-[#111827] text-sm mb-1">Automatic Cleanup Lifecycle</div>
+              <p>Completed jobs and expired quotes are cleaned up by scheduled lifecycle sweeps. No persistent public document archive is kept.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 10. Frequently Asked Questions (FAQ) */}
+      <section className="max-w-4xl mx-auto px-6 py-16 w-full">
+        <div className="text-center mb-10">
+          <HelpCircle className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
+          <h2 className="text-2xl font-extrabold text-[#111827] mb-1">
+            {lang === "en" ? "Frequently Asked Questions" : "अक्सर पूछे जाने वाले सवाल"}
+          </h2>
+          <p className="text-xs text-[#475569]">
+            Everything you need to know about printing at Shakeel Online Services
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <div className="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-xs">
+            <h3 className="font-bold text-sm text-[#111827] mb-1.5">
+              {lang === "en" ? "Do I need to download an app or create an account?" : "क्या मुझे कोई ऐप डाउनलोड या अकाउंट बनाना होगा?"}
+            </h3>
+            <p className="text-xs text-[#475569] leading-relaxed">
+              {lang === "en"
+                ? "No app or signup is needed. Open the website on your phone, upload your document, choose your settings, and pick up your prints at our counter."
+                : "बिल्कुल नहीं! कोई ऐप डाउनलोड या लॉगिन जरूरी नहीं है। फोन ब्राउज़र में साइट खोलें, फाइल अपलोड करें और काउंटर से प्रिंट लें।"}
+            </p>
+          </div>
+
+          <div className="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-xs">
+            <h3 className="font-bold text-sm text-[#111827] mb-1.5">
+              {lang === "en" ? "What are your exact printing rates?" : "प्रिंटिंग के सही रेट क्या हैं?"}
+            </h3>
+            <p className="text-xs text-[#475569] leading-relaxed">
+              {lang === "en"
+                ? "A4 Black & White is ₹2 per printed side, A4 B&W Duplex (both sides) is ₹3 per output sheet, A4 Colour is ₹10 per printed side, and Passport Photo sets are ₹100 per configured set."
+                : "A4 ब्लैक एंड व्हाइट ₹2 प्रति साइड, दोनों तरफ (डुप्लेक्स) ₹3 प्रति शीट, कलर प्रिंट ₹10 प्रति साइड, और पासपोर्ट फोटो सेट ₹100 प्रति सेट।"}
+            </p>
+          </div>
+
+          <div className="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-xs">
+            <h3 className="font-bold text-sm text-[#111827] mb-1.5">
+              {lang === "en" ? "How does payment work?" : "पेमेंट कैसे कर सकते हैं?"}
+            </h3>
+            <p className="text-xs text-[#475569] leading-relaxed">
+              {lang === "en"
+                ? "You can pay in cash directly at the shop counter or scan our counter UPI QR. We verify every payment before spooling."
+                : "दुकान के काउंटर पर नकद (कैश) दे सकते हैं या काउंटर पर लगा UPI QR स्कैन करके भुगतान कर सकते हैं।"}
+            </p>
+          </div>
+
+          <div className="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-xs">
+            <h3 className="font-bold text-sm text-[#111827] mb-1.5">
+              {lang === "en" ? "Are my uploaded files kept private?" : "क्या मेरी अपलोड की गई फाइलें सुरक्षित और निजी रहती हैं?"}
+            </h3>
+            <p className="text-xs text-[#475569] leading-relaxed">
+              {lang === "en"
+                ? "Yes. All uploads use private, short-lived server tokens with zero public links. Documents are automatically cleaned up after your order is printed."
+                : "हाँ, पूरी तरह। आपकी फाइलें केवल आपके प्रिंट कार्य के लिए उपयोग की जाती हैं और प्रिंट होने के बाद सुरक्षित रूप से हटा दी जाती हैं।"}
+            </p>
+          </div>
+
+          <div className="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-xs">
+            <h3 className="font-bold text-sm text-[#111827] mb-1.5">
+              {lang === "en" ? "Can I print Word (.docx) or PowerPoint (.pptx) files?" : "क्या मैं Word या PowerPoint फाइलें प्रिंट कर सकता हूँ?"}
+            </h3>
+            <p className="text-xs text-[#475569] leading-relaxed">
+              {lang === "en"
+                ? "Yes. Our system automatically converts DOCX and PPTX to print-ready PDF with layout preservation. Macros are strictly blocked for security."
+                : "हाँ! DOCX और PPTX फाइलें अपने आप PDF में बदल जाती हैं। सुरक्षा के लिए मैक्रो फाइलें ब्लॉक रहती हैं।"}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 11. Confirmed Contact and Hours Section */}
+      <section className="bg-white border-t border-[#E2E8F0] py-16 px-6">
+        <div className="max-w-4xl mx-auto text-center space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
+            <Clock className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Open Monday &ndash; Saturday</span>
+          </div>
+
+          <h2 className="text-3xl font-extrabold text-[#111827]">
+            Shakeel Online Services
+          </h2>
+
+          <p className="text-sm text-[#475569] max-w-md mx-auto">
+            Guntur, Andhra Pradesh &middot; Cyber Cafe &amp; Digital Online Services Center
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+            <a
+              href="https://wa.me/919581529381"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-xs transition"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>WhatsApp: +91 95815 29381</span>
+            </a>
+            <Link
+              href="/contact"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white border border-[#E2E8F0] hover:bg-slate-50 text-[#111827] font-semibold text-sm transition"
+            >
+              <span>View Address &amp; Map</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 12. Final Start Printing CTA & Complete Footer */}
+      <section className="bg-emerald-800 text-white py-12 px-6 text-center">
+        <div className="max-w-2xl mx-auto space-y-4">
+          <h2 className="text-2xl sm:text-3xl font-black">Ready to print your files?</h2>
+          <p className="text-sm text-emerald-100">
+            Open the Print Hub, upload your documents, and pick them up freshly printed at the shop counter.
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/print"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-white text-emerald-900 hover:bg-emerald-50 font-black text-sm shadow-md transition"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Start Printing Now</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <footer className="border-t border-[#E2E8F0] bg-white py-10 px-6 text-xs text-[#475569]">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
             <div className="font-bold text-[#111827] text-sm">
-              Shakeel Online Services · SOS Print
+              SOS Print &middot; Shakeel Online Services
             </div>
             <p className="mt-1">
-              Guntur, Andhra Pradesh · Authentic Shop Rates &amp; Windows Spooling
+              Guntur, Andhra Pradesh &middot; Single-Shop Printing System
             </p>
           </div>
-          <div className="flex items-center gap-6 font-medium">
+          <div className="flex flex-wrap justify-center items-center gap-5 font-medium">
             <Link href="/services" className="hover:text-[#111827]">Services</Link>
             <Link href="/rates" className="hover:text-[#111827]">Rates</Link>
             <Link href="/how-to-print" className="hover:text-[#111827]">How to Print</Link>
@@ -437,8 +745,15 @@ export default function HomePage() {
             <Link href="/contact" className="hover:text-[#111827]">Contact</Link>
             <Link href="/privacy" className="hover:text-[#111827]">Privacy</Link>
             <Link href="/terms" className="hover:text-[#111827]">Terms &amp; Refund</Link>
-            <a href='https://wa.me/919581529381' target='_blank' rel='noopener noreferrer' className='text-emerald-700 font-semibold hover:underline'>WhatsApp</a>
-            <Link href='/login' className='text-slate-400 hover:text-slate-700'>Owner Login</Link>
+            <a
+              href="https://wa.me/919581529381"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-emerald-700 font-semibold hover:underline"
+            >
+              WhatsApp
+            </a>
+            <Link href="/login" className="text-slate-400 hover:text-slate-700">Owner Login</Link>
           </div>
         </div>
       </footer>

@@ -31,27 +31,31 @@ export default function RatesPage() {
 
   // Pricing formula matching authoritative engine
   const calculateEstimate = () => {
-    let ratePerSide = 2.0;
+    let printCost = 0.0;
+    const isDuplex = calcSides === "DUPLEX";
+    const sheetsPerCopy = isDuplex ? Math.ceil(calcPages / 2) : calcPages;
+    const totalSheets = sheetsPerCopy * calcCopies;
+    const totalPrintedSides = calcPages * calcCopies;
+
     if (calcPaper === "A4") {
       if (calcService === "BW") {
-        ratePerSide = calcSides === "DUPLEX" ? 1.5 : 2.0;
+        // Authoritative: ₹2 per single printed side, ₹3 per output duplex sheet
+        if (isDuplex) {
+          printCost = totalSheets * 3.0;
+        } else {
+          printCost = totalPrintedSides * 2.0;
+        }
       } else {
-        ratePerSide = calcSides === "DUPLEX" ? 9.0 : 10.0;
+        // A4 Colour: ₹10 per printed side
+        printCost = totalPrintedSides * 10.0;
       }
     } else {
+      // A3 paper handling
       if (calcService === "BW") {
-        ratePerSide = calcSides === "DUPLEX" ? 7.5 : 10.0;
+        printCost = isDuplex ? totalSheets * 15.0 : totalPrintedSides * 10.0;
       } else {
-        ratePerSide = calcSides === "DUPLEX" ? 20.0 : 25.0;
+        printCost = isDuplex ? totalSheets * 40.0 : totalPrintedSides * 25.0;
       }
-    }
-
-    const totalSides = calcPages * calcCopies;
-    let printCost = totalSides * ratePerSide;
-
-    // Volume discount for B&W A4 (>20 sides: 20% discount)
-    if (calcService === "BW" && calcPaper === "A4" && totalSides > 20) {
-      printCost = 20 * ratePerSide + (totalSides - 20) * (ratePerSide * 0.8);
     }
 
     let finishingCost = 0;
@@ -72,7 +76,7 @@ export default function RatesPage() {
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900">
             <ArrowLeft className="w-4 h-4" />
-            <span>Shakeel Online Services</span>
+            <span>SOS Print &middot; Shakeel Online Services</span>
           </Link>
           <div className="flex items-center gap-3">
             <button
