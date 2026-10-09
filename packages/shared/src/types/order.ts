@@ -121,6 +121,19 @@ export interface OrderItem {
   sortOrder?: number;
 }
 
+
+export interface OrderReview {
+  id?: string;
+  orderId: string;
+  orderNumber: string;
+  shopId: string;
+  customerName?: string;
+  rating?: number;
+  comment?: string;
+  skipped?: boolean;
+  submittedAt: string;
+}
+
 export interface OrderTimelineEvent {
   id: string;
   status: OrderStatus;
@@ -140,6 +153,9 @@ export interface Order {
   customerMobile: string;
   customerPhone?: string;
   customerEmail?: string | null;
+  phoneVerified?: boolean;
+  marketingConsent?: boolean;
+  review?: OrderReview | null;
   draftId?: string;
   guestSessionId?: string | null;
   ownerUid?: string | null;

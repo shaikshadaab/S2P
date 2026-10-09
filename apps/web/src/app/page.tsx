@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { SosLogo } from "@/components/common/SosLogo";
 import {
   Printer,
   FileText,
@@ -41,7 +42,7 @@ export default function HomePage() {
       badge: "₹2 / side onwards",
       badgeColor: "bg-emerald-50 text-emerald-800 border-emerald-200",
       icon: FileText,
-      href: "/s/shakeel-online-services"
+      href: "/print"
     },
     {
       id: "photo",
@@ -174,19 +175,7 @@ export default function HomePage() {
       <header className="border-b border-[#E2E8F0] bg-white sticky top-0 z-50 shadow-xs">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center font-black text-xl text-white shadow-xs">
-              <Printer className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <Link href="/" className="flex items-center gap-2">
-                <span className="font-extrabold tracking-tight text-[#111827] text-lg hover:text-emerald-700 transition">
-                  SOS Print
-                </span>
-              </Link>
-              <p className="text-xs text-[#475569] font-medium leading-none mt-0.5">
-                Printing at Shakeel Online Services
-              </p>
-            </div>
+            <SosLogo variant="horizontal" size="md" href="/" />
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <Link

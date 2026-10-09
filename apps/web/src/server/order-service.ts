@@ -37,6 +37,37 @@ export interface CallerIdentity {
   newGuestSessionToken?: string;
 }
 
+
+export function normalizeIndianMobile(raw: string): { valid: boolean; normalized: string; digits: string } {
+  if (!raw) return { valid: false, normalized: '', digits: '' };
+  let cleaned = raw.replace(/[\s\-\(\)\.]/g, '');
+  if (cleaned.startsWith('+91')) {
+    cleaned = cleaned.slice(3);
+  } else if (cleaned.startsWith('0091')) {
+    cleaned = cleaned.slice(4);
+  } else if (cleaned.startsWith('91') && cleaned.length === 12) {
+    cleaned = cleaned.slice(2);
+  } else if (cleaned.startsWith('0') && cleaned.length === 11) {
+    cleaned = cleaned.slice(1);
+  }
+  const valid = /^[6-9]\d{9}$/.test(cleaned);
+  return {
+    valid,
+    normalized: valid ? `+91 ${cleaned.slice(0, 5)} ${cleaned.slice(5)}` : raw.trim(),
+    digits: valid ? cleaned : ''
+  };
+}
+
+export function maskPhoneNumber(phone?: string | null): string {
+  if (!phone) return '—';
+  const digitsOnly = phone.replace(/\D/g, '');
+  if (digitsOnly.length >= 10) {
+    const tenDigits = digitsOnly.slice(-10);
+    return `+91 ${tenDigits.slice(0, 3)}*** **${tenDigits.slice(-2)}`;
+  }
+  return phone;
+}
+
 export const VALID_STAFF_ROLES: readonly UserRole[] = [
   'OWNER',
   'MANAGER',
@@ -614,7 +645,9 @@ export interface CreateAuthoritativeOrderInput {
   customer: {
     name: string;
     mobile: string;
+    phone?: string;
     email?: string | null;
+    marketingConsent?: boolean;
   };
   paymentMethod: PaymentMethod;
 }
@@ -741,13 +774,17 @@ export async function createAuthoritativeOrder(
   }
 
   const customerName = (customer?.name || '').trim();
-  const customerMobile = (customer?.mobile || '').trim();
-  const customerEmail = (customer?.email || '').trim() || null;
-
-  if (!customerName) throw new Error('Customer name is required.');
-  if (!/^[6-9]\d{9}$/.test(customerMobile)) {
-    throw new Error('Please enter a valid 10-digit Indian mobile number.');
+  if (!customerName || customerName.length < 2) {
+    throw new Error('Please enter your name (at least 2 characters).');
   }
+  const phoneCheck = normalizeIndianMobile(customer?.mobile || customer?.phone || '');
+  if (!phoneCheck.valid) {
+    throw new Error('Please enter a valid 10-digit Indian mobile number (e.g. +91 95815 29381).');
+  }
+  const customerMobile = phoneCheck.normalized;
+  const customerPhone = phoneCheck.digits;
+  const customerEmail = (customer?.email || '').trim() || null;
+  const marketingConsent = Boolean(customer?.marketingConsent);
 
   if (paymentMethod !== 'CASH' && paymentMethod !== 'MANUAL_UPI' && (paymentMethod as any) !== 'ONLINE_GATEWAY') {
     throw new Error('Invalid payment method. Only CASH, MANUAL_UPI, and ONLINE_GATEWAY are supported.');
@@ -1055,6 +1092,9 @@ export async function createAuthoritativeOrder(
       customerId: identity.uid || null,
       customerName,
       customerMobile,
+      customerPhone,
+      phoneVerified: false,
+      marketingConsent,
       customerEmail,
       draftId,
       guestSessionId: identity.guestSessionId || draft.guestSessionId || null,

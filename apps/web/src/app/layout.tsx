@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   title: "SOS Print — Printing at Shakeel Online Services, Guntur",
   description: "Official printing portal for Shakeel Online Services, Guntur. Fast, affordable document, photo and ID card printing powered by SOS Print.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg"
+  },
 };
 
 export default function RootLayout({

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { SosLogo } from "@/components/common/SosLogo";
 import {
   Printer,
   FileText,
@@ -37,7 +38,7 @@ export default function ServicesPage() {
       badge: "₹2 / side onwards",
       badgeColor: "bg-emerald-50 text-emerald-800 border-emerald-200",
       icon: FileText,
-      href: "/s/shakeel-online-services",
+      href: "/print",
       actionText: lang === "en" ? "Print Documents" : "दस्तावेज़ प्रिंट करें"
     },
     {
@@ -153,15 +154,7 @@ export default function ServicesPage() {
       <header className="border-b border-[#E2E8F0] bg-white sticky top-0 z-50 shadow-xs">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/" className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center font-black text-xl text-white shadow-xs">
-              <Printer className="w-5 h-5 text-white" />
-            </Link>
-            <div>
-              <Link href="/" className="font-extrabold tracking-tight text-[#111827] text-lg hover:text-emerald-700 transition">
-                SOS Print
-              </Link>
-              <p className="text-xs text-[#475569] font-medium leading-none mt-0.5">Printing at Shakeel Online Services</p>
-            </div>
+            <SosLogo variant="horizontal" size="md" href="/" />
           </div>
           <div className="flex items-center gap-3">
             <Link href="/" className="text-xs font-semibold px-3 py-1.5 rounded-lg text-[#475569] hover:text-[#111827] hover:bg-slate-100 transition">

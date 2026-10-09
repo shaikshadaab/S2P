@@ -1,320 +1,1179 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
+  PRIMARY_PILOT_SHOP,
+  PaperSize,
+  PrintColorMode,
+  PrintDuplexMode,
+  PrintOrientation,
+  PrintScaling,
+  FinishingType,
+  PaperType,
+  parsePageRange,
+  QuoteResponse,
+  ShopPrintOptions,
+  UpiConfiguration
+} from "@s2p/shared";
+import {
+  Upload,
   FileText,
+  ShieldCheck,
+  CheckCircle2,
+  ArrowLeft,
+  Loader2,
+  AlertCircle,
+  Hash,
+  Trash2,
+  QrCode,
+  Banknote,
+  Sparkles,
+  User,
+  Layers,
+  Printer,
+  Compass,
+  Maximize2,
+  ArrowUp,
+  ArrowDown,
+  RefreshCw,
+  CreditCard,
+  Phone,
   Images,
   UserCheck,
   FileBadge,
   ScanLine,
-  CreditCard,
-  Layers,
-  FileType,
   Copy,
-  Maximize2,
-  ArrowRight,
-  Printer,
-  Sparkles,
-  ArrowLeft,
-  CheckCircle2,
-  AlertCircle
+  ChevronRight,
+  ExternalLink,
+  Info
 } from "lucide-react";
+import { SosLogo } from "@/components/common/SosLogo";
 
-export default function PrintHubPage() {
-  const [filter, setFilter] = useState<"ALL" | "DOCUMENT" | "PHOTO" | "UTILITY">("ALL");
+interface UploadedFileRecord {
+  id: string;
+  safeDisplayName: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256: string;
+  pageCount: number;
+  processingStatus: string;
+  sortOrder?: number;
+}
 
-  const services = [
-    {
-      id: "doc",
-      category: "DOCUMENT",
-      title: "Print Documents",
-      subtitle: "दस्तावेज़ प्रिंटिंग",
-      description: "Upload PDF or image files. Choose B&W or Color, single or double-sided duplex, copies and specific page ranges.",
-      badge: "Fastest",
-      badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
-      icon: FileText,
-      href: "/s/shakeel-online-services",
-      status: "READY"
-    },
-    {
-      id: "photo",
-      category: "PHOTO",
-      title: "Photo Prints & Grids",
-      subtitle: "फोटो प्रिंट और ग्रिड",
-      description: "Upload high-res JPG/PNG. Crop, rotate, adjust zoom & brightness. Print 1, 2, 4, 6, 9, or 12 photos per sheet on A4 or 4×6 photo paper.",
-      badge: "High Gloss",
-      badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
-      icon: Images,
-      href: "/photo-studio",
-      status: "READY"
-    },
-    {
-      id: "passport",
-      category: "PHOTO",
-      title: "Passport Photos",
-      subtitle: "पासपोर्ट साइज़ फ़ोटो",
-      description: "Standard physical passport dimensions (35×45mm). Repeated 8 or 16 photos per sheet with clear cutting guidelines.",
-      badge: "₹100 / Set",
-      badgeColor: "bg-purple-50 text-purple-700 border-purple-200",
-      icon: UserCheck,
-      href: "/photo-studio?mode=passport",
-      status: "READY"
-    },
-    {
-      id: "resume",
-      category: "DOCUMENT",
-      title: "Resume Builder",
-      subtitle: "बायोडाटा / रेज़्यूमे",
-      description: "Choose from 6 professionally crafted, ATS-friendly templates. Live preview with multi-page searchable PDF output.",
-      badge: "6 Templates",
-      badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
-      icon: FileBadge,
-      href: "/resume",
-      status: "READY"
-    },
-    {
-      id: "scan",
-      category: "UTILITY",
-      title: "Scan to PDF",
-      subtitle: "कैमरा स्कैन से PDF",
-      description: "Use your phone camera or upload images. Auto-crop, perspective correction, contrast boost and compile into a single PDF.",
-      badge: "Camera Ready",
-      badgeColor: "bg-amber-50 text-amber-700 border-amber-200",
-      icon: ScanLine,
-      href: "/scan",
-      status: "READY"
-    },
-    {
-      id: "idcard",
-      category: "UTILITY",
-      title: "ID Front / Back Copy",
-      subtitle: "पहचान पत्र (ID कार्ड) कॉपी",
-      description: "Upload front and back of Aadhaar, PAN, Voter ID, or Driving License. Automatically formats side-by-side or stacked on A4.",
-      badge: "Standard CR80",
-      badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200",
-      icon: CreditCard,
-      href: "/id-card",
-      status: "READY"
-    },
-    {
-      id: "nup",
-      category: "DOCUMENT",
-      title: "Mini / N-up Printing",
-      subtitle: "2-up / 4-up शीट बचत प्रिंट",
-      description: "Fit 2 or 4 pages per sheet to save paper for study notes, syllabi, or handouts. Billed accurately by physical output sheets.",
-      badge: "Paper Saver",
-      badgeColor: "bg-teal-50 text-teal-700 border-teal-200",
-      icon: Layers,
-      href: "/s/shakeel-online-services?feature=nup",
-      status: "READY"
-    },
-    {
-      id: "office",
-      category: "DOCUMENT",
-      title: "Word / PowerPoint Printing",
-      subtitle: "DOCX / PPTX प्रिंटिंग",
-      description: "Upload .docx or .pptx files. Automatically converted to PDF via OpenXML parser. (Note: Macros rejected; XLSX disabled).",
-      badge: "Auto Convert",
-      badgeColor: "bg-orange-50 text-orange-700 border-orange-200",
-      icon: FileType,
-      href: "/s/shakeel-online-services?feature=office",
-      status: "READY"
-    },
-    {
-      id: "xerox",
-      category: "UTILITY",
-      title: "Xerox & Scan Assistance",
-      subtitle: "ऑपरेटर ज़ेरॉक्स सहायता",
-      description: "Physical originals require counter scanner assistance. Hand your documents to the operator or use phone camera scan fallback.",
-      badge: "Counter Assisted",
-      badgeColor: "bg-slate-100 text-slate-700 border-slate-300",
-      icon: Copy,
-      href: "/how-to-print#xerox",
-      status: "ASSISTED"
-    },
-    {
-      id: "large",
-      category: "DOCUMENT",
-      title: "Large Format (A3)",
-      subtitle: "बड़ा साइज़ A3 प्रिंट",
-      description: "A3 black & white or color documents printed on our wide-tray printer. (A2/A1 formats currently awaiting specialized plotters).",
-      badge: "A3 Supported",
-      badgeColor: "bg-cyan-50 text-cyan-700 border-cyan-200",
-      icon: Maximize2,
-      href: "/rates#large-format",
-      status: "HARDWARE_CAPABLE"
+export default function DirectPrintPage() {
+  const router = useRouter();
+  const shopName = PRIMARY_PILOT_SHOP.name;
+
+  // Dynamic Shop Options & UPI Configuration from Firestore
+  const [shopOptions, setShopOptions] = useState<ShopPrintOptions | null>(null);
+  const [shopUpiConfig, setShopUpiConfig] = useState<UpiConfiguration | null>(null);
+
+  // Print Configuration States
+  const [paperSize, setPaperSize] = useState<PaperSize>("A4");
+  const [colorMode, setColorMode] = useState<PrintColorMode>("BW");
+  const [duplexMode, setDuplexMode] = useState<PrintDuplexMode>("SINGLE");
+  const [copies, setCopies] = useState<number>(1);
+  const [orientation, setOrientation] = useState<PrintOrientation>("AUTO");
+  const [scaling, setScaling] = useState<PrintScaling>("FIT");
+  const [paperType, setPaperType] = useState<PaperType>("NORMAL_75GSM");
+  const [finishing, setFinishing] = useState<FinishingType>("NONE");
+
+  // Page Selection
+  const [pageSelectionType, setPageSelectionType] = useState<"ALL" | "CUSTOM">("ALL");
+  const [customPageRange, setCustomPageRange] = useState<string>("");
+
+  // Customer Contact & Payment (Name, Phone with +91, Unverified Notice, Optional Consent)
+  const [customerName, setCustomerName] = useState<string>("");
+  const [customerPhoneDigits, setCustomerPhoneDigits] = useState<string>("");
+  const [marketingConsent, setMarketingConsent] = useState<boolean>(false);
+  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "MANUAL_UPI" | "ONLINE_GATEWAY">("ONLINE_GATEWAY");
+
+  // File & Draft States
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFileRecord[]>([]);
+  const [activeFileIndex, setActiveFileIndex] = useState<number>(0);
+  const [orderDraftId, setOrderDraftId] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [uploadProgressMsg, setUploadProgressMsg] = useState<string>("");
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Authoritative Pricing Quote
+  const [quote, setQuote] = useState<QuoteResponse | null>(null);
+  const [isCalculatingQuote, setIsCalculatingQuote] = useState<boolean>(false);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+
+  // Order Submission
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState<boolean>(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
+
+  // Language toggle for customer convenience
+  const [lang, setLang] = useState<"EN" | "HI">("EN");
+
+  // Load canonical shop configuration
+  useEffect(() => {
+    let isMounted = true;
+    const loadShopConfig = async () => {
+      try {
+        const res = await fetch(`/api/shops/${PRIMARY_PILOT_SHOP.id}/options`);
+        const data = await res.json();
+        if (res.ok && data.success && isMounted) {
+          if (data.printOptions) setShopOptions(data.printOptions);
+          if (data.upiConfig) {
+            setShopUpiConfig(data.upiConfig);
+            if (!data.upiConfig.isEnabled || !data.upiConfig.upiId) {
+              setPaymentMethod("ONLINE_GATEWAY");
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[DirectPrintPage] Options fetch fallback", err);
+      }
+    };
+    loadShopConfig();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const activeFile = uploadedFiles[activeFileIndex] || uploadedFiles[0] || null;
+  const activePageCount = activeFile ? activeFile.pageCount : 1;
+
+  // Validate custom page range
+  const parsedPagesInfo = useMemo(() => {
+    if (!activeFile) {
+      return { isValid: true, pages: [1], count: 1, error: null };
     }
-  ];
+    if (pageSelectionType === "ALL") {
+      const all = Array.from({ length: activePageCount }, (_, i) => i + 1);
+      return { isValid: true, pages: all, count: all.length, error: null };
+    }
+    try {
+      const pages = parsePageRange(customPageRange || "1", activePageCount);
+      return { isValid: true, pages, count: pages.length, error: null };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Invalid page range";
+      return { isValid: false, pages: [], count: 0, error: msg };
+    }
+  }, [activeFile, activePageCount, pageSelectionType, customPageRange]);
 
-  const filteredServices = filter === "ALL" 
-    ? services 
-    : services.filter(s => s.category === filter);
+  // Output sheet estimation
+  const totalSheetsEstimate = useMemo(() => {
+    if (uploadedFiles.length === 0) return 1;
+    const pages = parsedPagesInfo.count || 1;
+    const sheetsPerCopy = duplexMode === "DOUBLE" ? Math.ceil(pages / 2) : pages;
+    return sheetsPerCopy * copies;
+  }, [uploadedFiles, parsedPagesInfo.count, duplexMode, copies]);
+
+  // Ensure draft session
+  const ensureDraftId = async (): Promise<string> => {
+    if (orderDraftId) return orderDraftId;
+    const res = await fetch("/api/draft", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shopId: PRIMARY_PILOT_SHOP.id })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success || !data.draftId) {
+      throw new Error(data.error || "Failed to initialize order session.");
+    }
+    setOrderDraftId(data.draftId);
+    return data.draftId;
+  };
+
+  // Upload handler
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+
+    if (uploadedFiles.length + fileList.length > 10) {
+      setUploadError(lang === "HI" ? "एक समय में अधिकतम 10 फाइलें अपलोड की जा सकती हैं।" : "Maximum 10 files allowed per order.");
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError(null);
+    setQuote(null);
+
+    const filesArray = Array.from(fileList);
+    const newRecords: UploadedFileRecord[] = [];
+
+    try {
+      const draftId = await ensureDraftId();
+
+      for (let i = 0; i < filesArray.length; i++) {
+        const f = filesArray[i];
+        if (f.size > 50 * 1024 * 1024) {
+          throw new Error(`File ${f.name} exceeds 50MB limit.`);
+        }
+
+        setUploadProgressMsg(lang === "HI" ? `फ़ाइल ${i + 1}/${filesArray.length} अपलोड हो रही है...` : `Uploading file ${i + 1} of ${filesArray.length}: ${f.name}...`);
+
+        const formData = new FormData();
+        formData.append("file", f);
+        formData.append("shopId", PRIMARY_PILOT_SHOP.id);
+        formData.append("draftId", draftId);
+
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success || !data.file) {
+          throw new Error(data.error || `Failed to process ${f.name}`);
+        }
+
+        newRecords.push({
+          id: data.file.id,
+          safeDisplayName: data.file.safeDisplayName || f.name,
+          mimeType: data.file.mimeType,
+          sizeBytes: data.file.sizeBytes,
+          sha256: data.file.sha256,
+          pageCount: data.file.pageCount || 1,
+          processingStatus: data.file.processingStatus,
+          sortOrder: uploadedFiles.length + i
+        });
+      }
+
+      const combined = [...uploadedFiles, ...newRecords];
+      setUploadedFiles(combined);
+      setActiveFileIndex(0);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Upload processing error";
+      setUploadError(msg);
+    } finally {
+      setIsUploading(false);
+      setUploadProgressMsg("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const moveFileOrder = (index: number, direction: "UP" | "DOWN") => {
+    const targetIdx = direction === "UP" ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= uploadedFiles.length) return;
+    const items = [...uploadedFiles];
+    const temp = items[index];
+    items[index] = items[targetIdx];
+    items[targetIdx] = temp;
+    setUploadedFiles(items);
+    setActiveFileIndex(targetIdx);
+  };
+
+  const removeFile = (index: number) => {
+    const next = uploadedFiles.filter((_, i) => i !== index);
+    setUploadedFiles(next);
+    setActiveFileIndex(Math.max(0, index - 1));
+  };
+
+  // Calculate authoritative quote
+  useEffect(() => {
+    if (!orderDraftId || !activeFile || !parsedPagesInfo.isValid) {
+      setQuote(null);
+      return;
+    }
+
+    let isMounted = true;
+    const calculateQuote = async () => {
+      setIsCalculatingQuote(true);
+      setQuoteError(null);
+
+      try {
+        const payload = {
+          shopId: PRIMARY_PILOT_SHOP.id,
+          draftId: orderDraftId,
+          fileId: activeFile.id,
+          pageRange: pageSelectionType === "CUSTOM" ? customPageRange : undefined,
+          paperSize,
+          colorMode,
+          duplexMode,
+          copies,
+          orientation,
+          scaling,
+          paperType,
+          finishing
+        };
+
+        const res = await fetch("/api/quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success || !data.quote) {
+          throw new Error(data.error || "Failed to calculate price quote");
+        }
+
+        if (isMounted) {
+          setQuote(data.quote);
+        }
+      } catch (err: unknown) {
+        if (isMounted) {
+          const msg = err instanceof Error ? err.message : "Price calculation error";
+          setQuoteError(msg);
+        }
+      } finally {
+        if (isMounted) {
+          setIsCalculatingQuote(false);
+        }
+      }
+    };
+
+    const timer = setTimeout(calculateQuote, 250);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [
+    orderDraftId,
+    activeFile?.id,
+    parsedPagesInfo.isValid,
+    paperSize,
+    colorMode,
+    duplexMode,
+    copies,
+    orientation,
+    scaling,
+    paperType,
+    finishing,
+    pageSelectionType,
+    customPageRange
+  ]);
+
+  // Submit Order & Proceed to Payment / Tracking
+  const handlePlaceOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orderDraftId || !activeFile || !quote) return;
+
+    const trimmedName = customerName.trim();
+    if (!trimmedName || trimmedName.length < 2) {
+      setOrderError(lang === "HI" ? "कृपया अपना पूरा नाम दर्ज करें (कम से कम 2 अक्षर)।" : "Please enter your full name (at least 2 characters).");
+      return;
+    }
+
+    const cleanPhone = customerPhoneDigits.replace(/\D/g, "");
+    if (cleanPhone.length !== 10 || !/^[6-9]/.test(cleanPhone)) {
+      setOrderError(lang === "HI" ? "कृपया 10-अंकों का वैध भारतीय मोबाइल नंबर दर्ज करें (शुरुआत 6-9 से)।" : "Please enter a valid 10-digit Indian mobile number (e.g. 95815 29381).");
+      return;
+    }
+
+    setIsSubmittingOrder(true);
+    setOrderError(null);
+
+    try {
+      const orderPayload = {
+        shopId: PRIMARY_PILOT_SHOP.id,
+        draftId: orderDraftId,
+        items: [
+          {
+            fileId: activeFile.id,
+            quoteId: quote.quoteId
+          }
+        ],
+        customer: {
+          name: trimmedName,
+          mobile: `+91 ${cleanPhone.slice(0, 5)} ${cleanPhone.slice(5)}`,
+          phone: cleanPhone,
+          marketingConsent
+        },
+        paymentMethod
+      };
+
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderPayload)
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to place print order.");
+      }
+
+      router.push(`/track/${data.orderId}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Order submission error";
+      setOrderError(msg);
+      setIsSubmittingOrder(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#111827] flex flex-col justify-between selection:bg-emerald-600 selection:text-white">
-      {/* Top Navbar */}
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] selection:bg-emerald-600 selection:text-white pb-16">
+      {/* Header */}
       <header className="border-b border-[#E2E8F0] bg-white sticky top-0 z-40 shadow-xs">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-xs hover:bg-emerald-700 transition"
-            >
-              <Printer className="w-5 h-5" />
-            </Link>
-            <div>
-              <Link href="/" className="font-extrabold tracking-tight text-base hover:text-emerald-700 transition">
-                SOS Print
-              </Link>
-              <p className="text-[11px] text-[#475569] font-medium leading-none mt-0.5">
-                Printing at Shakeel Online Services
-              </p>
-            </div>
+            <SosLogo variant="horizontal" size="sm" href="/" />
           </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg text-[#475569] hover:text-[#111827] hover:bg-slate-100 transition flex items-center gap-1.5"
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setLang(lang === "EN" ? "HI" : "EN")}
+              className="px-2.5 py-1 rounded-lg border border-[#CBD5E1] bg-slate-50 hover:bg-slate-100 text-[11px] font-bold text-[#0F172A] transition cursor-pointer"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Home</span>
-            </Link>
-            <Link
-              href="/rates"
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg text-[#475569] hover:text-[#111827] hover:bg-slate-100 transition"
-            >
-              Rates
-            </Link>
-            <Link
-              href="/s/shakeel-online-services"
-              className="text-xs font-bold px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-xs flex items-center gap-1.5"
-            >
-              <span>Upload Portal</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+              {lang === "EN" ? "हिंदी (Hindi)" : "English"}
+            </button>
+
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>{lang === "HI" ? "दुकान खुली है &bull; प्रिंट चालू" : "Shop Open &bull; Printing Live"}</span>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-6 py-10 w-full flex-1">
-        {/* Header Banner */}
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold mb-3">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Select a Service to Start Printing</span>
+      {/* Main Container */}
+      <main className="max-w-4xl mx-auto px-4 pt-6 space-y-8">
+        {/* Sub-hero Pill Banner */}
+        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E2E8F0] pb-3">
+            <div>
+              <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider block">
+                {lang === "HI" ? "शकील ऑनलाइन सर्विसेज में प्रिंटिंग" : "Printing at Shakeel Online Services"}
+              </span>
+              <h1 className="text-xl sm:text-2xl font-black text-[#0F172A] tracking-tight mt-0.5">
+                {lang === "HI" ? "दस्तावेज़ अपलोड और प्रिंट" : "Upload &amp; Print Documents"}
+              </h1>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold self-start sm:self-auto">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>{lang === "HI" ? "कोई ऐप या अकाउंट ज़रूरी नहीं" : "No app or account required"}</span>
+            </div>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-[#111827] tracking-tight">
-            What would you like to print?
-          </h1>
-          <p className="text-sm text-[#475569] mt-2">
-            Choose your document, photo or utility service below. Every job is verified with authentic shop rates and processed directly by our Windows print spooler.
-          </p>
 
-          {/* Filter Pills */}
-          <div className="flex items-center justify-center gap-2 mt-6 flex-wrap">
-            <button
-              onClick={() => setFilter("ALL")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                filter === "ALL"
-                  ? "bg-emerald-600 text-white shadow-xs"
-                  : "bg-white border border-[#E2E8F0] text-[#475569] hover:bg-slate-50"
-              }`}
-            >
-              All Services (10)
-            </button>
-            <button
-              onClick={() => setFilter("DOCUMENT")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                filter === "DOCUMENT"
-                  ? "bg-emerald-600 text-white shadow-xs"
-                  : "bg-white border border-[#E2E8F0] text-[#475569] hover:bg-slate-50"
-              }`}
-            >
-              Documents & Resumes
-            </button>
-            <button
-              onClick={() => setFilter("PHOTO")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                filter === "PHOTO"
-                  ? "bg-emerald-600 text-white shadow-xs"
-                  : "bg-white border border-[#E2E8F0] text-[#475569] hover:bg-slate-50"
-              }`}
-            >
-              Photos & Passport
-            </button>
-            <button
-              onClick={() => setFilter("UTILITY")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                filter === "UTILITY"
-                  ? "bg-emerald-600 text-white shadow-xs"
-                  : "bg-white border border-[#E2E8F0] text-[#475569] hover:bg-slate-50"
-              }`}
-            >
-              ID Cards & Scanning
-            </button>
+          {/* 4-Step Visual Stepper */}
+          <div className="grid grid-cols-4 gap-2 text-center text-[10px] font-bold text-[#64748B] pt-1">
+            <div className={`p-2 rounded-xl transition ${uploadedFiles.length === 0 ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-slate-50 text-[#0F172A]"}`}>
+              <span className="block text-xs font-mono font-black">1</span>
+              <span>{lang === "HI" ? "फ़ाइल चुनें" : "Upload Files"}</span>
+            </div>
+            <div className={`p-2 rounded-xl transition ${uploadedFiles.length > 0 && !quote ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-slate-50"}`}>
+              <span className="block text-xs font-mono font-black">2</span>
+              <span>{lang === "HI" ? "सेटिंग्स" : "Settings"}</span>
+            </div>
+            <div className={`p-2 rounded-xl transition ${quote ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-slate-50"}`}>
+              <span className="block text-xs font-mono font-black">3</span>
+              <span>{lang === "HI" ? "नाम &amp; फ़ोन" : "Your Details"}</span>
+            </div>
+            <div className="p-2 rounded-xl bg-slate-50">
+              <span className="block text-xs font-mono font-black">4</span>
+              <span>{lang === "HI" ? "पे &amp; कलेक्ट" : "Pay &amp; Track"}</span>
+            </div>
           </div>
         </div>
 
-        {/* Services Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredServices.map((svc) => {
-            const Icon = svc.icon;
-            return (
-              <Link
-                key={svc.id}
-                href={svc.href}
-                className="group bg-white border border-[#E2E8F0] hover:border-emerald-500 rounded-2xl p-5 shadow-xs hover:shadow-md transition flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:scale-105 group-hover:bg-emerald-600 group-hover:text-white transition">
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${svc.badgeColor}`}>
-                      {svc.badge}
-                    </span>
+        {/* PRIMARY UPLOAD ZONE */}
+        <section className="bg-white border border-[#E2E8F0] rounded-2xl p-6 shadow-xs space-y-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-emerald-600" />
+              <h2 className="text-base font-black text-[#0F172A]">
+                {lang === "HI" ? "1. अपनी फ़ाइलें अपलोड करें (PDF / JPG / PNG)" : "1. Upload Your Files (PDF / JPG / PNG)"}
+              </h2>
+            </div>
+            <span className="text-xs text-[#64748B] font-mono">
+              {uploadedFiles.length}/10 {lang === "HI" ? "फ़ाइलें" : "files"}
+            </span>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".pdf,image/jpeg,image/png"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+
+          <div
+            onClick={() => !isUploading && fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-2xl p-8 sm:p-10 text-center transition flex flex-col items-center justify-center gap-3 cursor-pointer ${
+              isUploading
+                ? "border-emerald-300 bg-emerald-50/50 cursor-wait"
+                : "border-[#CBD5E1] hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/20"
+            }`}
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="w-10 h-10 text-emerald-600 animate-spin" />
+                <div className="space-y-1">
+                  <div className="text-sm font-bold text-[#0F172A]">
+                    {uploadProgressMsg || (lang === "HI" ? "फ़ाइलें प्रोसेस हो रही हैं..." : "Processing your files...")}
                   </div>
-                  <h3 className="text-base font-bold text-[#111827] group-hover:text-emerald-700 transition">
-                    {svc.title}
-                  </h3>
-                  <div className="text-[11px] font-medium text-[#475569] mb-2">
-                    {svc.subtitle}
+                  <div className="text-xs text-slate-500">
+                    {lang === "HI" ? "कृपया प्रतीक्षा करें..." : "Extracting page counts securely..."}
                   </div>
-                  <p className="text-xs text-[#475569] leading-relaxed">
-                    {svc.description}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="w-14 h-14 rounded-2xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-xs">
+                  <Upload className="w-7 h-7" />
+                </div>
+                <div className="space-y-1">
+                  <div className="text-base font-black text-[#0F172A]">
+                    {lang === "HI" ? "यहाँ क्लिक करके फ़ाइल चुनें या ड्रैग करें" : "Tap here to choose files or drag &amp; drop"}
+                  </div>
+                  <p className="text-xs text-[#64748B]">
+                    {lang === "HI" ? "PDF, JPG, PNG &bull; अधिकतम 10 फ़ाइलें &bull; 50 MB प्रति फ़ाइल" : "PDF, JPG, PNG &bull; Up to 10 files &bull; 50 MB per file"}
                   </p>
                 </div>
+                <button
+                  type="button"
+                  className="mt-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition"
+                >
+                  {lang === "HI" ? "फ़ाइलें चुनें" : "Browse Files"}
+                </button>
+              </>
+            )}
+          </div>
 
-                <div className="pt-4 mt-4 border-t border-[#E2E8F0] flex items-center justify-between text-xs font-bold text-emerald-700">
-                  <span className="text-[11px] text-[#475569] font-medium">
-                    {svc.status === "READY" ? "Instant Workspace" : "Assisted Service"}
-                  </span>
-                  <div className="flex items-center gap-1 group-hover:translate-x-1 transition">
-                    <span>Open</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </div>
+          {uploadError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-800 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+              <span>{uploadError}</span>
+            </div>
+          )}
+
+          {uploadedFiles.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <div className="text-xs font-bold text-[#0F172A] uppercase tracking-wider">
+                {lang === "HI" ? "अपलोड की गई फ़ाइलें:" : "Uploaded Document List:"}
+              </div>
+              <div className="divide-y divide-[#E2E8F0] border border-[#E2E8F0] rounded-xl overflow-hidden bg-white">
+                {uploadedFiles.map((file, idx) => {
+                  const isActive = idx === activeFileIndex;
+                  return (
+                    <div
+                      key={file.id}
+                      onClick={() => setActiveFileIndex(idx)}
+                      className={`p-3 flex items-center justify-between gap-3 transition cursor-pointer ${
+                        isActive ? "bg-emerald-50/70" : "hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center font-mono shrink-0">
+                          {idx + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-[#0F172A] truncate">
+                            {file.safeDisplayName}
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-mono">
+                            {file.pageCount} {file.pageCount === 1 ? "page" : "pages"} &bull; {(file.sizeBytes / 1024).toFixed(0)} KB
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          title="Move Up"
+                          disabled={idx === 0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            moveFileOrder(idx, "UP");
+                          }}
+                          className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-20 cursor-pointer"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Move Down"
+                          disabled={idx === uploadedFiles.length - 1}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            moveFileOrder(idx, "DOWN");
+                          }}
+                          className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-20 cursor-pointer"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Remove file"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFile(idx);
+                          }}
+                          className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* PRINT SETTINGS & PREVIEW */}
+        {uploadedFiles.length > 0 && (
+          <section className="bg-white border border-[#E2E8F0] rounded-2xl p-6 shadow-xs space-y-6">
+            <div className="flex items-center gap-2 border-b border-[#E2E8F0] pb-3">
+              <Printer className="w-5 h-5 text-emerald-600" />
+              <h2 className="text-base font-black text-[#0F172A]">
+                {lang === "HI" ? "2. प्रिंट सेटिंग्स और आउटपुट" : "2. Print Options &amp; Copies"}
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+              {/* Color Mode */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-[#0F172A] block">
+                  {lang === "HI" ? "रंग (Color Mode)" : "Color Mode"}
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setColorMode("BW")}
+                    className={`py-2 px-3 rounded-xl font-bold border transition cursor-pointer text-center ${
+                      colorMode === "BW"
+                        ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    B&amp;W (₹2/side)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setColorMode("COLOR")}
+                    className={`py-2 px-3 rounded-xl font-bold border transition cursor-pointer text-center ${
+                      colorMode === "COLOR"
+                        ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    Colour (₹10/side)
+                  </button>
                 </div>
-              </Link>
-            );
-          })}
+              </div>
+
+              {/* Duplex / Sides */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-[#0F172A] block">
+                  {lang === "HI" ? "साइड (Single / Double)" : "Sides"}
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDuplexMode("SINGLE")}
+                    className={`py-2 px-3 rounded-xl font-bold border transition cursor-pointer text-center ${
+                      duplexMode === "SINGLE"
+                        ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    Single-sided
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDuplexMode("DOUBLE")}
+                    className={`py-2 px-3 rounded-xl font-bold border transition cursor-pointer text-center ${
+                      duplexMode === "DOUBLE"
+                        ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    Duplex (₹3/sheet)
+                  </button>
+                </div>
+              </div>
+
+              {/* Copies */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-[#0F172A] block">
+                  {lang === "HI" ? "प्रतियां (Copies)" : "Copies"}
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCopies(Math.max(1, copies - 1))}
+                    className="w-9 h-9 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 font-black text-sm flex items-center justify-center cursor-pointer"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={copies}
+                    onChange={(e) => setCopies(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="flex-1 py-1.5 px-3 text-center font-mono font-bold text-sm rounded-xl border border-[#CBD5E1] bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCopies(copies + 1)}
+                    className="w-9 h-9 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 font-black text-sm flex items-center justify-center cursor-pointer"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Paper Size */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-[#0F172A] block">
+                  {lang === "HI" ? "कागज़ का साइज़" : "Paper Size"}
+                </label>
+                <select
+                  value={paperSize}
+                  onChange={(e) => setPaperSize(e.target.value as PaperSize)}
+                  className="w-full py-2 px-3 rounded-xl border border-[#CBD5E1] bg-white font-semibold text-xs"
+                >
+                  <option value="A4">A4 (Standard 210 &times; 297 mm)</option>
+                  <option value="A3">A3 (Large 297 &times; 420 mm)</option>
+                  <option value="LEGAL">Legal</option>
+                </select>
+              </div>
+
+              {/* Orientation */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-[#0F172A] block">
+                  {lang === "HI" ? "दिशा (Orientation)" : "Orientation"}
+                </label>
+                <select
+                  value={orientation}
+                  onChange={(e) => setOrientation(e.target.value as PrintOrientation)}
+                  className="w-full py-2 px-3 rounded-xl border border-[#CBD5E1] bg-white font-semibold text-xs"
+                >
+                  <option value="AUTO">Auto (Recommended)</option>
+                  <option value="PORTRAIT">Portrait (लंबवत)</option>
+                  <option value="LANDSCAPE">Landscape (क्षैतिज)</option>
+                </select>
+              </div>
+
+              {/* Fit / Scale */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-[#0F172A] block">
+                  {lang === "HI" ? "फ़िट मोड (Scaling)" : "Fit &amp; Scale"}
+                </label>
+                <select
+                  value={scaling}
+                  onChange={(e) => setScaling(e.target.value as PrintScaling)}
+                  className="w-full py-2 px-3 rounded-xl border border-[#CBD5E1] bg-white font-semibold text-xs"
+                >
+                  <option value="FIT">Fit to Printable Area</option>
+                  <option value="ACTUAL_SIZE">Actual Size (100%)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Page Range Selection */}
+            <div className="p-3 bg-slate-50 border border-[#E2E8F0] rounded-xl space-y-2 text-xs">
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-1.5 font-bold cursor-pointer">
+                  <input
+                    type="radio"
+                    name="pageRangeType"
+                    checked={pageSelectionType === "ALL"}
+                    onChange={() => setPageSelectionType("ALL")}
+                    className="text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>{lang === "HI" ? "सभी पृष्ठ (All Pages)" : "All Pages"} ({activePageCount})</span>
+                </label>
+                <label className="flex items-center gap-1.5 font-bold cursor-pointer">
+                  <input
+                    type="radio"
+                    name="pageRangeType"
+                    checked={pageSelectionType === "CUSTOM"}
+                    onChange={() => setPageSelectionType("CUSTOM")}
+                    className="text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>{lang === "HI" ? "चुनिंदा पृष्ठ (Custom Range)" : "Custom Page Range"}</span>
+                </label>
+              </div>
+
+              {pageSelectionType === "CUSTOM" && (
+                <div className="pt-1">
+                  <input
+                    type="text"
+                    value={customPageRange}
+                    onChange={(e) => setCustomPageRange(e.target.value)}
+                    placeholder="e.g. 1-3, 5, 7"
+                    className="w-full px-3 py-1.5 rounded-lg border border-[#CBD5E1] bg-white font-mono text-xs"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-0.5 block">
+                    Enter page numbers separated by comma or hyphen (e.g., 1-5, 8). Total selected: {parsedPagesInfo.count} pages.
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Output Sheet Summary & Real-time Frozen Quote */}
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <div className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-emerald-600" />
+                  <span>
+                    {totalSheetsEstimate} {totalSheetsEstimate === 1 ? "Physical Sheet" : "Physical Sheets"} Output
+                  </span>
+                </div>
+                <div className="text-[11px] text-emerald-800">
+                  {parsedPagesInfo.count} pages &times; {copies} {copies === 1 ? "copy" : "copies"} &bull; {duplexMode === "DOUBLE" ? "2-sided duplex" : "1-sided single"}
+                </div>
+              </div>
+
+              <div className="text-right">
+                <div className="text-[10px] text-emerald-800 uppercase font-bold">
+                  {lang === "HI" ? "सर्वर प्रमाणित मूल्य" : "Server Verified Quote"}
+                </div>
+                <div className="text-2xl font-black text-emerald-700 font-mono">
+                  {isCalculatingQuote ? (
+                    <Loader2 className="w-6 h-6 animate-spin inline-block text-emerald-600" />
+                  ) : quote ? (
+                    `₹${quote.totalRupees.toFixed(2)}`
+                  ) : (
+                    "—"
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {quoteError && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-800 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{quoteError}</span>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* CUSTOMER CONTACT & PAYMENT (Final Order Placement) */}
+        {uploadedFiles.length > 0 && quote && (
+          <form onSubmit={handlePlaceOrder} className="bg-white border border-[#E2E8F0] rounded-2xl p-6 shadow-xs space-y-6">
+            <div className="flex items-center gap-2 border-b border-[#E2E8F0] pb-3">
+              <User className="w-5 h-5 text-emerald-600" />
+              <div>
+                <h2 className="text-base font-black text-[#0F172A]">
+                  {lang === "HI" ? "3. ग्राहक विवरण और भुगतान" : "3. Customer Details &amp; Payment"}
+                </h2>
+                <p className="text-xs text-[#64748B]">
+                  Used to identify your order at the counter and contact you about printing.
+                </p>
+              </div>
+            </div>
+
+            {orderError && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-800 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{orderError}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              {/* Customer Name */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-[#0F172A] block">
+                  {lang === "HI" ? "आपका पूरा नाम (Full Name) *" : "Full Name *"}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="e.g. Rajesh Kumar"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                />
+                <span className="text-[10px] text-slate-500 block">
+                  {lang === "HI" ? "काउंटर पर ऑर्डर की पहचान के लिए उपयोग होगा" : "Used to identify your order at the counter"}
+                </span>
+              </div>
+
+              {/* Mobile Number with Country Code */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-[#0F172A] block">
+                  {lang === "HI" ? "मोबाइल नंबर (Mobile Number) *" : "Mobile Number *"}
+                </label>
+                <div className="flex items-center">
+                  <span className="px-3 py-2.5 bg-slate-100 border border-r-0 border-[#CBD5E1] rounded-l-xl font-mono font-bold text-slate-700 text-xs">
+                    +91
+                  </span>
+                  <input
+                    type="tel"
+                    required
+                    maxLength={10}
+                    value={customerPhoneDigits}
+                    onChange={(e) => setCustomerPhoneDigits(e.target.value.replace(/\D/g, ""))}
+                    placeholder="95815 29381"
+                    className="w-full px-3 py-2.5 rounded-r-xl border border-[#CBD5E1] bg-white text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  />
+                </div>
+                <span className="text-[10px] text-slate-500 block">
+                  {lang === "HI" ? "प्रिंट तैयार होने पर संपर्क के लिए। ओटीपी की आवश्यकता नहीं।" : "Unverified mobile number. No account needed. Kept private."}
+                </span>
+              </div>
+            </div>
+
+            {/* Optional Unchecked WhatsApp Consent */}
+            <div className="flex items-start gap-2.5 p-3 bg-slate-50 border border-[#E2E8F0] rounded-xl text-xs">
+              <input
+                type="checkbox"
+                id="marketingConsent"
+                checked={marketingConsent}
+                onChange={(e) => setMarketingConsent(e.target.checked)}
+                className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 mt-0.5"
+              />
+              <label htmlFor="marketingConsent" className="text-slate-600 cursor-pointer text-[11px] leading-relaxed">
+                {lang === "HI"
+                  ? "ऑर्डर तैयार होने का नोटिफिकेशन व्हाट्सएप पर प्राप्त करें (वैकल्पिक / Optional)।"
+                  : "Receive order completion notification and pickup alerts via WhatsApp (Optional, unchecked by default)."}
+              </label>
+            </div>
+
+            {/* Payment Method Selector */}
+            <div className="space-y-2 text-xs">
+              <label className="font-bold text-[#0F172A] block">
+                {lang === "HI" ? "भुगतान का माध्यम (Payment Method)" : "Choose Payment Method"}
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("ONLINE_GATEWAY")}
+                  className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                    paymentMethod === "ONLINE_GATEWAY"
+                      ? "bg-emerald-50 border-emerald-500 text-emerald-900 shadow-xs"
+                      : "bg-white border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <CreditCard className="w-4 h-4 text-emerald-600" />
+                    <span>Pay Online</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">UPI, Cards, NetBanking (Razorpay)</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("CASH")}
+                  className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                    paymentMethod === "CASH"
+                      ? "bg-emerald-50 border-emerald-500 text-emerald-900 shadow-xs"
+                      : "bg-white border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <Banknote className="w-4 h-4 text-emerald-600" />
+                    <span>Pay Cash</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">Pay at shop counter upon pickup</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("MANUAL_UPI")}
+                  className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                    paymentMethod === "MANUAL_UPI"
+                      ? "bg-emerald-50 border-emerald-500 text-emerald-900 shadow-xs"
+                      : "bg-white border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <QrCode className="w-4 h-4 text-emerald-600" />
+                    <span>Shop UPI QR</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">Scan shop counter QR code</div>
+                </button>
+              </div>
+            </div>
+
+            {/* Place Order CTA Button */}
+            <button
+              type="submit"
+              disabled={isSubmittingOrder || !quote}
+              className="w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm tracking-wide shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            >
+              {isSubmittingOrder ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Printer className="w-5 h-5" />
+              )}
+              <span>
+                {lang === "HI"
+                  ? `ऑर्डर सबमिट करें &bull; ₹${quote.totalRupees.toFixed(2)}`
+                  : `Submit Order &bull; ₹${quote.totalRupees.toFixed(2)}`}
+              </span>
+            </button>
+          </form>
+        )}
+
+        {/* ============================================================ */}
+        {/* SECTION 4: ADDITIONAL TOOLS — COMPACT SECONDARY POSITION     */}
+        {/* “Need something else? Try these tools” (Hindi: “ये भी try करें”) */}
+        {/* ============================================================ */}
+        <section className="bg-white border border-[#E2E8F0] rounded-2xl p-6 shadow-xs space-y-4">
+          <div className="border-b border-[#E2E8F0] pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-600" />
+                <h2 className="text-sm font-bold text-[#0F172A]">
+                  {lang === "HI" ? "ये भी try करें — अन्य सेवाएं" : "Need something else? Try these tools"}
+                </h2>
+              </div>
+              <span className="text-[11px] font-bold text-emerald-700 font-mono">
+                Shakeel Online Services
+              </span>
+            </div>
+            <p className="text-xs text-[#64748B] mt-0.5">
+              {lang === "HI"
+                ? "पासपोर्ट फ़ोटो, रेज़्यूमे मेकर, आईडी कार्ड और अन्य विशेष प्रिंटिंग टूल्स:"
+                : "Specialized document templates and counter assistance tools configured for this shop:"}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {/* 1. Passport Photos */}
+            <Link
+              href="/photo-studio?mode=passport"
+              className="p-3.5 rounded-xl border border-[#E2E8F0] hover:border-emerald-300 hover:bg-emerald-50/30 transition flex flex-col justify-between space-y-2 group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center shrink-0">
+                  <UserCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-[#0F172A] group-hover:text-emerald-700 transition">
+                    Passport Photos
+                  </div>
+                  <div className="text-[10px] text-purple-700 font-bold">₹100 / Set (8 or 16)</div>
+                </div>
+              </div>
+              <p className="text-[11px] text-[#64748B] leading-tight">
+                35&times;45mm standard with cutting guides on photo paper.
+              </p>
+            </Link>
+
+            {/* 2. Resume Maker */}
+            <Link
+              href="/resume"
+              className="p-3.5 rounded-xl border border-[#E2E8F0] hover:border-emerald-300 hover:bg-emerald-50/30 transition flex flex-col justify-between space-y-2 group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                  <FileBadge className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-[#0F172A] group-hover:text-emerald-700 transition">
+                    Resume Maker
+                  </div>
+                  <div className="text-[10px] text-emerald-700 font-bold">6 ATS Templates</div>
+                </div>
+              </div>
+              <p className="text-[11px] text-[#64748B] leading-tight">
+                Professional multi-page CV with instant PDF preview.
+              </p>
+            </Link>
+
+            {/* 3. Photo Prints & Grids */}
+            <Link
+              href="/photo-studio"
+              className="p-3.5 rounded-xl border border-[#E2E8F0] hover:border-emerald-300 hover:bg-emerald-50/30 transition flex flex-col justify-between space-y-2 group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+                  <Images className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-[#0F172A] group-hover:text-emerald-700 transition">
+                    Photo Prints &amp; Grids
+                  </div>
+                  <div className="text-[10px] text-blue-700 font-bold">Glossy 4&times;6 / A4</div>
+                </div>
+              </div>
+              <p className="text-[11px] text-[#64748B] leading-tight">
+                High-resolution glossy photos, collage grids &amp; framing.
+              </p>
+            </Link>
+
+            {/* 4. Scan to PDF */}
+            <Link
+              href="/scan"
+              className="p-3.5 rounded-xl border border-[#E2E8F0] hover:border-emerald-300 hover:bg-emerald-50/30 transition flex flex-col justify-between space-y-2 group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+                  <ScanLine className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-[#0F172A] group-hover:text-emerald-700 transition">
+                    Scan to PDF
+                  </div>
+                  <div className="text-[10px] text-amber-700 font-bold">Camera Auto-Crop</div>
+                </div>
+              </div>
+              <p className="text-[11px] text-[#64748B] leading-tight">
+                Turn camera pictures of paper into clean black &amp; white PDF.
+              </p>
+            </Link>
+
+            {/* 5. ID Front & Back Copy */}
+            <Link
+              href="/id-card"
+              className="p-3.5 rounded-xl border border-[#E2E8F0] hover:border-emerald-300 hover:bg-emerald-50/30 transition flex flex-col justify-between space-y-2 group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-[#0F172A] group-hover:text-emerald-700 transition">
+                    ID Front/Back Copy
+                  </div>
+                  <div className="text-[10px] text-indigo-700 font-bold">Aadhaar &bull; PAN</div>
+                </div>
+              </div>
+              <p className="text-[11px] text-[#64748B] leading-tight">
+                Both sides of your ID card arranged on a single A4 sheet.
+              </p>
+            </Link>
+
+            {/* 6. Staff Xerox & Large Formats */}
+            <div className="p-3.5 rounded-xl border border-[#E2E8F0] bg-slate-50 flex flex-col justify-between space-y-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-slate-200 text-slate-700 flex items-center justify-center shrink-0">
+                  <Copy className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-[#0F172A]">
+                    Counter Xerox &amp; A3
+                  </div>
+                  <div className="text-[10px] text-slate-600 font-bold">Staff Assisted</div>
+                </div>
+              </div>
+              <p className="text-[11px] text-[#64748B] leading-tight">
+                High-speed physical photocopying &amp; A3 posters at shop counter.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* WhatsApp Support Help Desk */}
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-emerald-950 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <Phone className="w-4 h-4 text-emerald-700 shrink-0" />
+            <span>
+              <strong>Need assistance with your print?</strong> Contact Shakeel Online Services directly:
+            </span>
+          </div>
+          <a
+            href="https://wa.me/919581529381?text=Hello%20Shakeel%20Online%20Services%2C%20I%20have%20a%20question%20about%20printing%3A"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-xs shrink-0"
+          >
+            <span>WhatsApp +91 95815 29381</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-[#E2E8F0] bg-white py-6 px-6 text-center text-xs text-[#475569]">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p>© 2026 Shakeel Online Services · SOS Print. All rights reserved.</p>
-          <div className="flex items-center gap-4 text-xs font-medium">
-            <Link href="/rates" className="hover:text-[#111827]">Rates</Link>
-            <Link href="/how-to-print" className="hover:text-[#111827]">How to Print</Link>
-            <Link href="/about" className="hover:text-[#111827]">About</Link>
-            <Link href="/privacy" className="hover:text-[#111827]">Privacy</Link>
-            <Link href="/terms" className="hover:text-[#111827]">Terms & Refund</Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

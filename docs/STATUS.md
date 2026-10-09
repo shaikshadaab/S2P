@@ -132,3 +132,77 @@
    - [Firebase Console](https://console.firebase.google.com/project/shakeel-online-services-951ec/storage) में जाएं।
    - "Get started" पर क्लिक करके डिफ़ॉल्ट स्टोरेज बकेट सक्रिय करें।
    - `storage.rules` में `allow read, write: if false;` प्रकाशित (Publish) रखें ताकि सीधे अनाधिकृत एक्सेस बंद रहे।
+
+---
+
+## 6. Five-Day Reliability Observation Plan & Daily Operator Checklist
+
+> [!IMPORTANT]
+> The five-day reliability observation plan must be conducted across 5 real operating shop days. Day 1 through Day 5 cannot be claimed as passed in advance. Each day verifies specific physical and cloud boundaries under live operational conditions.
+
+### Daily Verification Schedule
+
+| Day | Focus Area | Operational Objective | Verification Criteria | Status |
+|:---:|:---|:---|:---|:---:|
+| **Day 1** | Baseline Document Journey | QR Scan &rarr; Upload &rarr; Frozen Quote &rarr; Payment &rarr; Physical Print Spool | Single/Duplex A4 sheets match page counts; ₹2 B&W / ₹3 Duplex / ₹10 Color exact rates; no cut-off margins | **DAY 1 READY / PENDING_USER_RUN** |
+| **Day 2** | Multi-File Queues & Concurrency | Up to 10 files per order, multiple customers queuing simultaneously | Sequential print jobs; no cross-file interleaving; page count integrity; quote frozen against rate changes | **SCHEDULED** |
+| **Day 3** | Outage & Network Recovery | Disconnect PC Wi-Fi, reboot PC while jobs pending, printer offline | Windows Agent auto-reconnects within 90s; atomic leases resume safely; ambiguous submissions flagged for review | **SCHEDULED** |
+| **Day 4** | Specialized Photo & Card Artifacts | Passport photos (35x45mm), ID card front/back, 6 Resume templates | Cutting guides align with physical ruler; Aadhaar front/back cleanly positioned on 1 sheet; 24h file purge works | **SCHEDULED** |
+| **Day 5** | Audit, Reconciliation & Diagnostics | End-of-week ledger, counter cash reconciliation, review ratings | Owner Dashboard /diagnostics healthy; reviews feed private; zero leaked PII in URLs or public logs | **SCHEDULED** |
+
+---
+
+### Daily Operator Checklist (दुकान संचालक के लिए दैनिक जाँच सूची - Simple Hindi)
+
+1. **सुबह दुकान खोलने पर (Morning Setup):**
+   - Windows PC चालू करें और लॉगिन करें।
+   - प्रिंटर ऑन करें, A4 कागज़ की ट्रे भरें और USB केबल चेक करें।
+   - टास्कबार में **SOS Print Windows Agent** का हरा आइकन चालू होना चाहिए।
+   - Dashboard &rarr; Printers में जाकर **"Print Test Page"** निकालें।
+
+2. **दिन के दौरान (During Business Hours):**
+   - काउंटर पर लगा **QR पोस्टर** साफ़ और स्कैन करने योग्य होना चाहिए।
+   - ग्राहक जब QR स्कैन करेगा, सीधे **`/print`** पेज खुलेगा (कोई ऐप या अकाउंट नहीं चाहिए)।
+   - ग्राहक का नाम और मोबाइल नंबर अपने आप ऑर्डर के साथ रिकॉर्ड होगा।
+   - कैश मिलने पर Dashboard Orders में **"Confirm Cash"** बटन दबाएँ।
+   - प्रिंट ग्राहक को देने पर **"Mark Collected"** दबाएँ (ग्राहक के फ़ोन पर 1-5 स्टार रेटिंग का विकल्प आएगा)।
+
+3. **शाम को दुकान बंद करने पर (Evening Close):**
+   - Dashboard &rarr; Reports में दिन की कुल बिक्री (Cash + UPI) का मिलान करें।
+   - Dashboard &rarr; Reviews में ग्राहकों का फ़ीडबैक देखें।
+   - किसी भी पेंडिंग जॉब को पूरा करें या क्लियर करें।
+
+---
+
+## 7. Newly Implemented Features & Verification Summary
+
+1. **Dedicated SOS Print Vector Logo:**
+   - Vector logo assets: `apps/web/public/logo.svg`, `apps/web/public/icon.svg`, `apps/web/public/logo-mono.svg`.
+   - Sharp React component `SosLogo.tsx` with scan-corner motif, folded paper sheet, emerald accent (`#059669`), and charcoal typography.
+   - Applied consistently across Customer Header, Owner Dashboard Sidebar, Direct `/print` page, and Printable QR Standee.
+
+2. **QR-First Direct Document Printing (`/print`):**
+   - Shop poster QR navigates directly to `/print`.
+   - Large drag-and-drop file upload zone for PDF, JPG, PNG (up to 10 files, 50MB per file).
+   - Per-file configuration: copies, B&W (₹2/side) vs Colour (₹10/side), Single vs Duplex (₹3/sheet), orientation, fit/scale, page range.
+   - Server-calculated frozen quote (`/api/quote`).
+   - Customer details form: Full Name + 10-digit Mobile Number with `+91` country code. Clear helper: *“Used to identify your order and contact you about printing.”*
+   - Unverified mobile status explicitly noted (never labeled OTP-verified; customer credentials scoped).
+   - Optional unchecked WhatsApp notification consent.
+   - Secondary tools section: *“Need something else? Try these tools”* (*“ये भी try करें”*) linking compactly to Passport Photos, Resume Maker, Photo Grids, Scan to PDF, ID Copy, and Xerox.
+
+3. **Customer Phone Privacy & Masking:**
+   - Server-side normalization in `order-service.ts`: handles `+91`, `91`, leading `0`, spaces, and dashes.
+   - Masked in Dashboard order list table as `+91 958*** **81`.
+   - Revealed in full only inside authorized staff order detail panel with one-click `tel:` calling and direct WhatsApp messaging.
+
+4. **Post-Collection Customer Review Flow:**
+   - Backend endpoint: `POST /api/orders/[orderId]/review` (validates order status `COMPLETED`/`READY`, single-submission protection, 1-5 star integer rating, optional 500-char comment, or skip).
+   - Customer screen `/track/[orderId]`: Shows interactive review card once prints are ready/collected with 1-5 stars, comment box, Submit and Skip buttons.
+   - Owner screen `/dashboard/reviews`: Displays average rating, total reviews, 1-5 star distribution bars, and private feedback feed.
+   - Optional Google Business Review link: configured in `/dashboard/settings` and shown consistently regardless of rating without bias or rewards.
+
+5. **Inbuilt Printable QR Poster (`/dashboard/standee`):**
+   - High-contrast scannable QR pointing to `https://sos-print.vercel.app/print`.
+   - Live visual preview with SOS Print logo, 5-step bilingual instructions, and WhatsApp contact.
+   - Download buttons: QR PNG, QR SVG, Print A4 Wall Poster (PDF), Print A5 Counter Standee (PDF), and WhatsApp Share Link.

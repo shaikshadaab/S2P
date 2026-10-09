@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { SosLogo } from "@/components/common/SosLogo";
 import {
   PRIMARY_PILOT_SHOP,
   Order,
@@ -23,7 +24,10 @@ import {
   CheckCircle,
   AlertTriangle,
   ArrowLeft,
-  CreditCard
+  CreditCard,
+  Star,
+  Send,
+  ThumbsUp
 } from "lucide-react";
 
 interface UpiQrData {
@@ -50,49 +54,57 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
   // Razorpay Online State
   const [isPayingRazorpay, setIsPayingRazorpay] = useState<boolean>(false);
 
-  useEffect(() => {
-    let isMounted = true;
+  // Review states
+  const [selectedRating, setSelectedRating] = useState<number>(0);
+  const [hoverRating, setHoverRating] = useState<number>(0);
+  const [reviewComment, setReviewComment] = useState<string>("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState<boolean>(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState<boolean>(false);
+  const [reviewSkipped, setReviewSkipped] = useState<boolean>(false);
+  const [reviewMsg, setReviewMsg] = useState<string | null>(null);
+  const [googleReviewUrl, setGoogleReviewUrl] = useState<string>("");
 
-    const fetchOrder = async () => {
-      try {
-        const res = await fetch(`/api/orders?orderId=${params.orderId}`);
-        const data = await res.json();
-        if (!res.ok || !data.success || !data.order) {
-          throw new Error(data.error || "Order not found");
-        }
-        if (isMounted) {
-          setOrder(data.order);
-          setIsLoading(false);
-
-          // If manual UPI and not yet paid, fetch deterministic UPI QR
-          if (data.order.paymentMethod === "MANUAL_UPI" && data.order.paymentStatus !== "PAID" && !upiQrData) {
-            try {
-              const qrRes = await fetch(`/api/orders/${params.orderId}/upi-qr`);
-              const qrData = await qrRes.json();
-              if (qrRes.ok && qrData.success) {
-                setUpiQrData(qrData);
-              }
-            } catch {
-              // Ignore failure
-            }
-          }
-        }
-      } catch (err: unknown) {
-        if (isMounted) {
-          const msg = err instanceof Error ? err.message : "Failed to load order";
-          setError(msg);
-          setIsLoading(false);
-        }
+  const fetchOrder = async () => {
+    try {
+      const res = await fetch(`/api/orders?orderId=${params.orderId}`);
+      const data = await res.json();
+      if (!res.ok || !data.success || !data.order) {
+        throw new Error(data.error || "Order not found");
       }
-    };
+      setOrder(data.order);
+      setIsLoading(false);
 
+      if (data.order.status === 'COMPLETED' || data.order.status === 'READY') {
+        fetch(`/api/shops/${data.order.shopId || PRIMARY_PILOT_SHOP.id}/settings`)
+          .then(r => r.json())
+          .then(s => {
+            if (s.success && s.settings?.googleReviewUrl) {
+              setGoogleReviewUrl(s.settings.googleReviewUrl);
+            }
+          })
+          .catch(() => {});
+      }
+
+      if (data.order.paymentMethod === "MANUAL_UPI" && data.order.paymentStatus !== "PAID" && !upiQrData) {
+        try {
+          const qrRes = await fetch(`/api/orders/${params.orderId}/upi-qr`);
+          const qrData = await qrRes.json();
+          if (qrRes.ok && qrData.success) {
+            setUpiQrData(qrData);
+          }
+        } catch {}
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to load order";
+      setError(msg);
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchOrder();
     const interval = setInterval(fetchOrder, 4000);
-
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [params.orderId, upiQrData]);
 
   const handleClaimPaid = async () => {
@@ -125,6 +137,55 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
       setClaimError(msg);
     } finally {
       setIsClaimingPaid(false);
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (selectedRating === 0) return;
+    setIsSubmittingReview(true);
+    setReviewMsg(null);
+    try {
+      const res = await fetch(`/api/orders/${params.orderId}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rating: selectedRating,
+          comment: reviewComment.trim()
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to submit review");
+      }
+      setReviewSubmitted(true);
+      setReviewMsg("Thank you! Your feedback helps us serve you better.");
+      fetchOrder();
+    } catch (err: unknown) {
+      setReviewMsg(err instanceof Error ? err.message : "Error submitting review");
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  const handleSkipReview = async () => {
+    setIsSubmittingReview(true);
+    setReviewMsg(null);
+    try {
+      const res = await fetch(`/api/orders/${params.orderId}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skipped: true })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to skip review");
+      }
+      setReviewSkipped(true);
+      fetchOrder();
+    } catch (err: unknown) {
+      setReviewMsg(err instanceof Error ? err.message : "Error skipping review");
+    } finally {
+      setIsSubmittingReview(false);
     }
   };
 
@@ -525,6 +586,170 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
             ))}
           </div>
         </div>
+
+                {/* Post-Collection Review Section (Shown when print is READY or COMPLETED) */}
+        {(order.status === "COMPLETED" || order.status === "READY") && (
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  How was your printing experience?
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-400">Optional</span>
+            </div>
+
+            {/* If review already recorded on order or submitted in this session */}
+            {(order.review || reviewSubmitted || reviewSkipped) ? (
+              <div className="space-y-3">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center space-y-1">
+                  <div className="flex items-center justify-center gap-1.5 text-emerald-800 font-bold text-xs">
+                    <CheckCircle className="w-4 h-4 text-emerald-600" />
+                    <span>Thank you for printing with Shakeel Online Services!</span>
+                  </div>
+                  {order.review?.rating ? (
+                    <div className="flex items-center justify-center gap-1 pt-1">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          className={`w-3.5 h-3.5 ${
+                            s <= (order.review?.rating || 0)
+                              ? "fill-amber-400 text-amber-500"
+                              : "fill-slate-200 text-slate-300"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-emerald-700">We appreciate your visit.</p>
+                  )}
+                </div>
+
+                {/* Optional Google Review button if configured by owner */}
+                {googleReviewUrl && (
+                  <div className="pt-2 text-center space-y-2 border-t border-slate-100">
+                    <p className="text-[11px] text-slate-500">
+                      Have a Google account? You can also review us on Google Maps:
+                    </p>
+                    <a
+                      href={googleReviewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition"
+                    >
+                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                      <span>Review us on Google</span>
+                      <ExternalLink className="w-3 h-3 text-slate-400" />
+                    </a>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Review form */
+              <div className="space-y-3">
+                <p className="text-xs text-slate-600">
+                  Please rate your experience with your print order at our counter. Reviews are voluntary and never required to collect prints.
+                </p>
+
+                {/* 1-5 Star Selection */}
+                <div className="flex items-center justify-center gap-2 py-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setSelectedRating(star)}
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      className="p-1 text-slate-300 hover:text-amber-400 transition transform hover:scale-110 cursor-pointer"
+                      title={`${star} Star${star > 1 ? "s" : ""}`}
+                    >
+                      <Star
+                        className={`w-7 h-7 ${
+                          (hoverRating || selectedRating) >= star
+                            ? "fill-amber-400 text-amber-500"
+                            : "fill-slate-100 text-slate-300"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+
+                {selectedRating > 0 && (
+                  <div className="text-center text-[11px] font-bold text-amber-700">
+                    {selectedRating === 5 && "Excellent (5 Stars)"}
+                    {selectedRating === 4 && "Very Good (4 Stars)"}
+                    {selectedRating === 3 && "Good (3 Stars)"}
+                    {selectedRating === 2 && "Fair (2 Stars)"}
+                    {selectedRating === 1 && "Needs Improvement (1 Star)"}
+                  </div>
+                )}
+
+                {/* Optional Comment */}
+                <div>
+                  <textarea
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    maxLength={500}
+                    placeholder="Tell us what went well or what we can improve (optional)..."
+                    rows={2}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 resize-none"
+                  />
+                  <div className="text-[10px] text-slate-400 text-right">
+                    {reviewComment.length}/500
+                  </div>
+                </div>
+
+                {reviewMsg && (
+                  <div className="text-xs text-amber-700 bg-amber-50 p-2 rounded-lg text-center font-medium">
+                    {reviewMsg}
+                  </div>
+                )}
+
+                {/* Action Buttons: Submit & Skip */}
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    disabled={isSubmittingReview || selectedRating === 0}
+                    onClick={handleSubmitReview}
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 disabled:opacity-40 cursor-pointer"
+                  >
+                    {isSubmittingReview ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Send className="w-3.5 h-3.5" />
+                    )}
+                    <span>Submit Review</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isSubmittingReview}
+                    onClick={handleSkipReview}
+                    className="py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs transition cursor-pointer"
+                  >
+                    Skip
+                  </button>
+                </div>
+
+                {/* Optional Google Review button if configured */}
+                {googleReviewUrl && (
+                  <div className="pt-2 text-center border-t border-slate-100">
+                    <a
+                      href={googleReviewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-bold text-slate-600 hover:text-emerald-700 underline inline-flex items-center gap-1"
+                    >
+                      <span>Also review on Google Maps</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Zero-Trace Privacy Box */}
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-start gap-2.5 text-xs text-emerald-900">

@@ -29,9 +29,11 @@ import {
   BarChart3,
   Users,
   Activity,
+  Star,
   LayoutGrid
 } from "lucide-react";
 import { useAuth } from "../../lib/firebase/auth-context";
+import { SosLogo } from "@/components/common/SosLogo";
 
 const NAV_ITEMS = [
   { label: "Orders", href: "/dashboard", icon: ShoppingBag, status: "Live Feed" },
@@ -41,9 +43,11 @@ const NAV_ITEMS = [
   { label: "Services Catalog", href: "/dashboard/services", icon: LayoutGrid, status: "Config" },
   { label: "Pricing & Rates", href: "/dashboard/pricing", icon: Tag, status: "Active Rates" },
   { label: "Reports & KPIs", href: "/dashboard/reports", icon: BarChart3, status: "Analytics" },
+  { label: "Reviews", href: "/dashboard/reviews", icon: Star, status: "Feedback" },
   { label: "Staff & RBAC", href: "/dashboard/staff", icon: Users, status: "Authorized" },
-  { label: "Diagnostics", href: "/dashboard/diagnostics", icon: Activity, status: "Health" },
-  { label: "QR Standee", href: "/dashboard/standee", icon: QrCode, status: "Counter QR" },
+  { label: "Diagnostics", href: "/dashboard/diagnostics", icon: Activity,
+  Star, status: "Health" },
+  { label: "QR & Poster", href: "/dashboard/standee", icon: QrCode, status: "Printable QR" },
   { label: "Settings", href: "/dashboard/settings", icon: Settings, status: "Shop Info" },
 ];
 
@@ -171,18 +175,8 @@ export default function DashboardLayout({
         <div>
           {/* Brand & Shop Header */}
           <div className="p-5 border-b border-[#E2E8F0]">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center font-black text-xl text-white tracking-wider shadow-xs">
-                {BRAND_NAME}
-              </div>
-              <div>
-                <div className="text-[11px] font-bold text-emerald-700 tracking-wider uppercase leading-none">
-                  {BRAND_FULL_NAME}
-                </div>
-                <div className="text-sm font-extrabold text-[#111827] leading-tight mt-0.5">
-                  {PRIMARY_PILOT_SHOP.name}
-                </div>
-              </div>
+            <div className="flex items-center gap-2">
+              <SosLogo variant="horizontal" size="md" href="/dashboard" />
             </div>
             <div className="mt-3 flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-[10px] text-emerald-800">
               <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
