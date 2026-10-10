@@ -458,9 +458,77 @@ export async function getShopDevices(
       windowsVersion: data.windowsVersion,
       agentVersion: data.agentVersion,
       status: computedStatus,
+      agentUploadUrl: data.agentUploadUrl || null,
       pairedAt: data.pairedAt,
       lastHeartbeatAt: data.lastHeartbeatAt,
       createdAt: data.createdAt
     };
   });
+}
+
+
+/**
+ * Update and optionally verify a device's direct HTTPS upload URL.
+ */
+export async function updateDeviceUploadUrl(
+  db: Firestore,
+  deviceId: string,
+  shopId: string,
+  agentUploadUrl: string,
+  testPing: boolean = false
+) {
+  const deviceDoc = await db.collection('devices').doc(deviceId).get();
+  if (!deviceDoc.exists) {
+    throw new Error('DEVICE_NOT_FOUND: Device does not exist.');
+  }
+
+  const device = deviceDoc.data() as Device;
+  if (device.shopId !== shopId) {
+    throw new Error('FORBIDDEN: Device does not belong to specified shop.');
+  }
+
+  let normalizedUrl = agentUploadUrl.trim();
+  if (normalizedUrl.endsWith('/')) {
+    normalizedUrl = normalizedUrl.slice(0, -1);
+  }
+
+  if (normalizedUrl) {
+    if (!normalizedUrl.startsWith('https://') && !normalizedUrl.startsWith('http://localhost') && !normalizedUrl.startsWith('http://127.0.0.1')) {
+      throw new Error('INVALID_URL: Upload URL must use HTTPS for secure mobile customer file transfers (or localhost for testing).');
+    }
+  }
+
+  let healthVerified = false;
+  if (testPing && normalizedUrl) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(`${normalizedUrl}/api/agent/health`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const body = await res.json().catch(() => ({}));
+        if (body.status === 'ONLINE' || body.uploadReady) {
+          healthVerified = true;
+        }
+      }
+    } catch (pingErr: any) {
+      console.warn('[Device Upload URL Ping Warning]', pingErr?.message);
+    }
+  }
+
+  const nowIso = new Date().toISOString();
+  await db.collection('devices').doc(deviceId).update({
+    agentUploadUrl: normalizedUrl,
+    uploadUrlVerifiedAt: healthVerified ? nowIso : null,
+    updatedAt: nowIso
+  });
+
+  return {
+    success: true,
+    deviceId,
+    agentUploadUrl: normalizedUrl,
+    healthVerified
+  };
 }

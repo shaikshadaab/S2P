@@ -91,7 +91,8 @@ public class AgentUploadServer : IDisposable
         // Apply CORS headers for browser direct uploads
         res.Headers.Add("Access-Control-Allow-Origin", "*");
         res.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        res.Headers.Add("Access-Control-Allow-Headers", "Content-Type, x-upload-grant-id, x-upload-grant-token, x-relay-secret, x-device-id, x-device-secret");
+        res.Headers.Add("Access-Control-Allow-Headers", "*");
+        res.Headers.Add("Access-Control-Max-Age", "86400");
 
         if (req.HttpMethod == "OPTIONS")
         {
@@ -104,11 +105,12 @@ public class AgentUploadServer : IDisposable
 
         try
         {
-            if (path == "/" || path == "/health")
+            if (path == "/" || path == "/health" || path == "/api/agent/health")
             {
                 await WriteJsonAsync(res, 200, new
                 {
                     status = "ONLINE",
+                    uploadReady = true,
                     deviceId = _config.DeviceId,
                     agentVersion = "1.0.0",
                     serverTime = DateTime.UtcNow.ToString("O"),

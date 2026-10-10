@@ -44,6 +44,35 @@ if (argsList.Contains("--upload-url"))
     if (uIdx + 1 < argsList.Count) agentUploadUrl = argsList[uIdx + 1];
 }
 
+if (string.IsNullOrWhiteSpace(agentUploadUrl))
+{
+    // Auto-detect from local tunnel-url.txt if present
+    var possiblePaths = new[]
+    {
+        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tunnel-url.txt"),
+        Path.Combine(Directory.GetCurrentDirectory(), "tunnel-url.txt")
+    };
+    foreach (var p in possiblePaths)
+    {
+        if (File.Exists(p))
+        {
+            try
+            {
+                var txt = File.ReadAllText(p).Trim();
+                if (!string.IsNullOrWhiteSpace(txt) && (txt.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || txt.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
+                {
+                    agentUploadUrl = txt;
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine($"[TUNNEL AUTO-DETECT] Found tunnel URL in {Path.GetFileName(p)}: {agentUploadUrl}");
+                    Console.ResetColor();
+                    break;
+                }
+            }
+            catch { }
+        }
+    }
+}
+
 // Check for unpair/reset
 if (argsList.Contains("--unpair") || argsList.Contains("--reset"))
 {
@@ -313,6 +342,26 @@ while (!cts.IsCancellationRequested)
         // Periodic Heartbeat (~30 seconds)
         if ((DateTime.UtcNow - lastHeartbeat).TotalSeconds >= 30)
         {
+            // Re-check tunnel-url.txt if not set or updated
+            var tunnelFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tunnel-url.txt");
+            if (!File.Exists(tunnelFile)) tunnelFile = Path.Combine(Directory.GetCurrentDirectory(), "tunnel-url.txt");
+            if (File.Exists(tunnelFile))
+            {
+                try
+                {
+                    var txt = File.ReadAllText(tunnelFile).Trim();
+                    if (!string.IsNullOrWhiteSpace(txt) && (txt.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || txt.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        if (agentUploadUrl != txt)
+                        {
+                            agentUploadUrl = txt;
+                            Console.WriteLine($"[TUNNEL AUTO-DETECT] Discovered/Updated tunnel URL: {agentUploadUrl}");
+                        }
+                    }
+                }
+                catch { }
+            }
+
             await client.SendHeartbeatAsync(config, agentUploadUrl);
             lastHeartbeat = DateTime.UtcNow;
             await db.SetMarkerAsync("last_heartbeat", DateTime.UtcNow.ToString("O"));

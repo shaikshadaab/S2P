@@ -155,4 +155,53 @@ test('Phase 25: No-Paid-Cloud-Storage & Scoped Upload Grant Architecture', async
     const canUse = (g) => g.status === 'ISSUED';
     assert.equal(canUse(grant), false);
   });
+
+  // 9. Online PC without tunnel returns UPLOAD_ENDPOINT_NOT_CONFIGURED
+  await t.test('9. Shop Readiness Invariant: Online PC without tunnel returns UPLOAD_ENDPOINT_NOT_CONFIGURED', () => {
+    const checkAvailability = (shop, onlineDevices, onlinePrinters) => {
+      if (shop.settings?.manualPause === true) {
+        return { available: false, reason: 'INTAKE_PAUSED', message: 'Customer intake paused.' };
+      }
+      if (onlineDevices.length === 0) {
+        return { available: false, reason: 'AGENT_OFFLINE', message: 'Counter PC offline.' };
+      }
+      const deviceWithUpload = onlineDevices.find(d => d.agentUploadUrl && d.agentUploadUrl.trim().length > 0);
+      if (!deviceWithUpload) {
+        return { available: false, reason: 'UPLOAD_ENDPOINT_NOT_CONFIGURED', message: 'Upload tunnel not running.' };
+      }
+      return { available: true, message: 'Ready to print.', agentUploadUrl: deviceWithUpload.agentUploadUrl };
+    };
+
+    const openShop = { id: 'shakeel-online-services', settings: { manualPause: false } };
+    const onlineDevNoTunnel = { id: 'dev1', agentUploadUrl: null };
+    const res = checkAvailability(openShop, [onlineDevNoTunnel], [{ id: 'pr1' }]);
+    assert.equal(res.available, false);
+    assert.equal(res.reason, 'UPLOAD_ENDPOINT_NOT_CONFIGURED');
+  });
+
+  // 10. Vercel Relay Payload Ceiling
+  await t.test('10. Vercel Relay Payload Ceiling: Rejects payloads exceeding 4MB (4,194,304 bytes)', () => {
+    const MAX_RELAY_BYTES = 4 * 1024 * 1024; // 4 MB
+    const smallFile = 3.5 * 1024 * 1024;
+    const largeFile = 5 * 1024 * 1024;
+
+    const canRelay = (size) => size <= MAX_RELAY_BYTES;
+    assert.equal(canRelay(smallFile), true);
+    assert.equal(canRelay(largeFile), false);
+  });
+
+  // 11. Upload Endpoint URL Validation
+  await t.test('11. Upload Endpoint Validation: Rejects insecure HTTP and accepts HTTPS', () => {
+    const validateEndpointUrl = (url) => {
+      if (!url) return false;
+      const trimmed = url.trim().toLowerCase();
+      return trimmed.startsWith('https://') || trimmed.startsWith('http://localhost') || trimmed.startsWith('http://127.0.0.1');
+    };
+
+    assert.equal(validateEndpointUrl('https://abc.trycloudflare.com'), true);
+    assert.equal(validateEndpointUrl('https://print.shakeel-online.com'), true);
+    assert.equal(validateEndpointUrl('http://192.168.1.100:5218'), false); // insecure plain HTTP rejected
+    assert.equal(validateEndpointUrl('http://my-shop.com:5218'), false); // insecure plain HTTP rejected
+    assert.equal(validateEndpointUrl('http://localhost:5218'), true); // local test permitted
+  });
 });

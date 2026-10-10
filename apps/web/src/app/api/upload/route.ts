@@ -34,6 +34,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Invariant: Vercel serverless functions enforce a 4.5 MB request payload ceiling.
+    // Files larger than 4 MB must use direct upload to the shop PC via Cloudflare Tunnel.
+    const MAX_RELAY_BYTES = 4 * 1024 * 1024; // 4 MB
+    if (file.size > MAX_RELAY_BYTES) {
+      return NextResponse.json({
+        success: false,
+        error: 'RELAY_PAYLOAD_TOO_LARGE: Serverless relay only supports files up to 4 MB. Direct upload to the shop PC via Cloudflare Tunnel is required for files up to 50 MB. Please verify the shop PC tunnel is running.',
+        maxRelaySizeBytes: MAX_RELAY_BYTES,
+        fileSizeBytes: file.size
+      }, { status: 413 });
+    }
+
     if (!shopId || !draftId) {
       return NextResponse.json(
         { success: false, error: 'Both shopId and draftId are required.' },

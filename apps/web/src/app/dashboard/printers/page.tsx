@@ -49,6 +49,54 @@ export default function DashboardPrintersPage() {
   // Revoke state
   const [revokingDeviceId, setRevokingDeviceId] = useState<string | null>(null);
 
+  // Agent Tunnel URL management
+  const [tunnelUrlInputs, setTunnelUrlInputs] = useState<Record<string, string>>({});
+  const [isSavingTunnelUrl, setIsSavingTunnelUrl] = useState<Record<string, boolean>>({});
+  const [tunnelStatusMsg, setTunnelStatusMsg] = useState<Record<string, { type: 'success' | 'error'; text: string }>>({});
+
+  const handleSaveTunnelUrl = async (deviceId: string) => {
+    if (!user) return;
+    const url = (tunnelUrlInputs[deviceId] ?? devices.find(d => d.id === deviceId)?.agentUploadUrl ?? '').trim();
+    setIsSavingTunnelUrl(prev => ({ ...prev, [deviceId]: true }));
+    setTunnelStatusMsg(prev => ({ ...prev, [deviceId]: { type: 'success', text: '' } }));
+
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/devices/upload-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          deviceId,
+          shopId: PRIMARY_PILOT_SHOP.id,
+          agentUploadUrl: url,
+          testPing: Boolean(url)
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update tunnel URL');
+      }
+      setTunnelStatusMsg(prev => ({
+        ...prev,
+        [deviceId]: {
+          type: 'success',
+          text: data.healthVerified
+            ? 'Endpoint connected & verified live! (Ready for customer phone uploads)'
+            : 'Endpoint URL saved successfully. (Ensure tunnel script is running on PC)'
+        }
+      }));
+      fetchData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error saving tunnel URL';
+      setTunnelStatusMsg(prev => ({ ...prev, [deviceId]: { type: 'error', text: msg } }));
+    } finally {
+      setIsSavingTunnelUrl(prev => ({ ...prev, [deviceId]: false }));
+    }
+  };
+
   // Commissioning Test Print State
   const [isTriggeringTestPrint, setIsTriggeringTestPrint] = useState(false);
   const [testPrintResult, setTestPrintResult] = useState<{
@@ -261,7 +309,7 @@ export default function DashboardPrintersPage() {
             </a>
             <div className="text-[11px] text-[#475569] text-center sm:text-right space-y-0.5">
               <p>Package: <span className="font-mono font-bold text-[#111827]">SOS-Print-Agent-Package.zip (13.9 MB)</span></p>
-              <p className="text-[10px] font-mono text-slate-500 break-all">SHA-256: 1E9BBE15BA01ACDBAB3C98EE4F4D692097EBAA5F8F1BAE77C1655767B09C66EF</p>
+              <p className="text-[10px] font-mono text-slate-500 break-all">SHA-256: EB184B34C5801FBF1B0E9BF68F4C167320477485B4CE6B61204FBA52B1AEA2F0</p>
               <p className="text-[10px] text-emerald-700 font-semibold">Build: Release v1.0.0 (LTS) · Source Commit: 1068489</p>
             </div>
           </div>
@@ -305,9 +353,9 @@ export default function DashboardPrintersPage() {
             <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 flex flex-col justify-between">
               <div className="flex items-center gap-2 mb-1">
                 <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-[10px]">4</span>
-                <span className="font-bold text-[#111827]">Hosted URL</span>
+                <span className="font-bold text-[#111827]">Free HTTPS Tunnel</span>
               </div>
-              <p className="text-[11px] text-[#475569]">Configure <code className="bg-slate-200 px-1 py-0.5 rounded text-[10px]">https://sos-print.vercel.app</code> in config if needed.</p>
+              <p className="text-[11px] text-[#475569]">Run <code className="bg-slate-200 px-1 py-0.5 rounded text-[10px]">start-free-tunnel.bat</code> to enable phone-to-PC uploads.</p>
             </div>
 
             <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 flex flex-col justify-between">

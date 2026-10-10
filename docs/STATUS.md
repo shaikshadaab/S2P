@@ -15,7 +15,7 @@
 **Production Aliased Domains:** `sos-print.vercel.app`, `sos-print-dxsqq9s2e-shaikshadaab951-1346s-projects.vercel.app`  
 **Deployed Commit:** `d3a3de4`  
 **Vercel Deployment ID:** `dpl_9wrEXAHPSiRw5fAcZLBWLcUzRn5P`  
-**Windows Agent Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (14,558,042 bytes, SHA-256: `0A09F156505E55C054D2398D4190BAC8A75F2BBF9CEC1BC9B674029BA438D5DC`)
+**Windows Agent Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (14,559,420 bytes, SHA-256: `EB184B34C5801FBF1B0E9BF68F4C167320477485B4CE6B61204FBA52B1AEA2F0`)
 
 ---
 
@@ -107,7 +107,7 @@ These features are fully built, unit-tested, and verified live on production at 
 ▶ Synthetic Image Processing & Resume Engine Suite
   ✔ 11 tests PASS
 
-Total Tests: 243 passed, 0 failed (100% pass rate)
+Total Tests: 246 passed, 0 failed (100% pass rate)
 TypeScript Typecheck: 0 errors across @s2p/shared, @s2p/web, and @s2p/functions
 Production Next.js Build: 35/35 routes compiled successfully
 ```

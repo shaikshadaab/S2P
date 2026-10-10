@@ -674,7 +674,7 @@ export interface CreateAuthoritativeOrderInput {
 
 export interface AvailabilityCheckResult {
   available: boolean;
-  reason?: 'AGENT_OFFLINE' | 'PRINTER_OFFLINE' | 'NO_COMPATIBLE_ROUTE' | 'INTAKE_PAUSED' | 'SHOP_INACTIVE';
+  reason?: 'AGENT_OFFLINE' | 'PRINTER_OFFLINE' | 'NO_COMPATIBLE_ROUTE' | 'INTAKE_PAUSED' | 'SHOP_INACTIVE' | 'UPLOAD_ENDPOINT_NOT_CONFIGURED';
   message: string;
   onlineDeviceCount: number;
   onlinePhysicalPrinters: number;
