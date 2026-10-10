@@ -13,8 +13,8 @@
 **WhatsApp Helpline:** `+91 9581529381`  
 **Production HTTPS URL:** https://sos-print.vercel.app  
 **Production Aliased Domains:** `sos-print.vercel.app`, `sos-print-dxsqq9s2e-shaikshadaab951-1346s-projects.vercel.app`  
-**Deployed Commit:** `07be2da`  
-**Vercel Deployment ID:** `dpl_YUuokNPFJGuaXqBAkiDVifMsZzgL`  
+**Deployed Commit:** `d3a3de4`  
+**Vercel Deployment ID:** `dpl_9wrEXAHPSiRw5fAcZLBWLcUzRn5P`  
 **Windows Agent Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (14,558,042 bytes, SHA-256: `0A09F156505E55C054D2398D4190BAC8A75F2BBF9CEC1BC9B674029BA438D5DC`)
 
 ---
