@@ -83,25 +83,32 @@
 
 ---
 
-## भाग 4: दुकान के Windows PC पर Agent और Printer चालू करना
+## भाग 4: दुकान के Windows PC पर Agent और Controlled Test चालू करना
 
 1. **दुकान का मुख्य Windows PC:**
    - PC चालू रखें, Windows में लॉगिन रहें और इंटरनेट कनेक्टेड रखें।
-   - अपने B&W या Colour प्रिंटर (USB/Network) का सामान्य Windows Driver इंस्टॉल रखें।
-   - Windows Settings से एक सादा **Windows Test Page** प्रिंट करके पुष्टि करें कि प्रिंटर ठीक चल रहा है।
+   - अपने B&W या Colour प्रिंटर (USB/Network HP Printer) का सामान्य Windows Driver चालू रखें।
+   - Windows Settings > Printers से एक सादा **Windows Test Page** प्रिंट करके पुष्टि करें कि केबल और कागज़ ठीक हैं।
 
-2. **Windows Agent चलाना:**
-   - इस फोल्डर में तैयार SOS Print-Agent-Setup.exe चलाएं या pps/agent/src/SOS Print.Agent.Worker से चलाएं।
-   - वेबसाइट के Owner Dashboard (/dashboard/settings या /dashboard/printers) पर जाकर **Generate Pairing Code** दबाएं।
-   - यह 6 अंकों का कोड मिलेगा (जैसे: 849201)।
-   - Agent में यह कोड डालें। Agent तुरंत सर्वर से सुरक्षित DPAPI चाबी के साथ पेयर हो जाएगा।
+2. **Windows Agent डाउनलोड और Pair करना:**
+   - वेबसाइट से नवीनतम Agent डाउनलोड करें: [https://sos-print.vercel.app/SOS-Print-Agent-Package.zip](https://sos-print.vercel.app/SOS-Print-Agent-Package.zip) (Size: 14.5 MB).
+   - इस ZIP को किसी अलग फोल्डर (जैसे `C:\\SOSPrint-Agent`) में **Extract All** (अनज़िप) करें।
+   - ब्राउज़र में Owner Dashboard के [Printers](https://sos-print.vercel.app/dashboard/printers) पेज पर जाएं।
+   - **"Generate Pairing Code"** बटन दबाएं। 6 अंकों का सुरक्षित कोड मिलेगा (जैसे: 849201).
+   - Agent फोल्डर में जाकर **`pair-agent.bat`** पर डबल-क्लिक करें।
+   - प्रॉम्प्ट में वही 6-अंकों का कोड डालें। Agent तुरंत सर्वर से सुरक्षित DPAPI चाबी के साथ पेयर हो जाएगा।
 
-3. **प्रिंटर की पहचान:**
-   - Agent अपने आप आपके Windows Spooler में लगे असली प्रिंटर्स खोजकर डैशबोर्ड पर दिखाएगा।
-   - डैशबोर्ड में B&W और Colour के लिए अपने प्रिंटर को मैप करें।
-   - **Test Print** बटन दबाकर 1 पन्ने का सादा टेस्ट प्रिंट निकालें।
+3. **Controlled Commissioning Test Print (ग्राहक ऑर्डर अभी बंद रहेंगे):**
+   - अगर Agent पहले से बैकग्राउंड में नहीं चल रहा, तो **`start-agent.bat`** चलाएं। (ध्यान दें: एक समय पर केवल एक ही Agent instance खुला रखें).
+   - Dashboard के [Printers](https://sos-print.vercel.app/dashboard/printers) पेज पर जाकर **"Send 1-Page Test Print (A4 B&W)"** बटन दबाएं।
+   - यह टेस्ट ऑर्डर खास तौर पर Owner के लिए बनाया गया है, जो **Public Intake Paused** होने के बावजूद सुरक्षित टेस्ट जॉब कतार में भेजता है।
+   - Agent तुरंत इस 1-पन्ने की सुरक्षित टेस्ट PDF (`test_visible_a4.pdf`) को उठाएगा और आपके HP प्रिंटर से प्रिंट करेगा।
+   - प्रिंटर से निकला हुआ असली कागज़ हाथ में देखें। कागज़ पर स्पष्ट शीर्षक "SOS PRINT - CONTROLLED COMMISSIONING TEST PRINT", A4, B&W और समय अंकित होगा।
+   - Counter स्क्रीन (`/dashboard/counter`) पर भी यह ऑर्डर "Commissioning Test" बैज के साथ दिखाई देगा।
 
----
+4. **दुकान ग्राहकों के लिए खोलना:**
+   - जब दुकान के असली प्रिंटर से कागज़ सफलतापूर्वक निकल जाए, तब Dashboard के **Settings** में जाकर **Resume Intake** (दुकान चालू) करें।
+   - अब ग्राहक काउंटर पर लगे QR से निर्बाध प्रिंटिंग कर सकेंगे।
 
 ## भाग 5: असली टेस्ट (QR से प्रिंट तक)
 

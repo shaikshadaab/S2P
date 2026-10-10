@@ -13,9 +13,9 @@
 **WhatsApp Helpline:** `+91 9581529381`  
 **Production HTTPS URL:** https://sos-print.vercel.app  
 **Production Aliased Domains:** `sos-print.vercel.app`, `sos-print-dxsqq9s2e-shaikshadaab951-1346s-projects.vercel.app`  
-**Deployed Commit:** `6e8368e`  
-**Vercel Deployment ID:** `dpl_HrdGyr1U7hAsyj44kF8ZywZ8RbeT`  
-**Windows Agent Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (13.9 MB, SHA-256: `1E9BBE15BA01ACDBAB3C98EE4F4D692097EBAA5F8F1BAE77C1655767B09C66EF`)
+**Deployed Commit:** `07be2da`  
+**Vercel Deployment ID:** `dpl_YUuokNPFJGuaXqBAkiDVifMsZzgL`  
+**Windows Agent Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (14,546,079 bytes, SHA-256: `1E9BBE15BA01ACDBAB3C98EE4F4D692097EBAA5F8F1BAE77C1655767B09C66EF`)
 
 ---
 
@@ -105,8 +105,9 @@ These features are fully built, unit-tested, and verified live on production at 
 ▶ Synthetic Image Processing & Resume Engine Suite
   ✔ 11 tests PASS
 
-Total Tests: 226 passed, 0 failed (100% pass rate)
+Total Tests: 234 passed, 0 failed (100% pass rate)
 TypeScript Typecheck: 0 errors across @s2p/shared, @s2p/web, and @s2p/functions
+Production Next.js Build: 35/35 routes compiled successfully
 ```
 
 ---
@@ -132,7 +133,7 @@ TypeScript Typecheck: 0 errors across @s2p/shared, @s2p/web, and @s2p/functions
 
 ---
 
-## 3. Local Source Backups & Integrity
-- **Sanitized Source Backup:** Local source archives in `C:\\SOSPrint-Backups` (e.g., `SOS-Print-Source-20261010-*.zip`) contain sanitized, complete source code without secrets.
-- **Integrity Notice:** Backups are standard sanitized zip archives; they are not encrypted.
+## 5. Local Source Backups & Integrity
+- **Sanitized Source Backup:** Local source archive `C:\\SOSPrint-Backups\\SOS-Print-Source-20261010-1351.zip` (62.99 MB / 66,045,623 bytes, SHA-256: `FC227CC44BF9995A066EBE54888A6AF5879CBFAB61A326FCDF58455C55C46A7D`).
+- **Integrity Notice:** Backups are standard sanitized zip archives excluding `.git`, `node_modules`, `.next`, and secrets; they are not encrypted.
 - **Physical Printing Status:** Remains strictly **PHYSICAL PENDING** until actual paper feed and print output are executed on the shop Windows PC in Guntur.
