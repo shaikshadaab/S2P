@@ -3,6 +3,8 @@ if (typeof window !== 'undefined') {
 }
 
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 import { Firestore } from 'firebase-admin/firestore';
 import {
   PrintJob,
@@ -18,6 +20,8 @@ import {
 import { getActiveShopMember } from './order-service';
 import { authenticateAgent } from './device-service';
 import { getFileStorageBucket } from '../lib/firebase/admin';
+
+export const BUNDLED_TEST_VISIBLE_A4_PDF_BASE64 = 'JVBERi0xLjcKJYGBgYEKCjcgMCBvYmoKPDwKL0ZpbHRlciAvRmxhdGVEZWNvZGUKL0xlbmd0aCA1OTgKPj4Kc3RyZWFtCniclZNLbxMxFIX3/hVeIzXY1/dhSwgpyczAgg0wO8QCteWlVKgIwd/n2E5C005Eq5E99rVn/Pmce29dWBXx/7qfX1zw9Xn3ypH/4z58xPjKxRaLnoM3Cv7y5hip/cNpfdU+B79zEmVF+WRch1/dxr11t24z74/E2c9fX+9+X//6dvnpYvNjd3VhoWTOwXLxpH7+7Ij9/OZ4mgIHbb5xLyQlkkBBAmcpkrhw4sjbGhHCbBTGmFkkCb/083c3P3PjfERYkT+0U5BiTJpJNPsYlxmSdIaAc7Y8Cac1zkqcQbBhwQMOnnjEKkhY2qoIfto4wURhYy1aqUcKie6S3+MNq2pXbzAqLhol4QlGxXLHnZNJt+r9f62iEEIOUrL6uGyVyt6qvQlU5dpL1cwbjisDDyJiknnNU8LygmELIMVggRYK5iMtM9CRofDQT4Pgg4TKkSjVpjSkmMCDmcLMmCytMRb0DGPGVDBLsn4cVc9kMcI9tMrDi2iSexYhA2qm1MwwiEAcGyxiDTG2HI9sNYto6pH6DbKl9AgTqdjj4DJLiDnE85KB4SBZBA3ObdblNmOx9pbKhsqrFZh00Ghkrd406qgbquLlJqlU8eAQlDXSgn7J3FXyh3aPV5FiFrOdrUZUVefVWmFQrtfYUUVwWps1Zuk3SVVNGE0Pb7avwwmPPsFwycSqlNJZ0Bh6LvJkoYkRjXWyWvi6F0fRUosXnbQlAE9KXTzDLgjJyKlYxUYMI02IbK30xMCfsxXsb//RbRMeGmJv/QIrdU87a8R30IzGk0v+Ba/0TaAKZW5kc3RyZWFtCmVuZG9iagoKOCAwIG9iago8PAovRmlsdGVyIC9GbGF0ZURlY29kZQovVHlwZSAvT2JqU3RtCi9OIDYKL0ZpcnN0IDMzCi9MZW5ndGggNDQ3Cj4+CnN0cmVhbQp4nNVTTWvcMBC9+1fMsT0kGn3LZVnYLzdQQkMSSGnpwbHF4rJIxdaW5N93ZG8SEnYJ9FbMYM3Me9LojYYDggClQIJ1oEBLARpKKcEAR4EwmxXs9vG3B3ZVb/1QsC9dO8APgiJcw8+CreI+JODFfF68YFd1qndxW0wk4Bn8hLjqY7tvfA+zalNViBYRjSIziGJN/xVZSSbIp5xwtCaz6mAUsxJRLihXTWbsxMn5EasP/A39CWsyZj1hlZv853PzWZtpD/FePeW8YJexXdfJw4f1J4HCcEpxi1qJ7x9Jjt7XKf6/lxvr72I4ecNXfc7tzU3ufX4DY5fZtR/ivm+o7RlXRcrkxYXf/fGpa+qzZdy1ZxZLR8VaV9J7G3kvgNIqYZzQxtErfJMbyVk5h7p05hhZozKlQHuCbLUVWkpzjOyURu6QHyM7Qwda7uypqrQTyhghpTtsTFKxb1/vf/lmlCC7m4f0+SZlbadAjl36tquX8YGmCunTpT4XDpzi5yQOTdgihJjyzI3TFhJpnT17mMBXDclyF+xmf59GNwd5wZb14MdGvCmZ6glNbLuwBXbXhUUYuqfAP277zo5/AWtyHaEKZW5kc3RyZWFtCmVuZG9iagoKOSAwIG9iago8PAovU2l6ZSAxMAovUm9vdCAyIDAgUgovSW5mbyAzIDAgUgovRmlsdGVyIC9GbGF0ZURlY29kZQovVHlwZSAvWFJlZgovTGVuZ3RoIDQ0Ci9XIFsgMSAyIDIgXQovSW5kZXggWyAwIDEwIF0KPj4Kc3RyZWFtCnicY2Bg+P+fiYGDgQFEMIIIJhDBDCJYQAQrI4MAA1BmPZBgucLAAABuawPmCmVuZHN0cmVhbQplbmRvYmoKCnN0YXJ0eHJlZgoxMjM2CiUlRU9G';
 
 /**
  * Staff Action: QUEUE FOR PRINT
@@ -635,6 +639,37 @@ export async function getAuthorizedJobFile(
     throw new Error('STORAGE_PATH_MISSING: Storage path not found on file record.');
   }
 
+  // Special test document handling for commissioning test orders
+  if (
+    (fileData as any).isTestFile ||
+    storagePath === 'system/test_visible_a4.pdf' ||
+    fileData.originalFilename === 'test_visible_a4.pdf'
+  ) {
+    const candidates = [
+      path.join(process.cwd(), 'public', 'test_visible_a4.pdf'),
+      path.join(process.cwd(), 'apps', 'web', 'public', 'test_visible_a4.pdf'),
+      path.join(process.cwd(), 'test_visible_a4.pdf'),
+      path.join(process.cwd(), '..', '..', 'test_visible_a4.pdf'),
+      'C:\\Users\\hp\\.gemini\\antigravity-ide\\brain\\1c221f7d-e06d-48e2-9d00-0d8f618c0d27\\browser\\test_visible_a4.pdf'
+    ];
+    let buffer: Buffer;
+    let foundPath = candidates.find(p => fs.existsSync(p));
+    if (foundPath) {
+      buffer = fs.readFileSync(foundPath);
+    } else {
+      buffer = Buffer.from(BUNDLED_TEST_VISIBLE_A4_PDF_BASE64, 'base64');
+    }
+    const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
+    return {
+      buffer,
+      fileSnapshot: job.fileSnapshot,
+      mimeType: 'application/pdf',
+      filename: 'test_visible_a4.pdf',
+      sha256,
+      sizeBytes: buffer.length
+    };
+  }
+
   // Download from private bucket
   const bucket = getFileStorageBucket();
   const storageFile = bucket.file(storagePath);
@@ -932,6 +967,170 @@ export async function autoDispatchOrderForPrint(
       status: dispatchedJobs[0]?.status || 'QUEUED',
       assignedPrinterId: dispatchedJobs[0]?.printerId || null,
       autoDispatched: true
+    };
+  });
+}
+
+
+/**
+ * Owner Action: CREATE COMMISSIONING TEST ORDER
+ * Bypasses public intake pause, strictly restricted to authenticated OWNER or MANAGER.
+ * Creates an authorized test order and immediately queues it for print dispatch.
+ */
+export async function createOwnerCommissioningTestOrder(
+  db: Firestore,
+  staffUid: string,
+  requestedShopId: string
+) {
+  if (!staffUid || !requestedShopId) {
+    throw new Error('staffUid and requestedShopId are required.');
+  }
+
+  const member = await getActiveShopMember(db, staffUid, requestedShopId);
+  const allowedRoles = ['OWNER', 'MANAGER'];
+  if (!allowedRoles.includes(member.role)) {
+    throw new Error(`UNAUTHORIZED_ROLE: Role ${member.role} cannot create commissioning test orders.`);
+  }
+
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+  const orderId = `ord_test_${now.toString(36)}_${crypto.randomBytes(3).toString('hex')}`;
+  const orderNumber = `S2P-TEST-${Math.floor(1000 + Math.random() * 9000)}`;
+  const fileId = `file_test_${now.toString(36)}_${crypto.randomBytes(3).toString('hex')}`;
+  const itemId = `item_test_${now.toString(36)}_${crypto.randomBytes(3).toString('hex')}`;
+  const jobId = `job_test_${now.toString(36)}_${crypto.randomBytes(3).toString('hex')}`;
+
+  const candidates = [
+    path.join(process.cwd(), 'public', 'test_visible_a4.pdf'),
+    path.join(process.cwd(), 'apps', 'web', 'public', 'test_visible_a4.pdf'),
+    path.join(process.cwd(), 'test_visible_a4.pdf'),
+    path.join(process.cwd(), '..', '..', 'test_visible_a4.pdf'),
+    'C:\\Users\\hp\\.gemini\\antigravity-ide\\brain\\1c221f7d-e06d-48e2-9d00-0d8f618c0d27\\browser\\test_visible_a4.pdf'
+  ];
+  let fileSize = 1446;
+  let fileSha256 = '93c3291af1fac9b56b53b20586e8a0c9c468cd559378a28504afb925d4175d82';
+  const foundPath = candidates.find(p => fs.existsSync(p));
+  if (foundPath) {
+    const buf = fs.readFileSync(foundPath);
+    fileSize = buf.length;
+    fileSha256 = crypto.createHash('sha256').update(buf).digest('hex');
+  }
+
+  return await db.runTransaction(async (transaction) => {
+    // 1. Order File
+    transaction.set(db.collection('orderFiles').doc(fileId), {
+      id: fileId,
+      orderId,
+      shopId: requestedShopId,
+      organizationId: 'shakeel-online-services',
+      originalFilename: 'test_visible_a4.pdf',
+      safeFilename: 'test_visible_a4.pdf',
+      mimeType: 'application/pdf',
+      sizeBytes: fileSize,
+      sha256: fileSha256,
+      pageCount: 1,
+      storageOriginalPath: 'system/test_visible_a4.pdf',
+      documentAvailable: true,
+      isTestFile: true,
+      createdAt: nowIso
+    });
+
+    // 2. Order
+    transaction.set(db.collection('orders').doc(orderId), {
+      id: orderId,
+      orderNumber,
+      shopId: requestedShopId,
+      organizationId: 'shakeel-online-services',
+      customer: {
+        name: 'Owner Commissioning Test',
+        mobile: '+91 95815 29381',
+        phone: '9581529381',
+        email: member.email || 'shaikshadaab16@gmail.com'
+      },
+      status: 'QUEUED_FOR_PRINT',
+      paymentStatus: 'PAID',
+      paymentMethod: 'CASH',
+      totalPaise: 200,
+      totalRupees: 2,
+      subtotalPaise: 200,
+      taxPaise: 0,
+      itemCount: 1,
+      isTestOrder: true,
+      commissioningNotes: 'Owner-authorized commissioning test print for shop PC validation',
+      createdAt: nowIso,
+      updatedAt: nowIso
+    });
+
+    // 3. Order Item
+    transaction.set(db.collection('orderItems').doc(itemId), {
+      id: itemId,
+      orderId,
+      fileId,
+      paperSize: 'A4',
+      colorMode: 'BW',
+      duplexMode: 'SINGLE',
+      copies: 1,
+      pageCount: 1,
+      sheetCount: 1,
+      totalPaise: 200,
+      totalRupees: 2,
+      orientation: 'PORTRAIT',
+      scaling: 'FIT'
+    });
+
+    // 4. Print Job
+    transaction.set(db.collection('printJobs').doc(jobId), {
+      id: jobId,
+      orderId,
+      orderNumber,
+      fileId,
+      shopId: requestedShopId,
+      organizationId: 'shakeel-online-services',
+      status: 'QUEUED',
+      isTestJob: true,
+      attemptCount: 0,
+      fileSnapshot: {
+        filename: 'test_visible_a4.pdf',
+        pageCount: 1,
+        sizeBytes: fileSize,
+        sha256: fileSha256
+      },
+      printConfig: {
+        paperSize: 'A4',
+        colorMode: 'BW',
+        duplexMode: 'SINGLE',
+        copies: 1,
+        orientation: 'PORTRAIT',
+        scaling: 'FIT'
+      },
+      createdAt: nowIso,
+      updatedAt: nowIso
+    });
+
+    // 5. Audit Log
+    const auditId = `aud_${now.toString(36)}_${crypto.randomBytes(3).toString('hex')}`;
+    transaction.set(db.collection('auditLogs').doc(auditId), {
+      id: auditId,
+      organizationId: 'shakeel-online-services',
+      shopId: requestedShopId,
+      action: 'COMMISSIONING_TEST_ORDER_CREATED',
+      targetType: 'ORDER',
+      targetId: orderId,
+      actorId: staffUid,
+      actorRole: member.role,
+      timestamp: nowIso,
+      details: {
+        orderId,
+        orderNumber,
+        printJobId: jobId
+      }
+    });
+
+    return {
+      success: true,
+      orderId,
+      orderNumber,
+      printJobId: jobId
     };
   });
 }

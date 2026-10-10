@@ -60,6 +60,34 @@ export default function CounterCashierPage() {
   const [confirmModalMode, setConfirmModalMode] = useState<"CASH" | "UPI" | null>(null);
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [isCreatingTest, setIsCreatingTest] = useState<boolean>(false);
+
+  const handleCreateCommissioningTest = async () => {
+    if (!user) return;
+    setIsCreatingTest(true);
+    setActionError(null);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/orders/test-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ shopId: PRIMARY_PILOT_SHOP.id })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || data.error || 'Failed to create test order');
+      }
+      await fetchOrders();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error creating test order';
+      setActionError(msg);
+    } finally {
+      setIsCreatingTest(false);
+    }
+  };
 
   // Synthesize gentle chime on new order
   const playChime = () => {
@@ -354,6 +382,16 @@ export default function CounterCashierPage() {
           <p className="text-xs text-[#475569] max-w-sm mx-auto">
             When customers upload files at <code className="bg-slate-100 px-1 py-0.5 rounded text-emerald-700 font-bold">/print</code>, their orders appear here automatically for cash or UPI confirmation.
           </p>
+          <div className="pt-2">
+            <button
+              onClick={handleCreateCommissioningTest}
+              disabled={isCreatingTest}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>{isCreatingTest ? "Creating Test..." : "Generate Owner Test Print Order"}</span>
+            </button>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">
@@ -383,6 +421,11 @@ export default function CounterCashierPage() {
                     <span className="font-mono font-black text-sm text-[#111827]">
                       #{order.orderNumber}
                     </span>
+                    {(order as any).isTestOrder && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                        Commissioning Test
+                      </span>
+                    )}
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
                       isPaid
                         ? "bg-emerald-50 text-emerald-800 border-emerald-200"

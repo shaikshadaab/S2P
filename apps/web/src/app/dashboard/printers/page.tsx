@@ -49,6 +49,49 @@ export default function DashboardPrintersPage() {
   // Revoke state
   const [revokingDeviceId, setRevokingDeviceId] = useState<string | null>(null);
 
+  // Commissioning Test Print State
+  const [isTriggeringTestPrint, setIsTriggeringTestPrint] = useState(false);
+  const [testPrintResult, setTestPrintResult] = useState<{
+    orderNumber: string;
+    printJobId: string;
+    message: string;
+  } | null>(null);
+  const [testPrintError, setTestPrintError] = useState<string | null>(null);
+
+  const handleTriggerCommissioningTest = async () => {
+    if (!user) return;
+    setIsTriggeringTestPrint(true);
+    setTestPrintError(null);
+    setTestPrintResult(null);
+
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/orders/test-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ shopId: PRIMARY_PILOT_SHOP.id })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || data.error || 'Failed to trigger commissioning test order');
+      }
+      setTestPrintResult({
+        orderNumber: data.orderNumber,
+        printJobId: data.printJobId,
+        message: 'Commissioning test order successfully created and queued for print dispatch!'
+      });
+      fetchData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error triggering test order';
+      setTestPrintError(msg);
+    } finally {
+      setIsTriggeringTestPrint(false);
+    }
+  };
+
   const isOwnerOrManager = role === "OWNER" || role === "MANAGER";
 
   const fetchData = async () => {
@@ -363,6 +406,65 @@ export default function DashboardPrintersPage() {
           <span>{error}</span>
         </div>
       )}
+
+            {/* Commissioning Test Print Section (Public Intake Remains Paused) */}
+      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-5 space-y-3 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="p-1 rounded-lg bg-emerald-600 text-white">
+                <PrinterIcon className="w-4 h-4" />
+              </span>
+              <h3 className="text-sm font-extrabold text-[#111827]">
+                Shop Commissioning Test Print (Intake Paused)
+              </h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                Safe Owner Test
+              </span>
+            </div>
+            <p className="text-xs text-[#475569] max-w-xl">
+              Creates an authorized 1-page test print (<code className="bg-white/80 px-1 py-0.5 rounded text-emerald-800 font-mono font-bold">test_visible_a4.pdf</code>) directly in the print queue while keeping public customer intake safely paused.
+            </p>
+          </div>
+
+          {isOwnerOrManager && (
+            <button
+              onClick={handleTriggerCommissioningTest}
+              disabled={isTriggeringTestPrint}
+              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-2 shrink-0 disabled:opacity-50 cursor-pointer"
+            >
+              {isTriggeringTestPrint ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <PrinterIcon className="w-4 h-4" />
+              )}
+              <span>{isTriggeringTestPrint ? "Queuing Test..." : "Send 1-Page Test Print (A4 B&W)"}</span>
+            </button>
+          )}
+        </div>
+
+        {testPrintResult && (
+          <div className="p-3 bg-white border border-emerald-300 rounded-xl space-y-1 text-xs">
+            <div className="flex items-center gap-2 text-emerald-700 font-bold">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{testPrintResult.message}</span>
+            </div>
+            <div className="text-[11px] text-slate-600 font-mono">
+              Order Number: <strong className="text-slate-900">{testPrintResult.orderNumber}</strong> • Print Job ID: <strong className="text-slate-900">{testPrintResult.printJobId}</strong>
+            </div>
+            <p className="text-[11px] text-emerald-800 pt-1">
+              Shop PC instruction: Run <code className="bg-emerald-100 px-1 rounded font-bold">start-agent.bat</code> or <code className="bg-emerald-100 px-1 rounded font-bold">run-controlled-test.bat</code> to claim and print this test document.
+            </p>
+          </div>
+        )}
+
+        {testPrintError && (
+          <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{testPrintError}</span>
+          </div>
+        )}
+      </div>
 
       {/* Devices Section */}
       <div className="space-y-4">

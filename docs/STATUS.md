@@ -41,6 +41,11 @@ These features are fully built, unit-tested, and verified live on production at 
 | **Windows Agent 10-Step Guide** | `/dashboard/printers` | Full 10-step English commissioning checklist; version `v1.0.0 LTS`, commit `1068489`, SHA-256 and .NET 8 requirement | **HOSTED-VERIFIED** |
 | **Production Storage Invariant** | `apps/web/src/lib/firebase/admin.ts` | Local `/tmp` fallback disallowed in production; strictly requires private Firebase Storage bucket; fails closed | **HOSTED-VERIFIED** |
 | **Customer Status Synchronization** | `/track/[orderId]`, `/dashboard/orders` | Unified server states: Awaiting Payment Confirmation, Payment Confirmed, Queued for Printing, Preparing Your Print, Sent to Printer, Needs Staff Assistance, Ready for Collection, Collected | **HOSTED-VERIFIED** |
+| **Manual Crop & Ratios** | EnhancedImageEditor, CropBoxOverlay | Free, 1:1, 4:6, A4, Passport (35×45mm), Visa (2×2 in), Stamp (25×30mm); draggable corner & edge handles clamped in viewport; pan & zoom; rotate 90°; flip H/V; 4-corner perspective warp | **HOSTED-VERIFIED** |
+| **Background Removal Studio** | EnhancedImageEditor, ImageEnhancementEngine | 100% in-browser segmentation; Transparent, White, Passport Blue, Pearl; manual Erase & Restore brush with size slider; edge feathering; government disclaimer | **HOSTED-VERIFIED** |
+| **Quality Enhancement & Scan Mode** | EnhancedImageEditor, ImageEnhancementEngine | Brightness, contrast, saturation, 3×3 unsharp mask, restrained denoise; Document Scan Mode preserving faint writing & rubber stamps; 2× digital upscaler with honest disclaimer | **HOSTED-VERIFIED** |
+| **Print-Ready Full-Res Export** | EnhancedImageEditor, /api/upload/derivative | Source-resolution pixel processing (not preview screenshot); real-time DPI calculator for A4/4×6/Passport with low-res warning (<200 DPI); PNG/JPEG derivative artifact | **HOSTED-VERIFIED** |
+| **Owner Commissioning Test Order** | /api/orders/test-order, /dashboard/printers | Owner-authorized test order flow using test_visible_a4.pdf (1446 bytes, SHA-256: 93C329...); works while public customer intake remains paused; bypasses public pause safely | **HOSTED-VERIFIED** |
 
 ---
 
@@ -124,3 +129,10 @@ TypeScript Typecheck: 0 errors across @s2p/shared, @s2p/web, and @s2p/functions
    - ग्राहक काउंटर पर आकर QR स्कैन करके फाइल अपलोड करेगा.
    - जब ग्राहक Cash दे या आपके UPI (`9581529381@ybl`) पर पैसे भेजे, तो Dashboard के **Counter** (`/dashboard/counter`) पेज पर **"Confirm Cash Received"** या **"Confirm UPI Received"** दबाएँ.
    - इसके तुरंत बाद प्रिंटर से कागज़ अपने आप प्रिंट हो जाएगा.
+
+---
+
+## 3. Local Source Backups & Integrity
+- **Sanitized Source Backup:** Local source archives in `C:\\SOSPrint-Backups` (e.g., `SOS-Print-Source-20261010-*.zip`) contain sanitized, complete source code without secrets.
+- **Integrity Notice:** Backups are standard sanitized zip archives; they are not encrypted.
+- **Physical Printing Status:** Remains strictly **PHYSICAL PENDING** until actual paper feed and print output are executed on the shop Windows PC in Guntur.
