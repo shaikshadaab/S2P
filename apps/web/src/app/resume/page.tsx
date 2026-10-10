@@ -138,7 +138,7 @@ export default function ResumeMakerPage() {
 
       <main className="max-w-5xl mx-auto px-6 py-10 flex-1 w-full space-y-8">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 mb-2">Resume Maker (à¤¬à¤¾à¤¯à¥‹à¤¡à¤¾à¤Ÿà¤¾ / à¤°à¤¿à¤œà¤¼à¥à¤¯à¥‚à¤®à¥‡)</h1>
+          <h1 className="text-3xl font-black text-slate-900 mb-2">Professional Resume Maker</h1>
           <p className="text-sm text-slate-600">
             Fill your details, select a professional template, and click Print. Produces clean, searchable vector PDF matching genuine shop margins.
           </p>
@@ -274,7 +274,7 @@ export default function ResumeMakerPage() {
             ) : (
               <>
                 <Printer className="w-4 h-4" />
-                <span>Generate &amp; Add to Print Order</span>
+                <span>Generate & Add to Print Order</span>
               </>
             )}
           </button>
@@ -282,7 +282,7 @@ export default function ResumeMakerPage() {
       </main>
 
       <footer className="border-t border-slate-200 bg-white py-6 px-6 text-center text-xs text-slate-500">
-        Shakeel Online Services Â· Guntur, Andhra Pradesh Â· SOS Print
+        Shakeel Online Services • Guntur, Andhra Pradesh • SOS Print
       </footer>
     </div>
   );

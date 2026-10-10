@@ -77,10 +77,10 @@ export default function StandeePage() {
           <div>
             <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 uppercase tracking-wider">
               <QrCode className="w-3.5 h-3.5" />
-              <span>Shop Marketing &amp; Self-Service Print Posters</span>
+              <span>Shop Marketing & Self-Service Print Posters</span>
             </div>
             <h1 className="text-xl font-black text-[#0F172A] mt-0.5">
-              Shop QR &amp; Printable Poster
+              Shop QR & Printable Poster
             </h1>
             <p className="text-xs text-[#64748B] mt-0.5">
               Download high-resolution print-ready A4/A5 PDF posters and QR assets for {PRIMARY_PILOT_SHOP.name}.
@@ -209,15 +209,15 @@ export default function StandeePage() {
 
           <div>
             <div className="text-xs font-bold text-emerald-700 tracking-widest uppercase">
-              SHAKEEL ONLINE SERVICES &bull; GUNTUR
+              SHAKEEL ONLINE SERVICES • GUNTUR
             </div>
             <h2 className="text-lg sm:text-xl font-black tracking-tight text-[#0F172A] mt-0.5">
-              Scan to Upload &amp; Print
+              Scan to Upload & Print
             </h2>
           </div>
 
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold tracking-wider">
-            <span>SCAN &bull; UPLOAD &bull; PAY &bull; COLLECT</span>
+            <span>SCAN • UPLOAD • PAY • COLLECT</span>
           </div>
         </div>
 
@@ -242,7 +242,7 @@ export default function StandeePage() {
               {destinationUrl.replace(/^https?:\/\//, "")}
             </div>
             <div className="text-[11px] font-bold text-emerald-700">
-              Point phone camera at QR &bull; No app download required
+              Point phone camera at QR • No app download required
             </div>
           </div>
         </div>
@@ -272,7 +272,7 @@ export default function StandeePage() {
             <div className="flex items-start gap-2.5">
               <span className="w-5 h-5 rounded-full bg-emerald-600 text-white font-mono font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">3</span>
               <div>
-                <strong>Choose settings:</strong> Set B&amp;W or Colour, 1-sided or 2-sided duplex, and number of copies.
+                <strong>Choose settings:</strong> Set B&W or Colour, 1-sided or 2-sided duplex, and number of copies.
               </div>
             </div>
 
@@ -295,7 +295,7 @@ export default function StandeePage() {
         {/* Secondary Tools Footer */}
         <div className="pt-4 border-t border-[#E2E8F0] text-center space-y-1.5">
           <div className="text-[11px] font-bold text-[#475569]">
-            Also available: Passport Photos &bull; Resume Maker &bull; Photo Sheets &bull; Scan &amp; ID Copy
+            Also available: Passport Photos • Resume Maker • Photo Sheets • Scan & ID Copy
           </div>
           <div className="text-xs font-mono font-bold text-[#0F172A] flex items-center justify-center gap-2">
             <Phone className="w-3.5 h-3.5 text-emerald-600" />

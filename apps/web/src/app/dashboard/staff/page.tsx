@@ -120,7 +120,7 @@ export default function DashboardStaffPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-black text-white tracking-tight">Staff &amp; Authorization (RBAC)</h1>
+            <h1 className="text-xl font-black text-white tracking-tight">Staff & Authorization (RBAC)</h1>
             <span className="bg-emerald-950 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">
               Fail-Closed Security
             </span>
@@ -211,7 +211,7 @@ export default function DashboardStaffPage() {
                       </div>
                       <div className="text-[11px] text-slate-400 flex items-center gap-2">
                         <span className="font-mono text-slate-500">UID: {m.userId}</span>
-                        {m.email && <span>&bull; {m.email}</span>}
+                        {m.email && <span>• {m.email}</span>}
                       </div>
                     </div>
 
@@ -314,8 +314,8 @@ export default function DashboardStaffPage() {
                   onChange={(e) => setNewRole(e.target.value as UserRole)}
                   className="w-full py-2 px-3 bg-[#1f2937] border border-[#374151] rounded-lg text-xs text-white focus:outline-none focus:border-emerald-500"
                 >
-                  <option value="COUNTER_STAFF">COUNTER_STAFF (Orders &amp; Payments)</option>
-                  <option value="PRINT_OPERATOR">PRINT_OPERATOR (Print Queue &amp; Spooler)</option>
+                  <option value="COUNTER_STAFF">COUNTER_STAFF (Orders & Payments)</option>
+                  <option value="PRINT_OPERATOR">PRINT_OPERATOR (Print Queue & Spooler)</option>
                   <option value="MANAGER">MANAGER (Full Operational Access)</option>
                 </select>
               </div>

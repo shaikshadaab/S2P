@@ -161,7 +161,7 @@ export default function DocumentEditor({
           className="max-h-[65vh] max-w-full object-contain rounded-lg shadow-2xl border border-zinc-700"
         />
         <div className="absolute top-4 left-4 bg-black/70 px-2 py-1 rounded text-[10px] text-zinc-300 font-mono">
-          Original preserved untouched &bull; Derivative preview
+          Original preserved untouched • Derivative preview
         </div>
       </div>
 

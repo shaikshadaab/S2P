@@ -76,10 +76,10 @@ export default function DashboardPaymentsPage() {
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 uppercase tracking-wider">
             <CreditCard className="w-4 h-4 text-emerald-600" />
-            <span>Payments &amp; Reconciliation Audit</span>
+            <span>Payments & Reconciliation Audit</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-[#111827] mt-0.5">
-            Counter Payments &amp; Audits
+            Counter Payments & Audits
           </h1>
           <p className="text-xs text-[#475569] mt-0.5">
             Authoritative cash and direct UPI reconciliation records for {PRIMARY_PILOT_SHOP.name}.

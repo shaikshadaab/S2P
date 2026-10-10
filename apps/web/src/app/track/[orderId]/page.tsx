@@ -472,7 +472,7 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center space-y-3">
               <div className="space-y-1">
                 <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block">
-                  Payment QR &bull; Shakeel Online Services
+                  Payment QR • Shakeel Online Services
                 </span>
                 <p className="text-[11px] text-slate-600">
                   Scan to pay exactly ₹{formattedAmount} for Order #{order.orderNumber}
@@ -648,10 +648,10 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
               <div key={item.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1">
                 <div className="flex justify-between items-center font-bold text-slate-900">
                   <span>
-                    {item.selectedPageCount} Pages &times; {item.config?.copies} Copies
+                    {item.selectedPageCount} Pages × {item.config?.copies} Copies
                   </span>
                   <span className="text-emerald-700">
-                    {item.config?.paperSize} &bull; {item.config?.colorMode}
+                    {item.config?.paperSize} • {item.config?.colorMode}
                   </span>
                 </div>
                 <div className="flex justify-between text-[11px] text-slate-500">

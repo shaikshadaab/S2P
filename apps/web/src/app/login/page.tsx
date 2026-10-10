@@ -244,7 +244,7 @@ export default function LoginPage() {
           </Link>
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-            <span className="text-xs text-[#475569] font-mono font-medium">Owner &amp; Staff Access Portal</span>
+            <span className="text-xs text-[#475569] font-mono font-medium">Owner & Staff Access Portal</span>
           </div>
         </div>
       </header>
@@ -256,7 +256,7 @@ export default function LoginPage() {
               <SosLogo variant="horizontal" size="lg" />
             </div>
             <h1 className="text-2xl font-black text-[#111827] tracking-tight">
-              Owner &amp; Staff Sign In
+              Owner & Staff Sign In
             </h1>
             <p className="text-xs text-[#475569] max-w-sm mx-auto">
               Secure administrative access for {PRIMARY_PILOT_SHOP.name}. Customers do not require an account to upload or print documents.
@@ -287,7 +287,7 @@ export default function LoginPage() {
       </main>
 
       <footer className="border-t border-[#E2E8F0] py-4 text-center text-xs text-[#64748B] bg-white">
-        &copy; {new Date().getFullYear()} {BRAND_NAME} &bull; Shakeel Online Services, Guntur.
+        &copy; {new Date().getFullYear()} {BRAND_NAME} • Shakeel Online Services, Guntur.
       </footer>
     </div>
   );

@@ -330,7 +330,7 @@ export default function DashboardOrdersView() {
               <tr>
                 <th className="py-3 px-4">Order #</th>
                 <th className="py-3 px-4">Customer (Masked)</th>
-                <th className="py-3 px-4">Pages &amp; Config</th>
+                <th className="py-3 px-4">Pages & Config</th>
                 <th className="py-3 px-4">Amount</th>
                 <th className="py-3 px-4">Payment</th>
                 <th className="py-3 px-4">Status</th>
@@ -364,7 +364,7 @@ export default function DashboardOrdersView() {
                         {o.items && o.items.length > 1 ? (
                           <>
                             <div className="font-bold text-emerald-700">
-                              {o.items.length} items &bull; {o.items.reduce((acc, it) => acc + (it.selectedPageCount || 1) * (it.config?.copies || 1), 0)} pages total
+                              {o.items.length} items • {o.items.reduce((acc, it) => acc + (it.selectedPageCount || 1) * (it.config?.copies || 1), 0)} pages total
                             </div>
                             <div className="text-slate-500 text-[10px] truncate max-w-[200px]">
                               {o.items.map((it, idx) => `#${idx + 1}: ${it.config?.paperSize || 'A4'} ${it.config?.colorMode === 'COLOR' ? 'Color' : 'B&W'}`).join(', ')}
@@ -372,9 +372,9 @@ export default function DashboardOrdersView() {
                           </>
                         ) : (
                           <>
-                            <div>{item?.selectedPageCount || 1} pages &bull; {item?.config?.copies || 1} copies</div>
+                            <div>{item?.selectedPageCount || 1} pages • {item?.config?.copies || 1} copies</div>
                             <div className="text-slate-500 text-[10px]">
-                              {item?.config?.paperSize || 'A4'} &bull; {item?.config?.colorMode === "BW" ? "B&W" : "Color"} &bull; {item?.config?.duplexMode === "DOUBLE" ? "Duplex" : "Single"}
+                              {item?.config?.paperSize || 'A4'} • {item?.config?.colorMode === "BW" ? "B&W" : "Color"} • {item?.config?.duplexMode === "DOUBLE" ? "Duplex" : "Single"}
                             </div>
                           </>
                         )}
@@ -505,8 +505,8 @@ export default function DashboardOrdersView() {
               {selectedOrder.items?.map((item) => (
                 <div key={item.id} className="bg-slate-50 border border-[#E2E8F0] rounded-xl p-3 space-y-1">
                   <div className="flex justify-between font-bold text-[#0F172A]">
-                    <span>{item.selectedPageCount} Pages &times; {item.config?.copies} Copies</span>
-                    <span className="text-emerald-700">{item.config?.paperSize} &bull; {item.config?.colorMode}</span>
+                    <span>{item.selectedPageCount} Pages × {item.config?.copies} Copies</span>
+                    <span className="text-emerald-700">{item.config?.paperSize} • {item.config?.colorMode}</span>
                   </div>
                   <div className="flex justify-between text-slate-500 text-[11px]">
                     <span>Sides: {item.config?.duplexMode} ({item.printedSides} sides total)</span>
@@ -604,7 +604,7 @@ export default function DashboardOrdersView() {
                     className="col-span-2 py-2.5 px-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Mark Collected &bull; Handover to Customer</span>
+                    <span>Mark Collected • Handover to Customer</span>
                   </button>
                 )}
               </div>

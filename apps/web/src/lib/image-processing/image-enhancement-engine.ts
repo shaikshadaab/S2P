@@ -1,9 +1,10 @@
-import {
+﻿import {
   DocumentEnhanceMode,
   ImageProcessingSettings,
   PerspectiveCorners,
   CornerPoint
 } from '@s2p/shared';
+import { DocumentCornerDetector } from './document-corner-detector';
 
 export class ImageEnhancementEngine {
   private static readonly MAX_SAFE_CANVAS_DIM = 2560;
@@ -16,7 +17,7 @@ export class ImageEnhancementEngine {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => resolve(img);
-      img.onerror = (e) => reject(new Error('Failed to load image for enhancement'));
+      img.onerror = () => reject(new Error('Failed to load image for enhancement'));
 
       if (typeof source === 'string') {
         img.src = source;
@@ -27,59 +28,17 @@ export class ImageEnhancementEngine {
   }
 
   /**
-   * Detects document corners (TL, TR, BR, BL) using edge & contrast heuristics
+   * Detects document corners (TL, TR, BR, BL) using computer vision edge detection
    */
   public static detectDocumentCorners(
     canvas: HTMLCanvasElement
   ): PerspectiveCorners {
-    const w = canvas.width;
-    const h = canvas.height;
-    const ctx = canvas.getContext('2d');
-
-    // Default conservative margins (5% inset)
-    const defaultCorners: PerspectiveCorners = {
-      tl: { x: 5, y: 5 },
-      tr: { x: 95, y: 5 },
-      br: { x: 95, y: 95 },
-      bl: { x: 5, y: 95 }
-    };
-
-    if (!ctx) return defaultCorners;
-
-    try {
-      // Analyze downsampled 200x200 grid for fast boundary estimation
-      const sampleW = 200;
-      const sampleH = Math.max(100, Math.round((h / w) * sampleW));
-      const sampleCanvas = document.createElement('canvas');
-      sampleCanvas.width = sampleW;
-      sampleCanvas.height = sampleH;
-      const sCtx = sampleCanvas.getContext('2d');
-      if (!sCtx) return defaultCorners;
-
-      sCtx.drawImage(canvas, 0, 0, sampleW, sampleH);
-      const imgData = sCtx.getImageData(0, 0, sampleW, sampleH);
-      const data = imgData.data;
-
-      // Find top/bottom/left/right bounds by finding highest gradient difference
-      let topY = Math.round(sampleH * 0.05);
-      let bottomY = Math.round(sampleH * 0.95);
-      let leftX = Math.round(sampleW * 0.05);
-      let rightX = Math.round(sampleW * 0.95);
-
-      return {
-        tl: { x: Math.max(2, Math.round((leftX / sampleW) * 100)), y: Math.max(2, Math.round((topY / sampleH) * 100)) },
-        tr: { x: Math.min(98, Math.round((rightX / sampleW) * 100)), y: Math.max(2, Math.round((topY / sampleH) * 100)) },
-        br: { x: Math.min(98, Math.round((rightX / sampleW) * 100)), y: Math.min(98, Math.round((bottomY / sampleH) * 100)) },
-        bl: { x: Math.max(2, Math.round((leftX / sampleW) * 100)), y: Math.min(98, Math.round((bottomY / sampleH) * 100)) }
-      };
-    } catch {
-      return defaultCorners;
-    }
+    return DocumentCornerDetector.detect(canvas).corners;
   }
 
   /**
-   * Applies the complete pipeline: rotation, deskew, cropping, perspective, background whitening,
-   * shadow reduction, color enhancement, and mild unsharp sharpening.
+   * Applies the complete pipeline: rotation, deskew, cropping, perspective homography,
+   * background whitening, shadow reduction, color enhancement, and mild unsharp sharpening.
    */
   public static async processImage(
     sourceImg: HTMLImageElement,
@@ -115,9 +74,12 @@ export class ImageEnhancementEngine {
     baseCtx.drawImage(sourceImg, -origW / 2, -origH / 2, origW, origH);
     baseCtx.restore();
 
-    // 3. Handle Crop / Perspective Bounds
+    // 3. Handle Perspective Warp vs Crop Box
     let croppedCanvas = document.createElement('canvas');
-    if (settings.cropBox) {
+    if (settings.perspectiveCorners) {
+      // Perspective Warp has priority for documents and scanned sheets
+      croppedCanvas = DocumentCornerDetector.warpPerspective(baseCanvas, settings.perspectiveCorners, this.MAX_SAFE_CANVAS_DIM);
+    } else if (settings.cropBox) {
       const cb = settings.cropBox;
       const cropX = Math.max(0, Math.round((cb.x / 100) * baseW));
       const cropY = Math.max(0, Math.round((cb.y / 100) * baseH));
@@ -146,8 +108,6 @@ export class ImageEnhancementEngine {
     const isDoc = mode !== 'ORIGINAL';
 
     // A. Brightness & Contrast pre-multipliers
-    // For documents, paper-ink contrast midpoint is 200 rather than photo midpoint 128
-    // so faint handwriting (<200) is darkened while paper (>200) is whitened
     const midpoint = isDoc ? 200 : 128;
     const brightnessFactor = (settings.brightness || 0) * 2.55;
     const contrastRatio = ((settings.contrast || 0) + 100) / 100;
@@ -170,7 +130,7 @@ export class ImageEnhancementEngine {
           b = Math.min(255, Math.max(0, b + brightnessFactor));
         }
 
-        // Apply Adaptive Document Contrast around midpoint 200
+        // Apply Adaptive Document Contrast around midpoint
         if (settings.contrast !== 0) {
           r = Math.min(255, Math.max(0, (r - midpoint) * contrastFactor + midpoint));
           g = Math.min(255, Math.max(0, (g - midpoint) * contrastFactor + midpoint));
@@ -194,15 +154,16 @@ export class ImageEnhancementEngine {
           pixels[i + 2] = gray;
         } else if (mode === 'HIGH_CONTRAST') {
           const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-          const val = lum >= 170 ? 255 : Math.max(0, lum * 0.65);
+          // Conservative high-contrast: keep faint pencil/ink
+          const val = lum >= 180 ? 255 : Math.max(0, lum * 0.7);
           pixels[i] = val;
           pixels[i + 1] = val;
           pixels[i + 2] = val;
         } else if (mode === 'COLOR_ENHANCED') {
-          // Whiten genuine paper background (luminance >= 220) while preserving colored stamps and signatures
+          // Whiten paper background (luminance >= 215) while strictly preserving colored ink/stamps
           const updatedLum = 0.299 * r + 0.587 * g + 0.114 * b;
-          if (updatedLum >= 220) {
-            const paperWhitening = ((updatedLum - 220) / 35) * 35;
+          if (updatedLum >= 215) {
+            const paperWhitening = ((updatedLum - 215) / 40) * 35;
             r = Math.min(255, r + paperWhitening);
             g = Math.min(255, g + paperWhitening);
             b = Math.min(255, b + paperWhitening);
@@ -240,7 +201,7 @@ export class ImageEnhancementEngine {
       const outData = ctx.createImageData(width, height);
       const out = outData.data;
 
-      const factor = (amount / 100) * 0.4; // Controlled mild weight
+      const factor = (amount / 100) * 0.4;
       const center = 1 + (4 * factor);
       const edge = -factor;
 
@@ -258,13 +219,13 @@ export class ImageEnhancementEngine {
             const sharpened = (mid * center) + (top + bottom + left + right) * edge;
             out[idx + c] = Math.min(255, Math.max(0, sharpened));
           }
-          out[idx + 3] = src[idx + 3]; // preserve alpha
+          out[idx + 3] = src[idx + 3];
         }
       }
 
       ctx.putImageData(outData, 0, 0);
     } catch {
-      // Fallback cleanly if convolution fails
+      // Fallback cleanly
     }
   }
 

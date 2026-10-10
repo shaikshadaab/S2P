@@ -136,7 +136,7 @@ export async function GET(req: NextRequest) {
     });
 
     cursorY -= isA5 ? 14 : 18;
-    const noAppText = "No app download or login required &bull; Direct mobile upload";
+    const noAppText = "No app download or login required • Direct mobile upload";
     const noAppClean = "No app download or login required  *  Direct mobile upload";
     const noAppSize = isA5 ? 8 : 10;
     const noAppWidth = fontRegular.widthOfTextAtSize(noAppClean, noAppSize);

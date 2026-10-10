@@ -229,7 +229,7 @@ export default function DashboardPricingPage() {
           </div>
           <div>
             <h1 className="text-xl font-black text-white tracking-tight">
-              Shop Pricing Engine &amp; Service Catalog
+              Shop Pricing Engine & Service Catalog
             </h1>
             <p className="text-xs text-slate-400 mt-1">
               Authoritative Integer Paise Engine for <strong className="text-emerald-400">{PRIMARY_PILOT_SHOP.name}</strong>.
@@ -330,11 +330,11 @@ export default function DashboardPricingPage() {
               <span className="text-[10px] text-emerald-400 font-mono">210 × 297 mm</span>
             </h3>
             <div>
-              <label className="block text-[11px] text-slate-300 mb-1">B&amp;W Single (₹/side)</label>
+              <label className="block text-[11px] text-slate-300 mb-1">B&W Single (₹/side)</label>
               <input type="number" step="0.10" disabled={!isManager} value={rates.a4BwSingle} onChange={e => setRates({ ...rates, a4BwSingle: e.target.value })} className="w-full bg-[#161e1b] border border-[#24322c] rounded-lg px-3 py-1.5 text-xs text-white" />
             </div>
             <div>
-              <label className="block text-[11px] text-slate-300 mb-1">B&amp;W Duplex (₹/side)</label>
+              <label className="block text-[11px] text-slate-300 mb-1">B&W Duplex (₹/side)</label>
               <input type="number" step="0.10" disabled={!isManager} value={rates.a4BwDuplex} onChange={e => setRates({ ...rates, a4BwDuplex: e.target.value })} className="w-full bg-[#161e1b] border border-[#24322c] rounded-lg px-3 py-1.5 text-xs text-white" />
             </div>
             <div>
@@ -354,11 +354,11 @@ export default function DashboardPricingPage() {
               <span className="text-[10px] text-emerald-400 font-mono">297 × 420 mm</span>
             </h3>
             <div>
-              <label className="block text-[11px] text-slate-300 mb-1">B&amp;W Single (₹/side)</label>
+              <label className="block text-[11px] text-slate-300 mb-1">B&W Single (₹/side)</label>
               <input type="number" step="0.50" disabled={!isManager} value={rates.a3BwSingle} onChange={e => setRates({ ...rates, a3BwSingle: e.target.value })} className="w-full bg-[#161e1b] border border-[#24322c] rounded-lg px-3 py-1.5 text-xs text-white" />
             </div>
             <div>
-              <label className="block text-[11px] text-slate-300 mb-1">B&amp;W Duplex (₹/side)</label>
+              <label className="block text-[11px] text-slate-300 mb-1">B&W Duplex (₹/side)</label>
               <input type="number" step="0.50" disabled={!isManager} value={rates.a3BwDuplex} onChange={e => setRates({ ...rates, a3BwDuplex: e.target.value })} className="w-full bg-[#161e1b] border border-[#24322c] rounded-lg px-3 py-1.5 text-xs text-white" />
             </div>
             <div>
@@ -404,7 +404,7 @@ export default function DashboardPricingPage() {
           {/* Finishing & Minimum */}
           <div className="bg-[#111827] border border-[#1f2937] rounded-xl p-5 space-y-3">
             <h3 className="text-sm font-bold text-white border-b border-[#1f2937] pb-2 flex justify-between">
-              <span>Finishing &amp; Settings</span>
+              <span>Finishing & Settings</span>
               <span className="text-[10px] text-emerald-400 font-mono">Store Defaults</span>
             </h3>
             <div>
@@ -469,7 +469,7 @@ export default function DashboardPricingPage() {
           <div>
             <label className="block text-[11px] text-slate-300 mb-1">Print Mode</label>
             <select value={calcPrintMode} onChange={e => setCalcPrintMode(e.target.value as "BW" | "COLOR")} className="w-full bg-[#161e1b] border border-[#24322c] rounded-lg px-3 py-2 text-xs text-white">
-              <option value="BW">Black &amp; White</option>
+              <option value="BW">Black & White</option>
               <option value="COLOR">Full Color</option>
             </select>
           </div>

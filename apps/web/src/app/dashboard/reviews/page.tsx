@@ -68,7 +68,7 @@ export default function DashboardReviewsPage() {
             <span>Customer Experience Feedback</span>
           </div>
           <h1 className="text-2xl font-black text-[#0F172A] tracking-tight mt-1">
-            Customer Reviews &amp; Ratings
+            Customer Reviews & Ratings
           </h1>
           <p className="text-xs text-[#64748B] mt-1">
             Private post-collection feedback submitted by customers after receiving prints at {PRIMARY_PILOT_SHOP.name}.
@@ -174,7 +174,7 @@ export default function DashboardReviewsPage() {
               : "100%"}
           </div>
           <div className="text-[11px] text-[#64748B]">
-            4-star &amp; 5-star positive responses
+            4-star & 5-star positive responses
           </div>
         </div>
       </div>

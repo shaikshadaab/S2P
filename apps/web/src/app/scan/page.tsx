@@ -16,13 +16,17 @@ import {
   Plus,
   Loader2,
   Sliders,
-  FileText
+  FileText,
+  Crop,
+  RotateCw
 } from "lucide-react";
+import EnhancedImageEditor from "@/components/common/EnhancedImageEditor";
 
 interface ScannedPage {
   id: string;
   dataUrl: string;
   file: File;
+  rotation: number;
 }
 
 export default function DocumentScanPage() {
@@ -30,7 +34,8 @@ export default function DocumentScanPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [pages, setPages] = useState<ScannedPage[]>([]);
-  const [contrastFilter, setContrastFilter] = useState<"NORMAL" | "HIGH_CONTRAST_BW">("HIGH_CONTRAST_BW");
+  const [activeEditingPage, setActiveEditingPage] = useState<ScannedPage | null>(null);
+  const [globalFilter, setGlobalFilter] = useState<"NORMAL" | "HIGH_CONTRAST_BW">("NORMAL");
   const [isCompiling, setIsCompiling] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -47,6 +52,7 @@ export default function DocumentScanPage() {
             id: `p_${Date.now()}_${Math.random().toString(36).substring(7)}`,
             dataUrl: reader.result as string,
             file,
+            rotation: 0
           },
         ]);
       };
@@ -56,6 +62,34 @@ export default function DocumentScanPage() {
 
   const handleRemovePage = (id: string) => {
     setPages((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const handleRotatePage = (id: string) => {
+    setPages((prev) =>
+      prev.map((p) =>
+        p.id === id ? { ...p, rotation: (p.rotation + 90) % 360 } : p
+      )
+    );
+  };
+
+  const handleSavePageDerivative = async (derivativeBlob: Blob) => {
+    if (!activeEditingPage) return;
+    const pageId = activeEditingPage.id;
+
+    const dataUrl = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(derivativeBlob);
+    });
+
+    const newFile = new File([derivativeBlob], activeEditingPage.file.name, {
+      type: "image/jpeg"
+    });
+
+    setPages((prev) =>
+      prev.map((p) => (p.id === pageId ? { ...p, dataUrl, file: newFile } : p))
+    );
+    setActiveEditingPage(null);
   };
 
   const handleCompileAndPrint = async () => {
@@ -74,14 +108,13 @@ export default function DocumentScanPage() {
       const pageHeight = 841.89;
 
       for (const p of pages) {
-        const arrayBuf = await p.file.arrayBuffer();
-        const img = p.file.type.includes("png")
+        let arrayBuf = await p.file.arrayBuffer();
+        let img = p.file.type.includes("png")
           ? await pdfDoc.embedPng(arrayBuf)
           : await pdfDoc.embedJpg(arrayBuf);
 
         const pdfPage = pdfDoc.addPage([pageWidth, pageHeight]);
 
-        // Draw image fitted
         const margin = 20;
         const availableW = pageWidth - margin * 2;
         const availableH = pageHeight - margin * 2;
@@ -127,7 +160,7 @@ export default function DocumentScanPage() {
         throw new Error(uploadData.error || "Failed to upload scanned document.");
       }
 
-      router.push(`/s/${PRIMARY_PILOT_SHOP.slug}`);
+      router.push(`/print?draftId=${draftData.draftId}`);
     } catch (err) {
       console.error("[ScanPage] Error:", err);
       setErrorMsg(err instanceof Error ? err.message : "Failed to compile document");
@@ -138,29 +171,31 @@ export default function DocumentScanPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
-      <header className="border-b border-slate-200 bg-white px-6 py-4 sticky top-0 z-50">
+      <header className="border-b border-slate-200 bg-white px-6 py-4 sticky top-0 z-40">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900">
             <ArrowLeft className="w-4 h-4" />
             <span>Shakeel Online Services Home</span>
           </Link>
           <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-            Camera Document Scanner &amp; Xerox
+            Camera Document Scanner & Xerox
           </span>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-10 flex-1 w-full space-y-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-10 flex-1 w-full space-y-6">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 mb-2">Camera Document Scan (à¤®à¥‹à¤¬à¤¾à¤‡à¤² à¤¸à¥à¤•à¥ˆà¤¨)</h1>
-          <p className="text-sm text-slate-600">
-            Capture multiple pages of notes, bills, or certificates with your phone camera and compile into a single print-ready PDF.
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mb-1.5">
+            Camera Document Scanner
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-600">
+            Capture multiple pages of notes, bills, or certificates with your phone camera, adjust corners, enhance readability, and compile into a single print-ready PDF.
           </p>
         </div>
 
         {/* Capture Buttons */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <input
               type="file"
               ref={fileInputRef}
@@ -173,10 +208,10 @@ export default function DocumentScanPage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-md transition flex items-center gap-2"
+              className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs transition flex items-center justify-center gap-2 cursor-pointer flex-1 sm:flex-none"
             >
-              <Camera className="w-5 h-5" />
-              <span>Capture with Camera / Upload</span>
+              <Camera className="w-4 h-4" />
+              <span>Capture with Camera</span>
             </button>
 
             <button
@@ -189,25 +224,25 @@ export default function DocumentScanPage() {
                 input.onchange = (e) => handleCapture(e as any);
                 input.click();
               }}
-              className="px-4 py-3 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-semibold transition flex items-center gap-1.5"
+              className="px-4 py-3 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer flex-1 sm:flex-none"
             >
               <Upload className="w-4 h-4" />
               <span>Browse Photos</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-slate-600">
-            <span className="font-semibold">Enhancement:</span>
+          <div className="flex items-center gap-2 text-xs text-slate-600 self-end sm:self-auto">
+            <span className="font-semibold">Enhancement Filter:</span>
             <button
               type="button"
-              onClick={() => setContrastFilter(contrastFilter === "HIGH_CONTRAST_BW" ? "NORMAL" : "HIGH_CONTRAST_BW")}
-              className={`px-3 py-1.5 rounded-lg border font-bold transition ${
-                contrastFilter === "HIGH_CONTRAST_BW"
+              onClick={() => setGlobalFilter(globalFilter === "HIGH_CONTRAST_BW" ? "NORMAL" : "HIGH_CONTRAST_BW")}
+              className={`px-3 py-1.5 rounded-lg border font-bold transition cursor-pointer ${
+                globalFilter === "HIGH_CONTRAST_BW"
                   ? "bg-slate-900 text-white border-slate-900"
-                  : "bg-white text-slate-700 border-slate-300"
+                  : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
               }`}
             >
-              {contrastFilter === "HIGH_CONTRAST_BW" ? "High-Contrast B&W Active" : "Original Color"}
+              {globalFilter === "HIGH_CONTRAST_BW" ? "High-Contrast B&W Active" : "Original Color"}
             </button>
           </div>
         </div>
@@ -222,28 +257,52 @@ export default function DocumentScanPage() {
               <span className="text-xs text-slate-500">Will be compiled into 1 PDF document</span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {pages.map((p, idx) => (
-                <div key={p.id} className="relative bg-white border border-slate-200 rounded-xl overflow-hidden p-2 shadow-sm group">
-                  <div className="w-full h-44 bg-slate-100 rounded-lg overflow-hidden flex items-center justify-center">
+                <div key={p.id} className="relative bg-white border border-slate-200 rounded-xl overflow-hidden p-2.5 shadow-xs group flex flex-col justify-between">
+                  <div className="w-full h-44 bg-slate-100 rounded-lg overflow-hidden flex items-center justify-center relative">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={p.dataUrl}
                       alt={`Page ${idx + 1}`}
-                      className={`max-w-full max-h-full object-contain ${
-                        contrastFilter === "HIGH_CONTRAST_BW" ? "grayscale contrast-150" : ""
+                      style={{ transform: `rotate(${p.rotation}deg)` }}
+                      className={`max-w-full max-h-full object-contain transition-transform ${
+                        globalFilter === "HIGH_CONTRAST_BW" ? "grayscale contrast-150" : ""
                       }`}
                     />
                   </div>
-                  <div className="flex items-center justify-between mt-2 px-1">
-                    <span className="text-[11px] font-bold text-slate-700">Page {idx + 1}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePage(p.id)}
-                      className="text-red-500 hover:text-red-700 p-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+
+                  <div className="pt-2 space-y-1.5">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-xs font-bold text-slate-800">Page {idx + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePage(p.id)}
+                        className="text-red-500 hover:text-red-700 p-1 cursor-pointer"
+                        title="Delete Page"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setActiveEditingPage(p)}
+                        className="flex-1 py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Crop className="w-3 h-3 text-emerald-600" />
+                        <span>Corner Crop</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRotatePage(p.id)}
+                        className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] cursor-pointer"
+                        title="Rotate 90 degrees"
+                      >
+                        <RotateCw className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -255,12 +314,12 @@ export default function DocumentScanPage() {
               </div>
             )}
 
-            <div className="pt-4 flex justify-end">
+            <div className="pt-4 flex flex-col sm:flex-row justify-end gap-3">
               <button
                 type="button"
                 disabled={isCompiling}
                 onClick={handleCompileAndPrint}
-                className="w-full sm:w-auto px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-md transition flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-xs transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {isCompiling ? (
                   <>
@@ -270,7 +329,7 @@ export default function DocumentScanPage() {
                 ) : (
                   <>
                     <Printer className="w-4 h-4" />
-                    <span>Compile &amp; Send to Print Basket</span>
+                    <span>Compile & Send to Print Basket</span>
                   </>
                 )}
               </button>
@@ -281,7 +340,7 @@ export default function DocumentScanPage() {
             <Camera className="w-10 h-10 text-slate-400 mx-auto" />
             <h4 className="font-bold text-slate-800 text-sm">No Scanned Pages Yet</h4>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Click the button above to capture photos of documents, ID cards, certificates, or book pages with your phone camera.
+              Click the button above to capture photos of documents, certificates, or book pages with your phone camera.
             </p>
           </div>
         )}
@@ -298,8 +357,21 @@ export default function DocumentScanPage() {
         </div>
       </main>
 
+      {/* Interactive Corner Crop Editor Modal */}
+      {activeEditingPage && (
+        <EnhancedImageEditor
+          imageUrl={activeEditingPage.dataUrl}
+          fileId={activeEditingPage.id}
+          originalFilename={activeEditingPage.file.name}
+          initialMode="DOCUMENT"
+          targetPaperSize="A4"
+          onSaveDerivative={handleSavePageDerivative}
+          onClose={() => setActiveEditingPage(null)}
+        />
+      )}
+
       <footer className="border-t border-slate-200 bg-white py-6 px-6 text-center text-xs text-slate-500">
-        Shakeel Online Services Â· Guntur, Andhra Pradesh Â· SOS Print
+        Shakeel Online Services • Guntur, Andhra Pradesh • SOS Print
       </footer>
     </div>
   );

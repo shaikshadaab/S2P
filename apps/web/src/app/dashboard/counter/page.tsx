@@ -218,7 +218,7 @@ export default function CounterCashierPage() {
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 uppercase tracking-wider">
             <Banknote className="w-4 h-4 text-emerald-600" />
-            <span>Counter Cashier &bull; Realtime Spooler Dispatch</span>
+            <span>Counter Cashier • Realtime Spooler Dispatch</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-[#111827] mt-0.5">
             Shop Counter Terminal
@@ -412,7 +412,7 @@ export default function CounterCashierPage() {
                       <FileText className="w-3 h-3 text-slate-400" />
                       {order.items?.length || 1} document(s)
                     </span>
-                    <span>&bull;</span>
+                    <span>•</span>
                     <span>
                       {(order.pricingSnapshot as any)?.lineItems?.[0]?.name || "A4 Document Print"}
                     </span>
@@ -570,7 +570,7 @@ export default function CounterCashierPage() {
                     <span>Confirming...</span>
                   </>
                 ) : (
-                  <span>Confirm Receipt &amp; Print</span>
+                  <span>Confirm Receipt & Print</span>
                 )}
               </button>
             </div>

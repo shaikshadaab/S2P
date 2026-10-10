@@ -74,6 +74,7 @@ export default function DirectPrintPage() {
   // Dynamic Shop Options & UPI Configuration from Firestore
   const [shopOptions, setShopOptions] = useState<ShopPrintOptions | null>(null);
   const [shopUpiConfig, setShopUpiConfig] = useState<UpiConfiguration | null>(null);
+  const [availability, setAvailability] = useState<{ available: boolean; message: string } | null>(null);
 
   // Print Configuration States
   const [paperSize, setPaperSize] = useState<PaperSize>("A4");
@@ -424,7 +425,7 @@ export default function DirectPrintPage() {
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Shop Open &bull; Printing Live</span>
+              <span>Shop Open • Printing Live</span>
             </div>
             <Link
               href="/"
@@ -446,7 +447,7 @@ export default function DirectPrintPage() {
                 {"Printing at Shakeel Online Services"}
               </span>
               <h1 className="text-xl sm:text-2xl font-black text-[#0F172A] tracking-tight mt-0.5">
-                {"Upload &amp; Print Documents"}
+                {"Upload & Print Documents"}
               </h1>
             </div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold self-start sm:self-auto">
@@ -471,7 +472,7 @@ export default function DirectPrintPage() {
             </div>
             <div className="p-2 rounded-xl bg-slate-50">
               <span className="block text-xs font-mono font-black">4</span>
-              <span>{"Pay &amp; Track"}</span>
+              <span>{"Pay & Track"}</span>
             </div>
           </div>
         </div>
@@ -526,10 +527,10 @@ export default function DirectPrintPage() {
                 </div>
                 <div className="space-y-1">
                   <div className="text-base font-black text-[#0F172A]">
-                    {"Tap here to choose files or drag &amp; drop"}
+                    {"Tap here to choose files or drag & drop"}
                   </div>
                   <p className="text-xs text-[#64748B]">
-                    {"PDF, JPG, PNG &bull; Up to 10 files &bull; 50 MB per file"}
+                    {"PDF, JPG, PNG • Up to 10 files • 50 MB per file"}
                   </p>
                 </div>
                 <button
@@ -574,7 +575,7 @@ export default function DirectPrintPage() {
                             {file.safeDisplayName}
                           </div>
                           <div className="text-[11px] text-slate-500 font-mono">
-                            {file.pageCount} {file.pageCount === 1 ? "page" : "pages"} &bull; {(file.sizeBytes / 1024).toFixed(0)} KB
+                            {file.pageCount} {file.pageCount === 1 ? "page" : "pages"} • {(file.sizeBytes / 1024).toFixed(0)} KB
                           </div>
                           {file.mimeType.startsWith("image/") && (
                             <div className="flex items-center gap-2 mt-1">
@@ -595,7 +596,7 @@ export default function DirectPrintPage() {
                               </button>
                               {file.detectedMode === "DOCUMENT" && !file.hasDerivative && (
                                 <span className="text-[10px] text-slate-400">
-                                  &bull; {"Document detected"}
+                                  • {"Document detected"}
                                 </span>
                               )}
                             </div>
@@ -654,7 +655,7 @@ export default function DirectPrintPage() {
             <div className="flex items-center gap-2 border-b border-[#E2E8F0] pb-3">
               <Printer className="w-5 h-5 text-emerald-600" />
               <h2 className="text-base font-black text-[#0F172A]">
-                {"2. Print Options &amp; Copies"}
+                {"2. Print Options & Copies"}
               </h2>
             </div>
 
@@ -674,7 +675,7 @@ export default function DirectPrintPage() {
                         : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                     }`}
                   >
-                    B&amp;W (₹2/side)
+                    B&W (₹2/side)
                   </button>
                   <button
                     type="button"
@@ -762,8 +763,8 @@ export default function DirectPrintPage() {
                   onChange={(e) => setPaperSize(e.target.value as PaperSize)}
                   className="w-full py-2 px-3 rounded-xl border border-[#CBD5E1] bg-white font-semibold text-xs"
                 >
-                  <option value="A4">A4 (Standard 210 &times; 297 mm)</option>
-                  <option value="A3">A3 (Large 297 &times; 420 mm)</option>
+                  <option value="A4">A4 (Standard 210 × 297 mm)</option>
+                  <option value="A3">A3 (Large 297 × 420 mm)</option>
                   <option value="LEGAL">Legal</option>
                 </select>
               </div>
@@ -787,7 +788,7 @@ export default function DirectPrintPage() {
               {/* Fit / Scale */}
               <div className="space-y-1.5">
                 <label className="font-bold text-[#0F172A] block">
-                  {"Fit &amp; Scale"}
+                  {"Fit & Scale"}
                 </label>
                 <select
                   value={scaling}
@@ -851,7 +852,7 @@ export default function DirectPrintPage() {
                   </span>
                 </div>
                 <div className="text-[11px] text-emerald-800">
-                  {parsedPagesInfo.count} pages &times; {copies} {copies === 1 ? "copy" : "copies"} &bull; {duplexMode === "DOUBLE" ? "2-sided duplex" : "1-sided single"}
+                  {parsedPagesInfo.count} pages × {copies} {copies === 1 ? "copy" : "copies"} • {duplexMode === "DOUBLE" ? "2-sided duplex" : "1-sided single"}
                 </div>
               </div>
 
@@ -887,7 +888,7 @@ export default function DirectPrintPage() {
               <User className="w-5 h-5 text-emerald-600" />
               <div>
                 <h2 className="text-base font-black text-[#0F172A]">
-                  {"3. Customer Details &amp; Payment"}
+                  {"3. Customer Details & Payment"}
                 </h2>
                 <p className="text-xs text-[#64748B]">
                   Used to identify your order at the counter and contact you about printing.
@@ -1015,7 +1016,7 @@ export default function DirectPrintPage() {
                       Coming Soon
                     </span>
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-1">Cards &amp; NetBanking integration arriving soon</div>
+                  <div className="text-[10px] text-slate-400 mt-1">Cards & NetBanking integration arriving soon</div>
                 </div>
               </div>
             </div>
@@ -1026,13 +1027,13 @@ export default function DirectPrintPage() {
               disabled={isSubmittingOrder || !quote}
               className="w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm tracking-wide shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
-              {isSubmittingOrder ? (
+              {(availability !== null && !availability.available) ? (<span>Intake Paused • Ask Staff</span>) : isSubmittingOrder ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <Printer className="w-5 h-5" />
               )}
               <span>
-                {`Submit Order &bull; ₹${quote.totalRupees.toFixed(2)}`}
+                {`Submit Order • ₹${quote.totalRupees.toFixed(2)}`}
               </span>
             </button>
           </form>
@@ -1078,7 +1079,7 @@ export default function DirectPrintPage() {
                 </div>
               </div>
               <p className="text-[11px] text-[#64748B] leading-tight">
-                35&times;45mm standard with cutting guides on photo paper.
+                35×45mm standard with cutting guides on photo paper.
               </p>
             </Link>
 
@@ -1114,13 +1115,13 @@ export default function DirectPrintPage() {
                 </div>
                 <div>
                   <div className="text-xs font-bold text-[#0F172A] group-hover:text-emerald-700 transition">
-                    Photo Prints &amp; Grids
+                    Photo Prints & Grids
                   </div>
-                  <div className="text-[10px] text-blue-700 font-bold">Glossy 4&times;6 / A4</div>
+                  <div className="text-[10px] text-blue-700 font-bold">Glossy 4×6 / A4</div>
                 </div>
               </div>
               <p className="text-[11px] text-[#64748B] leading-tight">
-                High-resolution glossy photos, collage grids &amp; framing.
+                High-resolution glossy photos, collage grids & framing.
               </p>
             </Link>
 
@@ -1141,7 +1142,7 @@ export default function DirectPrintPage() {
                 </div>
               </div>
               <p className="text-[11px] text-[#64748B] leading-tight">
-                Turn camera pictures of paper into clean black &amp; white PDF.
+                Turn camera pictures of paper into clean black & white PDF.
               </p>
             </Link>
 
@@ -1158,7 +1159,7 @@ export default function DirectPrintPage() {
                   <div className="text-xs font-bold text-[#0F172A] group-hover:text-emerald-700 transition">
                     ID Front/Back Copy
                   </div>
-                  <div className="text-[10px] text-indigo-700 font-bold">Aadhaar &bull; PAN</div>
+                  <div className="text-[10px] text-indigo-700 font-bold">Aadhaar • PAN</div>
                 </div>
               </div>
               <p className="text-[11px] text-[#64748B] leading-tight">

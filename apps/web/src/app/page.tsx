@@ -221,7 +221,7 @@ export default function HomePage() {
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base shadow-md shadow-emerald-700/20 transition"
             >
               <Printer className="w-5 h-5" />
-              <span>Upload &amp; Print Documents</span>
+              <span>Upload & Print Documents</span>
               <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
             <Link
@@ -474,13 +474,13 @@ export default function HomePage() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-              <span className="text-xs text-[#475569] block">A4 Black &amp; White</span>
+              <span className="text-xs text-[#475569] block">A4 Black & White</span>
               <span className="text-2xl font-black text-[#111827] font-mono mt-1 block">₹2.00</span>
               <span className="text-[11px] text-emerald-700 font-semibold block mt-1">per printed side</span>
             </div>
 
             <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-              <span className="text-xs text-[#475569] block">A4 B&amp;W Duplex</span>
+              <span className="text-xs text-[#475569] block">A4 B&W Duplex</span>
               <span className="text-2xl font-black text-[#111827] font-mono mt-1 block">₹3.00</span>
               <span className="text-[11px] text-emerald-700 font-semibold block mt-1">per output sheet</span>
             </div>
@@ -506,7 +506,7 @@ export default function HomePage() {
           <div className="text-center mb-8">
             <ShieldCheck className="w-10 h-10 text-emerald-600 mx-auto mb-3" />
             <h2 className="text-2xl font-extrabold text-[#111827] mb-2">
-              Accurate File Handling &amp; Privacy
+              Accurate File Handling & Privacy
             </h2>
             <p className="text-xs text-[#475569]">
               How your files are securely stored, processed, and cleaned up
@@ -581,10 +581,10 @@ export default function HomePage() {
 
           <div className="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-xs">
             <h3 className="font-bold text-sm text-[#111827] mb-1.5">
-              Can I print Word (.docx) or PowerPoint (.pptx) files?
+              What file formats can I upload?
             </h3>
             <p className="text-xs text-[#475569] leading-relaxed">
-              {"Yes. Our system automatically converts DOCX and PPTX to print-ready PDF with layout preservation. Macros are strictly blocked for security."}
+              {"You can directly upload PDF, JPG, and PNG documents and photos up to 10 files per order. For Word (.docx) or PowerPoint (.pptx) files, simply save or export as PDF on your phone before uploading, or ask our counter staff for assistance."}
             </p>
           </div>
         </div>
@@ -595,7 +595,7 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto text-center space-y-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
             <Clock className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Open Monday &ndash; Saturday</span>
+            <span>Cyber Cafe & Online Services • Guntur</span>
           </div>
 
           <h2 className="text-3xl font-extrabold text-[#111827]">
@@ -603,7 +603,7 @@ export default function HomePage() {
           </h2>
 
           <p className="text-sm text-[#475569] max-w-md mx-auto">
-            Guntur, Andhra Pradesh &middot; Cyber Cafe &amp; Digital Online Services Center
+            Guntur, Andhra Pradesh · Cyber Cafe & Digital Online Services Center
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
@@ -620,7 +620,7 @@ export default function HomePage() {
               href="/contact"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white border border-[#E2E8F0] hover:bg-slate-50 text-[#111827] font-semibold text-sm transition"
             >
-              <span>View Address &amp; Map</span>
+              <span>View Address & Map</span>
             </Link>
           </div>
         </div>
@@ -650,10 +650,10 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
             <div className="font-bold text-[#111827] text-sm">
-              SOS Print &middot; Shakeel Online Services
+              SOS Print · Shakeel Online Services
             </div>
             <p className="mt-1">
-              Guntur, Andhra Pradesh &middot; Single-Shop Printing System
+              Guntur, Andhra Pradesh · Single-Shop Printing System
             </p>
           </div>
           <div className="flex flex-wrap justify-center items-center gap-5 font-medium">
@@ -663,7 +663,7 @@ export default function HomePage() {
             <Link href="/about" className="hover:text-[#111827]">About</Link>
             <Link href="/contact" className="hover:text-[#111827]">Contact</Link>
             <Link href="/privacy" className="hover:text-[#111827]">Privacy</Link>
-            <Link href="/terms" className="hover:text-[#111827]">Terms &amp; Refund</Link>
+            <Link href="/terms" className="hover:text-[#111827]">Terms & Refund</Link>
             <a
               href="https://wa.me/919581529381"
               target="_blank"

@@ -206,7 +206,7 @@ export default function DashboardSettingsPage() {
               <Settings className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl font-black text-[#0F172A]">Shop Settings &amp; Configuration</h1>
+              <h1 className="text-xl font-black text-[#0F172A]">Shop Settings & Configuration</h1>
               <p className="text-xs text-[#64748B] mt-0.5">
                 Authoritative parameters and operational links for {PRIMARY_PILOT_SHOP.name}
               </p>
@@ -307,7 +307,7 @@ export default function DashboardSettingsPage() {
               <QrCode className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-[#0F172A]">Manual UPI &amp; PhonePe Settings</h2>
+              <h2 className="text-sm font-bold text-[#0F172A]">Manual UPI & PhonePe Settings</h2>
               <p className="text-xs text-[#64748B]">
                 Configure the shop&apos;s authoritative UPI ID and payee details for customer counter payments.
               </p>
@@ -351,7 +351,7 @@ export default function DashboardSettingsPage() {
               className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"
             />
             <label htmlFor="upiEnabled" className="text-xs font-bold text-[#0F172A] cursor-pointer">
-              Enable Manual UPI / PhonePe Payments on Kiosk &amp; Web
+              Enable Manual UPI / PhonePe Payments on Kiosk & Web
             </label>
           </div>
 

@@ -125,7 +125,7 @@ export default function ReportsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-black text-white tracking-tight">Business Reports &amp; Financials</h1>
+            <h1 className="text-xl font-black text-white tracking-tight">Business Reports & Financials</h1>
             <span className="bg-emerald-950 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">
               Authoritative Feed
             </span>
@@ -211,7 +211,7 @@ export default function ReportsPage() {
         <div className="bg-[#111827] border border-[#1f2937] rounded-2xl p-5 shadow-lg">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              UPI &amp; Razorpay Online
+              UPI & Razorpay Online
             </span>
             <div className="w-8 h-8 rounded-lg bg-emerald-950/40 text-emerald-400 flex items-center justify-center">
               <QrCode className="w-4 h-4" />
@@ -319,7 +319,7 @@ export default function ReportsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-slate-400 text-[11px] font-mono">
-                      {o.items?.reduce((acc, i) => acc + (i.printedSides || 0), 0) || 1} sides &bull; {o.items?.reduce((acc, i) => acc + (i.estimatedSheets || 0), 0) || 1} sheets
+                      {o.items?.reduce((acc, i) => acc + (i.printedSides || 0), 0) || 1} sides • {o.items?.reduce((acc, i) => acc + (i.estimatedSheets || 0), 0) || 1} sheets
                     </td>
                     <td className="px-4 py-3 text-right font-mono font-bold text-white">
                       ₹{((o.totalPaise || 0) / 100).toFixed(2)}

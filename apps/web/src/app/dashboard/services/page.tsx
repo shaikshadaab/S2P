@@ -276,11 +276,11 @@ export default function DashboardServicesPage() {
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
               Owner Controls
             </span>
-            <span className="text-xs text-[#475569] font-medium">Services &amp; Processing Engine</span>
+            <span className="text-xs text-[#475569] font-medium">Services & Processing Engine</span>
           </div>
           <h2 className="text-xl font-black text-[#111827] tracking-tight mt-1 flex items-center gap-2">
             <LayoutGrid className="w-5 h-5 text-emerald-600" />
-            <span>Services &amp; Image Processing</span>
+            <span>Services & Image Processing</span>
           </h2>
           <p className="text-xs text-[#475569] mt-0.5">
             Configure customer printing services, printer hardware mappings, and automatic image enhancement defaults for {PRIMARY_PILOT_SHOP.name}.
@@ -313,7 +313,7 @@ export default function DashboardServicesPage() {
           }`}
         >
           <LayoutGrid className="w-4 h-4" />
-          <span>Services Catalog &amp; Hardware</span>
+          <span>Services Catalog & Hardware</span>
         </button>
 
         <button
@@ -326,7 +326,7 @@ export default function DashboardServicesPage() {
           }`}
         >
           <Sparkles className="w-4 h-4" />
-          <span>Image Processing &amp; Auto-Enhance</span>
+          <span>Image Processing & Auto-Enhance</span>
         </button>
       </div>
 
@@ -457,7 +457,7 @@ export default function DashboardServicesPage() {
               <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="font-bold text-[#0F172A] block">
-                    Customer Auto-Enhance &amp; Suggestions
+                    Customer Auto-Enhance & Suggestions
                   </label>
                   <input
                     type="checkbox"
@@ -483,9 +483,9 @@ export default function DashboardServicesPage() {
                   onChange={(e) => setImgSettings(p => ({ ...p, defaultMode: e.target.value }))}
                   className="w-full py-2 px-3 rounded-xl border border-[#CBD5E1] bg-white font-semibold text-xs text-[#0F172A]"
                 >
-                  <option value="COLOR_ENHANCED">Clean Color (Preserves stamps, signatures &amp; colors)</option>
+                  <option value="COLOR_ENHANCED">Clean Color (Preserves stamps, signatures & colors)</option>
                   <option value="GRAYSCALE">Grayscale Document</option>
-                  <option value="HIGH_CONTRAST">High Contrast B&amp;W (Receipts &amp; Bills)</option>
+                  <option value="HIGH_CONTRAST">High Contrast B&W (Receipts & Bills)</option>
                 </select>
                 <p className="text-slate-500 text-[11px]">
                   Clean Color safely pulls paper to white while keeping official blue/red stamps intact.
@@ -505,7 +505,7 @@ export default function DashboardServicesPage() {
                 >
                   <option value="150">150 DPI (Recommended — warn on severe pixelation)</option>
                   <option value="200">200 DPI (Standard commercial threshold)</option>
-                  <option value="300">300 DPI (Strict fine-art &amp; photo studio threshold)</option>
+                  <option value="300">300 DPI (Strict fine-art & photo studio threshold)</option>
                 </select>
                 <p className="text-slate-500 text-[11px]">
                   Files below this DPI display an advisory warning suggesting a smaller print size, without blocking the order.
@@ -537,7 +537,7 @@ export default function DashboardServicesPage() {
           {/* Engine Capabilities & Privacy Matrix */}
           <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 shadow-xs space-y-4">
             <div className="border-b border-[#E2E8F0] pb-2">
-              <h3 className="text-sm font-bold text-[#111827]">Processing Engine Capabilities &amp; Privacy Contract</h3>
+              <h3 className="text-sm font-bold text-[#111827]">Processing Engine Capabilities & Privacy Contract</h3>
               <p className="text-xs text-[#475569] mt-0.5">
                 Enhancement runs locally in browser (No third-party AI). Print files upload securely to private Firebase Storage only for print dispatch.
               </p>
@@ -555,7 +555,7 @@ export default function DashboardServicesPage() {
               <div className="p-3 rounded-xl border border-emerald-200 bg-emerald-50 flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-emerald-900 block">Document Boundary &amp; Corner Detection</strong>
+                  <strong className="text-emerald-900 block">Document Boundary & Corner Detection</strong>
                   <span className="text-emerald-700 text-[11px]">Active — Edge gradient analysis with editable corner handles.</span>
                 </div>
               </div>
@@ -563,7 +563,7 @@ export default function DashboardServicesPage() {
               <div className="p-3 rounded-xl border border-emerald-200 bg-emerald-50 flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-emerald-900 block">Deskew &amp; Text Edge Sharpening</strong>
+                  <strong className="text-emerald-900 block">Deskew & Text Edge Sharpening</strong>
                   <span className="text-emerald-700 text-[11px]">Active — 3x3 unsharp mask filter enhances text readability.</span>
                 </div>
               </div>
@@ -572,7 +572,7 @@ export default function DashboardServicesPage() {
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
                   <strong className="text-emerald-900 block">Passport Face Guides (35x45mm)</strong>
-                  <span className="text-emerald-700 text-[11px]">Active — Official Indian passport oval &amp; eye-level guidelines.</span>
+                  <span className="text-emerald-700 text-[11px]">Active — Official Indian passport oval & eye-level guidelines.</span>
                 </div>
               </div>
 

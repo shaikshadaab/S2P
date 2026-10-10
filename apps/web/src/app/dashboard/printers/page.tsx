@@ -229,7 +229,7 @@ export default function DashboardPrintersPage() {
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#111827] flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>Standard 10-Step Agent Setup &amp; Commissioning Procedure</span>
+              <span>Standard 10-Step Agent Setup & Commissioning Procedure</span>
             </h3>
             <span className="text-[11px] text-[#475569] font-medium">Windows User Session</span>
           </div>
@@ -272,7 +272,7 @@ export default function DashboardPrintersPage() {
                 <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-[10px]">5</span>
                 <span className="font-bold text-[#111827]">Pairing Code</span>
               </div>
-              <p className="text-[11px] text-[#475569]">Click &quot;Pair New Windows PC&quot; below to generate a single-use code.</p>
+              <p className="text-[11px] text-[#475569]">Click "Pair New Windows PC" below to generate a single-use code.</p>
             </div>
 
             <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 flex flex-col justify-between">
@@ -323,7 +323,7 @@ export default function DashboardPrintersPage() {
         <div>
           <h2 className="text-lg font-bold text-[#111827] flex items-center gap-2">
             <PrinterIcon className="w-5 h-5 text-emerald-600" />
-            <span>Connected Devices &amp; Printers</span>
+            <span>Connected Devices & Printers</span>
           </h2>
           <p className="text-xs text-[#475569] mt-0.5">
             Manage paired Windows PC print agents and discovered local print queues for {PRIMARY_PILOT_SHOP.name}
@@ -384,7 +384,7 @@ export default function DashboardPrintersPage() {
             <div className="space-y-1">
               <h4 className="text-sm font-bold text-[#111827]">No Windows PC Paired Yet</h4>
               <p className="text-xs text-[#475569] max-w-sm mx-auto">
-                Download the Windows Agent above, extract on your shop PC, and click &quot;Pair New Windows PC&quot; to register it with this dashboard.
+                Download the Windows Agent above, extract on your shop PC, and click "Pair New Windows PC" to register it with this dashboard.
               </p>
             </div>
             {isOwnerOrManager && (

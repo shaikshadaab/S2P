@@ -482,7 +482,7 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
                 {shopName}
               </h1>
               <div className="text-[10px] text-slate-500">
-                Self-Service Kiosk &bull; Guntur, AP
+                Self-Service Kiosk • Guntur, AP
               </div>
             </div>
           </div>
@@ -562,7 +562,7 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
               <CreditCard className={`w-4 h-4 ${customerMode === "CARDS" ? "text-white" : "text-emerald-600"}`} />
               <span className="text-[11px] font-extrabold">CARDS</span>
               <span className={`text-[9px] leading-none ${customerMode === "CARDS" ? "text-emerald-100" : "text-slate-400"}`}>
-                Front &amp; Back
+                Front & Back
               </span>
             </button>
           </div>
@@ -602,7 +602,7 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
               <div className="bg-emerald-50 border border-emerald-200/80 rounded-lg p-2.5 text-emerald-950 text-[11px] flex items-start gap-2 text-left">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold block text-emerald-950">Word &amp; PowerPoint  (.docx / .pptx)</span>
+                  <span className="font-semibold block text-emerald-950">Word & PowerPoint  (.docx / .pptx)</span>
                   <span className="text-emerald-800 text-[10px] leading-tight block mt-0.5">
                       Word / PPT       - PDF      
                   </span>
@@ -636,7 +636,7 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
                   )}
                 </button>
                 <span className="text-[10px] text-slate-400 block mt-1.5">
-                  Private Cloud Storage &bull; Server Verified Pages &bull; Zero Public URLs
+                  Private Cloud Storage • Server Verified Pages • Zero Public URLs
                 </span>
               </div>
             </>
@@ -653,7 +653,7 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
                     </h3>
                     <div className="text-[10px] text-slate-500 mt-0.5 flex flex-wrap gap-2">
                       <span>{(uploadedFile.sizeBytes / 1024).toFixed(1)} KB</span>
-                      <span>&bull;</span>
+                      <span>•</span>
                       <span className="text-emerald-700 font-semibold">
                         {uploadedFile.pageCount} {uploadedFile.pageCount === 1 ? "Page" : "Pages"} (Server Verified)
                       </span>
@@ -736,7 +736,7 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
                     </span>
                     <div className="truncate">
                       <div className="text-xs font-bold text-slate-900 truncate max-w-[170px]">{f.safeDisplayName}</div>
-                      <div className="text-[9px] text-slate-500">{(f.sizeBytes / 1024).toFixed(0)} KB &bull; {f.pageCount}p &bull; ✓ Ready</div>
+                      <div className="text-[9px] text-slate-500">{(f.sizeBytes / 1024).toFixed(0)} KB • {f.pageCount}p • ✓ Ready</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -812,7 +812,7 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
                 onClick={() => setIsFrontBackSwapped((prev) => !prev)}
                 className="text-[10px] font-bold text-emerald-600 hover:underline flex items-center gap-1"
               >
-                <RefreshCw className="w-3 h-3" /> Swap Front &amp; Back
+                <RefreshCw className="w-3 h-3" /> Swap Front & Back
               </button>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -825,7 +825,7 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
                     : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
                 }`}
               >
-                Small Card (85.6 &times; 54 mm)
+                Small Card (85.6 × 54 mm)
               </button>
               <button
                 type="button"
@@ -836,7 +836,7 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
                     : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
                 }`}
               >
-                Large Card (135 &times; 90 mm)
+                Large Card (135 × 90 mm)
               </button>
             </div>
           </div>
@@ -1110,9 +1110,9 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
           {quote ? (
             <div className="text-xs space-y-1.5 text-slate-600 pt-1">
               <div className="flex justify-between">
-                <span>Selected Pages &bull; Copies</span>
+                <span>Selected Pages • Copies</span>
                 <span className="text-slate-900 font-mono font-medium">
-                  {quote.selectedPageCount} pages &times; {quote.copies} {quote.copies === 1 ? "copy" : "copies"}
+                  {quote.selectedPageCount} pages × {quote.copies} {quote.copies === 1 ? "copy" : "copies"}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -1126,8 +1126,8 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
                 </div>
               )}
               <div className="flex justify-between text-slate-500 text-[11px]">
-                <span>Orientation &bull; Scaling</span>
-                <span className="font-mono text-slate-700">{orientation} &bull; {scaling}</span>
+                <span>Orientation • Scaling</span>
+                <span className="font-mono text-slate-700">{orientation} • {scaling}</span>
               </div>
               <div className="flex justify-between text-slate-500 text-[11px]">
                 <span>Sheets to Spool</span>
@@ -1222,7 +1222,7 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
                   <QrCode className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span className="text-xs font-bold">Counter UPI QR</span>
                 </div>
-                <span className="text-[10px] text-slate-500">Scan &amp; pay via UPI App</span>
+                <span className="text-[10px] text-slate-500">Scan & pay via UPI App</span>
               </button>
             ) : (
               <div className="p-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-400 flex flex-col justify-between opacity-70">
@@ -1259,7 +1259,7 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
               </p>
               {shopUpiConfig?.upiId && (
                 <p className="text-[10px] text-slate-500 font-mono">
-                  Merchant: {shopUpiConfig.merchantName || shopName} &bull; UPI: {shopUpiConfig.upiId}
+                  Merchant: {shopUpiConfig.merchantName || shopName} • UPI: {shopUpiConfig.upiId}
                 </p>
               )}
             </div>
@@ -1301,13 +1301,13 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
             )}
           </button>
           <span className="text-[10px] text-slate-500 text-center block mt-1.5">
-            Real order registered &bull; Instant tracking &bull; Shakeel Online Services
+            Real order registered • Instant tracking • Shakeel Online Services
           </span>
         </div>
       </main>
 
       <footer className="border-t border-slate-200 bg-white px-4 py-3 text-center text-[11px] text-slate-500">
-        {BRAND_NAME} &bull; {BRAND_FULL_NAME} &bull; {shopName}
+        {BRAND_NAME} • {BRAND_FULL_NAME} • {shopName}
       </footer>
     </div>
   );
