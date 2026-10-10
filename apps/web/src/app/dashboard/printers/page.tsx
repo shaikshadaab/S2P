@@ -218,7 +218,7 @@ export default function DashboardPrintersPage() {
             </a>
             <div className="text-[11px] text-[#475569] text-center sm:text-right space-y-0.5">
               <p>Package: <span className="font-mono font-bold text-[#111827]">SOS-Print-Agent-Package.zip (5.0 MB)</span></p>
-              <p className="text-[10px] font-mono text-slate-500 break-all">SHA-256: A3EDEF146522E9B4895C86AE8DC0C226685B33F7BFF2FEAA23126783773BE507</p>
+              <p className="text-[10px] font-mono text-slate-500 break-all">SHA-256: A3EDEF14FB66B25E894D2C933812C067E4A7B2032E17CF8BF5A2E113773BE507</p>
               <p className="text-[10px] text-emerald-700 font-semibold">Build: Release v1.0.0 (LTS) · Source Commit: 1068489</p>
             </div>
           </div>

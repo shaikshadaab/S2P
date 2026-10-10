@@ -672,7 +672,13 @@ export default function HomePage() {
             >
               WhatsApp
             </a>
-            <Link href="/login" className="text-slate-400 hover:text-slate-700">Owner Login</Link>
+            <Link
+              href="/login"
+              className="px-3 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-850 font-bold hover:bg-emerald-100 transition inline-flex items-center gap-1.5"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Shop Owner Login</span>
+            </Link>
           </div>
         </div>
       </footer>

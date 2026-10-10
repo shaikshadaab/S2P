@@ -52,8 +52,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // 1. Authoritative Server-side verification using Admin SDK
     try {
-      // Deterministic membership document: shopMembers/{userId}_{shopId}
+      const idToken = await currentUser.getIdToken();
+      const res = await fetch("/api/auth/membership", {
+        headers: {
+          Authorization: `Bearer ${idToken}`
+        }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.member?.status === "ACTIVE") {
+          setMember(data.member);
+          setMembershipError(null);
+          setLoading(false);
+          return;
+        } else if (data.error === "NO_ACTIVE_MEMBERSHIP" || data.error === "MEMBERSHIP_SUSPENDED") {
+          setMember(null);
+          setMembershipError("NO_ACTIVE_MEMBERSHIP");
+          setLoading(false);
+          return;
+        }
+      }
+    } catch (apiErr) {
+      console.warn("[S2P Auth] Server membership check warning, attempting client SDK:", apiErr);
+    }
+
+    // 2. Client-side SDK fallback
+    try {
       const membershipDocId = `${currentUser.uid}_${PRIMARY_PILOT_SHOP.id}`;
       const memberRef = doc(db, "shopMembers", membershipDocId);
       const snap = await getDoc(memberRef);
@@ -64,18 +91,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setMember({ ...data, id: snap.id });
           setMembershipError(null);
         } else {
-          // Status is SUSPENDED or inactive - FAIL CLOSED
           setMember(null);
           setMembershipError("NO_ACTIVE_MEMBERSHIP");
         }
       } else {
-        // Membership not found - FAIL CLOSED (never grant fallback OWNER)
         setMember(null);
         setMembershipError("NO_ACTIVE_MEMBERSHIP");
       }
     } catch (err) {
-      // Database / Network error - FAIL CLOSED (never grant fallback OWNER)
-      console.error("[S2P Auth] Failed to fetch shop membership:", err);
+      console.error("[S2P Auth] Client-side fetch shop membership failed:", err);
       setMember(null);
       setMembershipError("MEMBERSHIP_LOOKUP_FAILED");
     } finally {

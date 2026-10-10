@@ -55,6 +55,7 @@ service cloud.firestore {
     // 4. shopMembers (canonical ID: {userId}_{shopId})
     match /shopMembers/{memberId} {
       allow read: if isAuthenticated() && (
+        resource == null ||
         resource.data.userId == request.auth.uid ||
         isShopStaff(resource.data.shopId)
       );
