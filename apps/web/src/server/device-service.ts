@@ -1,4 +1,4 @@
-if (typeof window !== 'undefined') {
+﻿if (typeof window !== 'undefined') {
   throw new Error('FATAL: device-service is server-only and cannot be imported into a browser bundle.');
 }
 
@@ -327,9 +327,10 @@ export async function syncDiscoveredPrinters(
       isOnline: q.isOnline !== false,
       isEnabled: true,
       capabilities: {
-        paperSizes: q.capabilities?.paperSizes || ['A4'],
+        // Enforce physical capability calibration: filter out uncalibrated A3 and disable automatic duplex
+        paperSizes: (q.capabilities?.paperSizes || ['A4']).filter((s: string) => s !== 'A3'),
         colorSupported: Boolean(q.capabilities?.colorSupported),
-        duplexSupported: Boolean(q.capabilities?.duplexSupported),
+        duplexSupported: false, // Driver duplex disabled pending physical paper-flip/duplex calibration
         supportedResolutionsDpi: q.capabilities?.supportedResolutionsDpi || [600]
       },
       lastDiscoveredAt: nowIso,

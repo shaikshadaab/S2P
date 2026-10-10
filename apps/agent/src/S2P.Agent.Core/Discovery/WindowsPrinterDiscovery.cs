@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.Json;
 using S2P.Agent.Core.Models;
 
@@ -135,10 +135,9 @@ public class WindowsPrinterDiscovery
             colorSupported = true;
         }
 
-        if (!duplexSupported && (name.Contains("Smart Tank", StringComparison.OrdinalIgnoreCase) || driver!.Contains("Smart Tank", StringComparison.OrdinalIgnoreCase) || driver.Contains("Duplex", StringComparison.OrdinalIgnoreCase)))
-        {
-            duplexSupported = true;
-        }
+        // Rule: Do not enable A3 or automatic duplex merely because the driver reports them.
+        // HP Smart Tank 580 has manual duplex and A4 max width. Keep automatic duplex & A3 pending physical calibration.
+        duplexSupported = false;
 
         var printer = new DiscoveredPrinter
         {
@@ -152,9 +151,9 @@ public class WindowsPrinterDiscovery
             IsOnline = true,
             Capabilities = new PrinterCapabilities
             {
-                PaperSizes = new List<string> { "A4", "A3", "Letter", "Legal" },
+                PaperSizes = new List<string> { "A4", "Letter", "Legal" },
                 ColorSupported = colorSupported,
-                DuplexSupported = duplexSupported,
+                DuplexSupported = false, // Pending physical calibration
                 SupportedResolutionsDpi = new List<int> { 600, 1200 }
             }
         };
