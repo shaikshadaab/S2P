@@ -394,7 +394,7 @@ export default function DashboardGuidedSetupPage() {
                   className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition shrink-0"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  Download Package (31.55 MB)
+                  Download Package (2.65 MB)
                 </a>
               </div>
 

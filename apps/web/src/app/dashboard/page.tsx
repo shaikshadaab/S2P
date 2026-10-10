@@ -26,7 +26,7 @@ export default function DashboardOverviewPage() {
     {
       num: 1,
       title: "Download Agent",
-      desc: "Get SOS-Print-Agent-Package.zip (31.55 MB) on your shop Windows PC.",
+      desc: "Get SOS-Print-Agent-Package.zip (2.65 MB) on your shop Windows PC.",
       href: "/SOS-Print-Agent-Package.zip",
       download: "SOS-Print-Agent-Package.zip",
       icon: Download,
