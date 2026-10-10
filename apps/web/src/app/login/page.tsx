@@ -237,14 +237,14 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#111827] flex flex-col justify-between selection:bg-emerald-600 selection:text-white">
       <header className="border-b border-[#E2E8F0] px-6 py-4 bg-white shadow-xs">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 overflow-hidden">
           <Link href="/" className="flex items-center gap-2 text-[#475569] hover:text-[#111827] transition font-bold text-xs">
             <ChevronLeft className="w-4 h-4" />
             <span>Back to Home</span>
           </Link>
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-            <span className="text-xs text-[#475569] font-mono font-medium">Owner & Staff Access Portal</span>
+            <span className="text-xs text-[#475569] font-mono font-medium hidden sm:inline">Owner & Staff Access Portal</span><span className="text-xs text-[#475569] font-mono font-medium sm:hidden">Staff Portal</span>
           </div>
         </div>
       </header>

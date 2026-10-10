@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 // @ts-expect-error - module has no bundled types
@@ -54,28 +56,76 @@ export async function GET(req: NextRequest) {
     // Top Brand Badge
     let cursorY = height - margin - (isA5 ? 35 : 45);
 
-    // Wordmark: SOS PRINT
-    const brandTitle = "SOS PRINT";
-    const brandSize = isA5 ? 26 : 34;
-    const brandWidth = fontBold.widthOfTextAtSize(brandTitle, brandSize);
-    page.drawText(brandTitle, {
-      x: (width - brandWidth) / 2,
+    // Read and embed approved emerald vector icon PNG
+    let iconPngBuffer: Buffer | null = null;
+    const possibleIconPaths = [
+      path.join(process.cwd(), 'apps', 'web', 'public', 'icon.png'),
+      path.join(process.cwd(), 'public', 'icon.png'),
+      path.join(__dirname, '..', '..', '..', '..', 'public', 'icon.png')
+    ];
+    for (const p of possibleIconPaths) {
+      if (fs.existsSync(p)) {
+        try {
+          iconPngBuffer = fs.readFileSync(p);
+          break;
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    const iconSize = isA5 ? 40 : 52;
+    if (iconPngBuffer) {
+      try {
+        const iconImage = await pdfDoc.embedPng(iconPngBuffer);
+        cursorY -= iconSize;
+        page.drawImage(iconImage, {
+          x: (width - iconSize) / 2,
+          y: cursorY,
+          width: iconSize,
+          height: iconSize
+        });
+        cursorY -= isA5 ? 8 : 12;
+      } catch (e) {
+        cursorY -= isA5 ? 6 : 10;
+      }
+    }
+
+    // Approved Wordmark: "SOS " (dark slate) + "PRINT" (emerald)
+    const brandSize = isA5 ? 24 : 32;
+    const wordSOS = "SOS ";
+    const wordPRINT = "PRINT";
+    const widthSOS = fontBold.widthOfTextAtSize(wordSOS, brandSize);
+    const widthPRINT = fontBold.widthOfTextAtSize(wordPRINT, brandSize);
+    const totalWordmarkWidth = widthSOS + widthPRINT;
+    const wordmarkStartX = (width - totalWordmarkWidth) / 2;
+
+    cursorY -= brandSize;
+    page.drawText(wordSOS, {
+      x: wordmarkStartX,
+      y: cursorY,
+      size: brandSize,
+      font: fontBold,
+      color: darkSlate
+    });
+    page.drawText(wordPRINT, {
+      x: wordmarkStartX + widthSOS,
       y: cursorY,
       size: brandSize,
       font: fontBold,
       color: emeraldPrimary
     });
 
-    cursorY -= isA5 ? 18 : 24;
+    cursorY -= isA5 ? 16 : 22;
     const shopSubtitle = "SHAKEEL ONLINE SERVICES, GUNTUR";
-    const subSize = isA5 ? 10 : 13;
+    const subSize = isA5 ? 9.5 : 12;
     const subWidth = fontBold.widthOfTextAtSize(shopSubtitle, subSize);
     page.drawText(shopSubtitle, {
       x: (width - subWidth) / 2,
       y: cursorY,
       size: subSize,
       font: fontBold,
-      color: darkSlate
+      color: textMuted
     });
 
     cursorY -= isA5 ? 22 : 30;

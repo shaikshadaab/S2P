@@ -204,14 +204,11 @@ export default function StandeePage() {
         {/* Header Section */}
         <div className="text-center space-y-2 border-b-2 border-emerald-600 pb-5">
           <div className="flex justify-center">
-            <SosLogo variant="horizontal" size={size === "A4" ? "lg" : "md"} showSubtitle={false} />
+            <SosLogo variant="horizontal" size={size === "A4" ? "lg" : "md"} showSubtitle={true} />
           </div>
 
           <div>
-            <div className="text-xs font-bold text-emerald-700 tracking-widest uppercase">
-              SHAKEEL ONLINE SERVICES • GUNTUR
-            </div>
-            <h2 className="text-lg sm:text-xl font-black tracking-tight text-[#0F172A] mt-0.5">
+            <h2 className="text-lg sm:text-xl font-black tracking-tight text-[#0F172A] mt-1">
               Scan to Upload & Print
             </h2>
           </div>

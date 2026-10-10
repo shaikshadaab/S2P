@@ -18,13 +18,13 @@ export function SosLogo({
   href,
   className = ""
 }: SosLogoProps) {
-  // Dimension scalings
+  // Dimension scalings with responsive adjustments
   const dimensions = {
-    xs: { icon: 24, fontMain: "text-xs", fontSub: "text-[8px]" },
-    sm: { icon: 32, fontMain: "text-sm", fontSub: "text-[9px]" },
-    md: { icon: 40, fontMain: "text-base font-black", fontSub: "text-[10px]" },
-    lg: { icon: 48, fontMain: "text-xl font-black", fontSub: "text-xs" },
-    xl: { icon: 60, fontMain: "text-2xl font-black", fontSub: "text-xs" }
+    xs: { icon: 24, fontMain: "text-xs", fontSub: "text-[7.5px]" },
+    sm: { icon: 30, fontMain: "text-xs sm:text-sm font-black", fontSub: "text-[8px] sm:text-[9px]" },
+    md: { icon: 36, fontMain: "text-sm sm:text-base font-black", fontSub: "text-[8.5px] sm:text-[10px]" },
+    lg: { icon: 44, fontMain: "text-base sm:text-xl font-black", fontSub: "text-[9.5px] sm:text-xs" },
+    xl: { icon: 54, fontMain: "text-xl sm:text-2xl font-black", fontSub: "text-[10px] sm:text-xs" }
   }[size];
 
   const isDark = theme === "dark";
@@ -145,19 +145,19 @@ export function SosLogo({
   if (variant === "icon" || variant === "mark") {
     if (href) {
       return (
-        <Link href={href} className={`inline-flex items-center group ${className}`}>
+        <Link href={href} className={`inline-flex items-center min-w-0 max-w-full group ${className}`}>
           {markSvg}
         </Link>
       );
     }
-    return <span className={`inline-flex items-center ${className}`}>{markSvg}</span>;
+    return <span className={`inline-flex items-center min-w-0 max-w-full ${className}`}>{markSvg}</span>;
   }
 
   const content = (
-    <div className={`inline-flex items-center gap-3 group select-none ${className}`}>
+    <div className={`inline-flex items-center gap-2.5 sm:gap-3 group select-none min-w-0 max-w-full ${className}`}>
       {markSvg}
-      <div className="flex flex-col leading-none">
-        <div className={`font-black tracking-wider flex items-center gap-1.5 ${dimensions.fontMain} ${
+      <div className="flex flex-col leading-none min-w-0 overflow-hidden">
+        <div className={`font-black tracking-wider flex items-center gap-1 sm:gap-1.5 whitespace-nowrap ${dimensions.fontMain} ${
           isDark ? "text-white" : "text-[#0F172A]"
         }`}>
           <span>SOS</span>
@@ -166,7 +166,7 @@ export function SosLogo({
           </span>
         </div>
         {showSubtitle && variant === "horizontal" && (
-          <div className={`font-bold tracking-widest uppercase mt-1 text-[#475569] ${dimensions.fontSub} ${
+          <div className={`font-bold tracking-wider sm:tracking-widest uppercase mt-0.5 sm:mt-1 text-[#475569] whitespace-nowrap truncate ${dimensions.fontSub} ${
             isDark ? "text-slate-400" : "text-slate-500"
           }`}>
             Shakeel Online Services, Guntur
@@ -177,7 +177,11 @@ export function SosLogo({
   );
 
   if (href) {
-    return <Link href={href}>{content}</Link>;
+    return (
+      <Link href={href} className="inline-flex min-w-0 max-w-full">
+        {content}
+      </Link>
+    );
   }
 
   return content;

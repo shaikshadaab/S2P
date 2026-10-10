@@ -54,6 +54,12 @@ firebase-admin*.json
 temp/
 scratch/
 
+# Preserve public branding assets
+!apps/web/public/*.png
+!apps/web/public/*.svg
+!apps/web/public/*.ico
+!apps/web/public/*.pdf
+
 # Logs
 npm-debug.log*
 yarn-debug.log*

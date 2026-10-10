@@ -2,7 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root,
+html,
+body {
+  color-scheme: light !important;
   --background: 150 10% 98%;
   --foreground: 160 20% 8%;
   --border: 150 10% 90%;
@@ -10,18 +13,29 @@
   --ring: 158 64% 40%;
 }
 
-.dark {
-  --background: 155 15% 4%;
-  --foreground: 150 10% 96%;
-  --border: 155 12% 16%;
-  --input: 155 12% 16%;
-  --ring: 158 64% 52%;
+/* Invariant: Host IDE theme, system dark mode or injected dark classes must never alter website branding */
+.dark,
+[data-theme="dark"],
+[data-color-mode="dark"] {
+  color-scheme: light !important;
+  --background: 150 10% 98%;
+  --foreground: 160 20% 8%;
+  --border: 150 10% 90%;
+  --input: 150 10% 90%;
+  --ring: 158 64% 40%;
+}
+
+html {
+  overflow-x: hidden;
+  color-scheme: light !important;
 }
 
 body {
   color: #0f172a;
   background: #f8fafc;
+  color-scheme: light !important;
   font-feature-settings: "rlig" 1, "calt" 1;
+  overflow-x: hidden;
 }
 
 /* Custom scrollbars */

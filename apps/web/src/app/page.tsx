@@ -128,9 +128,9 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#111827] flex flex-col justify-between selection:bg-emerald-600 selection:text-white">
       {/* Top Bar with Language Toggle & Shop Tag */}
-      <div className="bg-emerald-900 text-emerald-100 text-xs px-6 py-2">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
+      <div className="bg-emerald-900 text-emerald-100 text-xs px-4 sm:px-6 py-2 overflow-x-hidden">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 text-[11px] sm:text-xs">
+          <div className="flex items-center gap-1.5 sm:gap-2 truncate">
             <MapPin className="w-3.5 h-3.5 text-emerald-300" />
             <span>Guntur, Andhra Pradesh · Shakeel Online Services</span>
             <span className='text-emerald-500'>•</span>
@@ -144,14 +144,14 @@ export default function HomePage() {
 
       {/* Main Header */}
       <header className="border-b border-[#E2E8F0] bg-white sticky top-0 z-50 shadow-xs">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2 overflow-hidden">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
             <SosLogo variant="horizontal" size="md" href="/" />
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <Link
               href="/print"
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 transition"
+              className="hidden md:inline-flex text-xs font-semibold px-3 py-1.5 rounded-lg text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 transition"
             >
               Print Hub
             </Link>
@@ -187,7 +187,7 @@ export default function HomePage() {
             </Link>
             <Link
               href="/print"
-              className="text-xs font-bold px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs transition flex items-center gap-1.5"
+              className="text-xs font-bold px-3 sm:px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs transition flex items-center gap-1.5 shrink-0"
             >
               <QrCode className="w-3.5 h-3.5" />
               <span>Start Printing</span>
@@ -206,7 +206,7 @@ export default function HomePage() {
             </span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-black text-[#111827] tracking-tight leading-tight mb-4">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-[#111827] tracking-tight leading-tight mb-4 break-words">
             Your files. Your settings. <br />
             <span className="text-emerald-600">Your prints.</span>
           </h1>
@@ -649,8 +649,8 @@ export default function HomePage() {
       <footer className="border-t border-[#E2E8F0] bg-white py-10 px-6 text-xs text-[#475569]">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
-            <div className="font-bold text-[#111827] text-sm">
-              SOS Print · Shakeel Online Services
+            <div className="mb-2 flex justify-center md:justify-start">
+              <SosLogo variant="horizontal" size="sm" showSubtitle={true} href="/" />
             </div>
             <p className="mt-1">
               Guntur, Andhra Pradesh · Single-Shop Printing System

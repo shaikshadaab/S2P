@@ -180,8 +180,8 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#111827] flex flex-col lg:flex-row selection:bg-emerald-600 selection:text-white">
       {/* Sidebar */}
-      <div className="lg:hidden bg-white border-b border-[#E2E8F0] px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-xs">
-        <div className="flex items-center gap-2">
+      <div className="lg:hidden bg-white border-b border-[#E2E8F0] px-3 sm:px-4 py-3 flex items-center justify-between gap-2 sticky top-0 z-30 shadow-xs">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink">
           <button
             type="button"
             onClick={() => setIsMobileDrawerOpen(true)}
@@ -205,7 +205,7 @@ export default function DashboardLayout({
           />
           <aside className="relative w-72 max-w-[85vw] bg-white h-full flex flex-col justify-between shadow-2xl z-10">
             <div>
-              <div className="p-4 border-b border-[#E2E8F0] flex items-center justify-between">
+              <div className="p-4 border-b border-[#E2E8F0] flex items-center justify-between gap-2">
                 <SosLogo variant="horizontal" size="sm" href="/dashboard" />
                 <button
                   type="button"
