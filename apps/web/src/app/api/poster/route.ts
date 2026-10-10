@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
 
     const qrPngBuffer = await QRCode.toBuffer(destinationUrl, {
       type: 'png',
-      margin: 2,
+      margin: 4, // ISO 18004 compliant 4-module quiet zone
       width: 500,
       color: { dark: '#0F172A', light: '#FFFFFF' }
     });

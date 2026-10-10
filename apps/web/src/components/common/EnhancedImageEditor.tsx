@@ -288,13 +288,14 @@ export default function EnhancedImageEditor({
   };
 
   const handleResetCorners = () => {
+    setIsConfidentCorners(false);
     updateSettingsWithHistory({
       ...settings,
       perspectiveCorners: {
-        tl: { x: 2, y: 2 },
-        tr: { x: 98, y: 2 },
-        br: { x: 98, y: 98 },
-        bl: { x: 2, y: 98 }
+        tl: { x: 0, y: 0 },
+        tr: { x: 100, y: 0 },
+        br: { x: 100, y: 100 },
+        bl: { x: 0, y: 100 }
       }
     });
   };
@@ -332,10 +333,10 @@ export default function EnhancedImageEditor({
       rotation: 0,
       cropBox: { x: 0, y: 0, width: 100, height: 100 },
       perspectiveCorners: {
-        tl: { x: 2, y: 2 },
-        tr: { x: 98, y: 2 },
-        br: { x: 98, y: 98 },
-        bl: { x: 2, y: 98 }
+        tl: { x: 0, y: 0 },
+        tr: { x: 100, y: 0 },
+        br: { x: 100, y: 100 },
+        bl: { x: 0, y: 100 }
       },
       passportGuide: settings.mode === 'PORTRAIT'
     };

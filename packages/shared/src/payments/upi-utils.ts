@@ -108,7 +108,7 @@ export class UpiPaymentUtils {
   public static async generateUpiQrSvg(uri: string): Promise<string> {
     return await QRCode.toString(uri, {
       type: 'svg',
-      margin: 2,
+      margin: 4, // ISO 18004 compliant 4-module quiet zone
       errorCorrectionLevel: 'M'
     });
   }
@@ -118,7 +118,7 @@ export class UpiPaymentUtils {
    */
   public static async generateUpiQrDataUrl(uri: string): Promise<string> {
     return await QRCode.toDataURL(uri, {
-      margin: 2,
+      margin: 4, // ISO 18004 compliant 4-module quiet zone
       errorCorrectionLevel: 'M',
       width: 320
     });

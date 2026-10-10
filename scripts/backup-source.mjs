@@ -32,17 +32,11 @@ const EXCLUDE_DIRS = new Set([
   '.vs',
   'dist',
   'coverage',
-  '.turbo'
-]);
-
-const EXCLUDE_FILES = new Set([
-  '.env',
-  '.env.local',
-  '.env.production',
-  '.env.development',
-  'firestore-debug.log',
-  'ui-debug.log',
-  'S2P-Agent-Setup.exe'
+  '.turbo',
+  '.storage',
+  'uploads',
+  'scratch',
+  '.system_generated'
 ]);
 
 function shouldExclude(relPath) {
@@ -50,10 +44,20 @@ function shouldExclude(relPath) {
   for (const part of parts) {
     if (EXCLUDE_DIRS.has(part)) return true;
   }
-  const basename = path.basename(relPath);
-  if (EXCLUDE_FILES.has(basename)) return true;
-  if (basename.endsWith('.log')) return true;
-  if (basename.endsWith('.tmp')) return true;
+  const basename = path.basename(relPath).toLowerCase();
+
+  // Exclude all .env variants except sanitized .env.example
+  if (basename.startsWith('.env') && basename !== '.env.example') return true;
+
+  // Exclude private keys, certificates, service account files, tokens
+  if (basename.includes('service-account') || basename.includes('serviceaccount')) return true;
+  if (basename.endsWith('.pem') || basename.endsWith('.key') || basename.endsWith('.p12') || basename.endsWith('.pfx')) return true;
+
+  // Exclude local database journals and customer file storage
+  if (basename.endsWith('.sqlite') || basename.endsWith('.db') || basename.endsWith('.journal')) return true;
+  if (basename.endsWith('.log') || basename.endsWith('.tmp')) return true;
+  if (basename === 's2p-agent-setup.exe') return true;
+
   return false;
 }
 

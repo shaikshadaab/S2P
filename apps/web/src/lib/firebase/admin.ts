@@ -152,10 +152,10 @@ class SmartStorageBucket {
     return {
       name: filePath,
       save: async (buffer: Buffer | Uint8Array, options?: any) => {
+        const isProd = process.env.NODE_ENV === 'production' && !process.env.S2P_LOCAL_DEV;
         try {
           await cloudFile.save(buffer, options);
         } catch (err: any) {
-          const isProd = process.env.NODE_ENV === 'production' && !process.env.S2P_LOCAL_DEV;
           if (!isProd && (err?.message?.includes('bucket does not exist') || err?.code === 404 || err?.message?.includes('billing'))) {
             console.warn('[Storage] Remote bucket unprovisioned; saving to local workspace storage fallback in dev:', filePath);
             await localFile.save(buffer, options);
@@ -166,28 +166,39 @@ class SmartStorageBucket {
         }
       },
       exists: async (): Promise<[boolean]> => {
+        const isProd = process.env.NODE_ENV === 'production' && !process.env.S2P_LOCAL_DEV;
+        if (isProd) {
+          // Production: Strict cloud storage only, zero local fallback
+          return await cloudFile.exists();
+        }
         try {
           const [exists] = await cloudFile.exists();
           if (exists) return [true];
         } catch (err: any) {
-          // If cloud fails, check local
+          // Local development only fallback
         }
         return localFile.exists();
       },
       download: async (): Promise<[Buffer]> => {
+        const isProd = process.env.NODE_ENV === 'production' && !process.env.S2P_LOCAL_DEV;
+        if (isProd) {
+          // Production: Strict cloud download only, zero local fallback
+          return await cloudFile.download();
+        }
         try {
           return await cloudFile.download();
         } catch (err: any) {
-          if (err?.message?.includes('bucket does not exist') || err?.code === 404) {
-            return localFile.download();
-          }
-          // If local exists, return local
           const [locExists] = await localFile.exists();
           if (locExists) return localFile.download();
           throw err;
         }
       },
       getMetadata: async (): Promise<[any]> => {
+        const isProd = process.env.NODE_ENV === 'production' && !process.env.S2P_LOCAL_DEV;
+        if (isProd) {
+          // Production: Strict cloud metadata only, zero local fallback
+          return await cloudFile.getMetadata();
+        }
         try {
           return await cloudFile.getMetadata();
         } catch (err: any) {
@@ -195,6 +206,11 @@ class SmartStorageBucket {
         }
       },
       getSignedUrl: async (options?: any): Promise<[string]> => {
+        const isProd = process.env.NODE_ENV === 'production' && !process.env.S2P_LOCAL_DEV;
+        if (isProd) {
+          // Production: Strict cloud signed URL only, zero local fallback
+          return await cloudFile.getSignedUrl(options);
+        }
         try {
           return await cloudFile.getSignedUrl(options);
         } catch (err: any) {
@@ -202,10 +218,22 @@ class SmartStorageBucket {
         }
       },
       delete: async (): Promise<void> => {
+        const isProd = process.env.NODE_ENV === 'production' && !process.env.S2P_LOCAL_DEV;
+        if (isProd) {
+          // Production: Do not suppress cloud deletion errors; record actual deletion outcome
+          try {
+            await cloudFile.delete();
+            console.log('[Storage Audit] Cloud file deleted successfully:', filePath);
+          } catch (cloudErr: any) {
+            console.error('[Storage Error] Cloud file delete failed:', cloudErr?.message);
+            throw new Error(`STORAGE_DELETE_FAILED: Cloud file deletion failed for ${filePath}: ${cloudErr?.message}`);
+          }
+          return;
+        }
         try {
           await cloudFile.delete();
         } catch (err: any) {
-          // ignore or fallback to local
+          // Dev only fallback
         }
         await localFile.delete();
       }
