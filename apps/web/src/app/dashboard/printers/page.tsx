@@ -217,8 +217,8 @@ export default function DashboardPrintersPage() {
               <span>Download SOS Print Windows Agent (ZIP)</span>
             </a>
             <div className="text-[11px] text-[#475569] text-center sm:text-right space-y-0.5">
-              <p>Package: <span className="font-mono font-bold text-[#111827]">SOS-Print-Agent-Package.zip (5.0 MB)</span></p>
-              <p className="text-[10px] font-mono text-slate-500 break-all">SHA-256: A3EDEF14FB66B25E894D2C933812C067E4A7B2032E17CF8BF5A2E113773BE507</p>
+              <p>Package: <span className="font-mono font-bold text-[#111827]">SOS-Print-Agent-Package.zip (13.9 MB)</span></p>
+              <p className="text-[10px] font-mono text-slate-500 break-all">SHA-256: 1E9BBE15BA01ACDBAB3C98EE4F4D692097EBAA5F8F1BAE77C1655767B09C66EF</p>
               <p className="text-[10px] text-emerald-700 font-semibold">Build: Release v1.0.0 (LTS) · Source Commit: 1068489</p>
             </div>
           </div>
@@ -280,7 +280,7 @@ export default function DashboardPrintersPage() {
                 <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-[10px]">6</span>
                 <span className="font-bold text-[#111827]">Enter Code</span>
               </div>
-              <p className="text-[11px] text-[#475569]">Enter the 6-digit code in the Windows agent terminal.</p>
+              <p className="text-[11px] text-[#475569]">Run <code className="bg-slate-200 px-1 py-0.5 rounded text-[10px]">pair-agent.bat</code> and enter code; then run <code className="bg-slate-200 px-1 py-0.5 rounded text-[10px]">start-agent.bat</code>.</p>
             </div>
 
             <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 flex flex-col justify-between">

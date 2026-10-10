@@ -15,7 +15,7 @@
 **Production Aliased Domains:** `sos-print.vercel.app`, `sos-print-dxsqq9s2e-shaikshadaab951-1346s-projects.vercel.app`  
 **Deployed Commit:** `6e8368e`  
 **Vercel Deployment ID:** `dpl_HrdGyr1U7hAsyj44kF8ZywZ8RbeT`  
-**Windows Agent Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (5.0 MB, SHA-256: `A3EDEF146522E9B4895C86AE8DC0C226685B33F7BFF2FEAA23126783773BE507`, Source Commit: `1068489`)
+**Windows Agent Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (13.9 MB, SHA-256: `1E9BBE15BA01ACDBAB3C98EE4F4D692097EBAA5F8F1BAE77C1655767B09C66EF`)
 
 ---
 

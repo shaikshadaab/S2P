@@ -38,7 +38,7 @@ function maskPhone(phone?: string | null): string {
 }
 
 export default function CounterCashierPage() {
-  const { user, role } = useAuth();
+  const { user, role, loading: authLoading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,11 +79,17 @@ export default function CounterCashierPage() {
     } catch {}
   };
 
-  // Adaptive server-authorized polling
+  // Adaptive server-authorized polling with Bearer token
   const fetchOrders = async () => {
+    if (!user) return;
     try {
       setError(null);
-      const res = await fetch(`/api/orders?shopId=${PRIMARY_PILOT_SHOP.id}`);
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/orders?shopId=${PRIMARY_PILOT_SHOP.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Failed to load counter orders");
@@ -112,10 +118,16 @@ export default function CounterCashierPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
     fetchOrders();
     const interval = setInterval(fetchOrders, 3500);
     return () => clearInterval(interval);
-  }, [soundEnabled, desktopNotifEnabled]);
+  }, [user, authLoading, soundEnabled, desktopNotifEnabled]);
 
   const toggleSound = () => {
     setSoundEnabled(prev => !prev);

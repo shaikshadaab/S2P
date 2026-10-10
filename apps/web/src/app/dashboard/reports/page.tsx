@@ -30,7 +30,8 @@ export default function ReportsPage() {
     let isMounted = true;
     const fetchOrders = async () => {
       try {
-        const res = await fetch(`/api/orders?shopId=${PRIMARY_PILOT_SHOP.id}`);
+        const token = user ? await user.getIdToken() : "";
+        const res = await fetch(`/api/orders?shopId=${PRIMARY_PILOT_SHOP.id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
         const data = await res.json();
         if (res.ok && data.success && isMounted) {
           setOrders(data.orders || []);
@@ -46,7 +47,7 @@ export default function ReportsPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [user]);
 
   // Filter orders by period
   const filteredOrders = orders.filter((o) => {

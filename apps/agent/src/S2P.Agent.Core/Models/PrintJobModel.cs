@@ -7,6 +7,9 @@ public class PrintJobFileSnapshot
     [JsonPropertyName("fileId")]
     public string FileId { get; set; } = string.Empty;
 
+    [JsonPropertyName("printerId")]
+    public string? PrinterId { get; set; }
+
     [JsonPropertyName("sha256")]
     public string Sha256 { get; set; } = string.Empty;
 
@@ -39,6 +42,9 @@ public class PrintJobModel
 {
     [JsonPropertyName("id")]
     public string Id { get; set; } = string.Empty;
+
+    [JsonPropertyName("printerId")]
+    public string? PrinterId { get; set; }
 
     [JsonPropertyName("orderId")]
     public string OrderId { get; set; } = string.Empty;

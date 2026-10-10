@@ -40,7 +40,7 @@ function maskPhoneNumber(phone?: string | null): string {
 }
 
 export default function DashboardOrdersView() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,9 +52,15 @@ export default function DashboardOrdersView() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const fetchOrders = async () => {
+    if (!user) return;
     try {
       setError(null);
-      const res = await fetch(`/api/orders?shopId=${PRIMARY_PILOT_SHOP.id}`);
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/orders?shopId=${PRIMARY_PILOT_SHOP.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Failed to load orders");
@@ -73,49 +79,17 @@ export default function DashboardOrdersView() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
-      fetchOrders();
-      const interval = setInterval(fetchOrders, 5000);
-      return () => clearInterval(interval);
+      setIsLoading(false);
+      return;
     }
 
     setIsLoading(true);
-    let unsubscribe = () => {};
-    try {
-      const q = query(
-        collection(db, "orders"),
-        where("shopId", "==", PRIMARY_PILOT_SHOP.id)
-      );
-
-      unsubscribe = onSnapshot(
-        q,
-        (snapshot) => {
-          const liveOrders: Order[] = [];
-          snapshot.forEach((doc) => {
-            liveOrders.push(doc.data() as Order);
-          });
-          liveOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          setOrders(liveOrders);
-          setIsLoading(false);
-
-          if (selectedOrder) {
-            const refreshed = liveOrders.find((o) => o.id === selectedOrder.id);
-            if (refreshed) setSelectedOrder(refreshed);
-          }
-        },
-        (err) => {
-          console.warn("[Dashboard onSnapshot] Fallback to secure API polling:", err);
-          fetchOrders();
-        }
-      );
-    } catch {
-      fetchOrders();
-      const interval = setInterval(fetchOrders, 5000);
-      return () => clearInterval(interval);
-    }
-
-    return () => unsubscribe();
-  }, [user, selectedOrder?.id]);
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 4000);
+    return () => clearInterval(interval);
+  }, [user, authLoading, selectedOrder?.id]);
 
   const handleConfirmManualUpi = async () => {
     if (!selectedOrder) return;

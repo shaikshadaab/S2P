@@ -461,10 +461,20 @@ export async function updatePrintJobStatus(
 ) {
   const device = await authenticateAgent(db, deviceId, deviceSecret);
 
-  // Phase 5 Restriction
-  const allowedAgentStatuses: PrintJobStatus[] = ['DOWNLOADING', 'READY_TO_PRINT', 'FAILED'];
+  // Spooler status transitions
+  const allowedAgentStatuses: PrintJobStatus[] = [
+    'DOWNLOADING',
+    'READY_TO_PRINT',
+    'SUBMITTING',
+    'SUBMITTED',
+    'PRINTING',
+    'SPOOL_COMPLETED',
+    'COMPLETED',
+    'FAILED',
+    'STATUS_UNKNOWN'
+  ];
   if (!allowedAgentStatuses.includes(newStatus)) {
-    throw new Error('ILLEGAL_AGENT_STATUS: Agent cannot set status ' + newStatus + ' in Phase 5.');
+    throw new Error('ILLEGAL_AGENT_STATUS: Agent cannot set status ' + newStatus + '.');
   }
 
   return await db.runTransaction(async (transaction) => {

@@ -27,7 +27,8 @@ export default function DashboardPaymentsPage() {
 
   const fetchPayments = async () => {
     try {
-      const res = await fetch(`/api/orders?shopId=${PRIMARY_PILOT_SHOP.id}`);
+      const token = user ? await user.getIdToken() : "";
+      const res = await fetch(`/api/orders?shopId=${PRIMARY_PILOT_SHOP.id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
       const data = await res.json();
       if (res.ok && data.success) {
         setOrders(data.orders || []);
@@ -41,7 +42,7 @@ export default function DashboardPaymentsPage() {
     fetchPayments();
     const interval = setInterval(fetchPayments, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   const paidOrders = orders.filter(o => o.paymentStatus === "PAID");
   const totalCollectedPaise = paidOrders.reduce((sum, o) => {

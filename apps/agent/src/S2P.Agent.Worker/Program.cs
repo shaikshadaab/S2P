@@ -21,61 +21,104 @@ var credStore = new WindowsCredentialStore();
 await using var db = new LocalAgentDatabase();
 await db.InitializeAsync();
 
+// Default production URL
+string defaultBackendUrl = "https://sos-print.vercel.app";
+string backendUrl = defaultBackendUrl;
+if (argsList.Contains("--url"))
+{
+    var urlIdx = argsList.IndexOf("--url");
+    if (urlIdx + 1 < argsList.Count) backendUrl = argsList[urlIdx + 1];
+}
+
+// Check for unpair/reset
+if (argsList.Contains("--unpair") || argsList.Contains("--reset"))
+{
+    Console.ForegroundColor = ConsoleColor.Yellow;
+    Console.WriteLine("[RESET] Clearing stored DPAPI credentials and local database...");
+    credStore.SaveCredentials(new DeviceConfig { DeviceId = "", DeviceSecret = "", BackendBaseUrl = "" });
+    Console.WriteLine("[RESET] Local pairing cleared. You may now re-pair with a new code.");
+    Console.ResetColor();
+    return;
+}
+
 // 1. Pairing Mode
+string pairCode = "";
 if (argsList.Contains("--pair"))
 {
     var pairIdx = argsList.IndexOf("--pair");
-    var code = (pairIdx + 1 < argsList.Count) ? argsList[pairIdx + 1] : "";
-    var url = "http://localhost:3000";
-    if (argsList.Contains("--url"))
+    if (pairIdx + 1 < argsList.Count && !argsList[pairIdx + 1].StartsWith("--"))
     {
-        var urlIdx = argsList.IndexOf("--url");
-        if (urlIdx + 1 < argsList.Count) url = argsList[urlIdx + 1];
+        pairCode = argsList[pairIdx + 1].Trim();
     }
+}
 
-    if (string.IsNullOrWhiteSpace(code))
+var currentConfig = credStore.LoadCredentials();
+bool needsPairing = (currentConfig == null || string.IsNullOrWhiteSpace(currentConfig.DeviceId));
+
+if (needsPairing && string.IsNullOrWhiteSpace(pairCode))
+{
+    // Interactive Pairing Prompt
+    if (!Console.IsInputRedirected)
     {
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine("[Error] Please specify pairing code: --pair <6-digit-code>");
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("----------------------------------------------------------");
+        Console.WriteLine("        WINDOWS AGENT PAIRING WITH SHOP DASHBOARD        ");
+        Console.WriteLine("----------------------------------------------------------");
+        Console.WriteLine("This PC is not yet paired with Shakeel Online Services.");
+        Console.WriteLine("1. Open Dashboard: https://sos-print.vercel.app/dashboard/printers");
+        Console.WriteLine("2. Click 'Pair New Windows PC' to generate a 6-digit code.\n");
         Console.ResetColor();
-        return;
-    }
 
-    Console.WriteLine($"[Pairing] Contacting {url}/api/agent/pair with code {code}...");
-    var pairClient = new S2PAgentApiClient(url);
+        Console.Write("Enter 6-digit Pairing Code: ");
+        pairCode = Console.ReadLine()?.Trim() ?? "";
+    }
+}
+
+if (!string.IsNullOrWhiteSpace(pairCode))
+{
+    Console.WriteLine($"[Pairing] Contacting {backendUrl}/api/agent/pair with pairing code...");
+    var pairClient = new S2PAgentApiClient(backendUrl);
 
     try
     {
-        var newConfig = await pairClient.PairAsync(code, Environment.MachineName);
+        var newConfig = await pairClient.PairAsync(pairCode, Environment.MachineName);
         credStore.SaveCredentials(newConfig);
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine($"[PAIRED] Successfully paired! DeviceId: {newConfig.DeviceId}");
-        Console.WriteLine("[SECURITY] Device secret encrypted with Windows DPAPI (CurrentUser).");
+        Console.WriteLine("[SECURITY] Device credentials encrypted with Windows DPAPI (CurrentUser).");
         Console.ResetColor();
+        currentConfig = newConfig;
     }
     catch (Exception ex)
     {
         Console.ForegroundColor = ConsoleColor.Red;
         Console.WriteLine($"[Pairing Error] {ex.Message}");
         Console.ResetColor();
+        Console.WriteLine("\nPress any key to exit...");
+        try { Console.ReadKey(); } catch { }
         return;
     }
 }
 
-// 2. Load Credentials
+// 2. Validate Credentials
 var config = credStore.LoadCredentials();
-if (config == null)
+if (config == null || string.IsNullOrWhiteSpace(config.DeviceId))
 {
     Console.ForegroundColor = ConsoleColor.Yellow;
-    Console.WriteLine("[PAIRING NEEDED] Windows agent is not yet paired with S2P.");
-    Console.WriteLine("To pair, run: S2P.Agent.Worker.exe --pair <6-digit-code> --url <backend-url>");
+    Console.WriteLine("[PAIRING NEEDED] Windows agent is not yet paired with SOS Print.");
+    Console.WriteLine("To pair your shop PC:");
+    Console.WriteLine("  1. Launch start-agent.bat and enter your 6-digit code when prompted, OR");
+    Console.WriteLine("  2. Run: S2P.Agent.Worker.exe --pair <6-digit-code> --url https://sos-print.vercel.app");
     Console.ResetColor();
+    Console.WriteLine("\nPress any key to exit...");
+    try { Console.ReadKey(); } catch { }
     return;
 }
 else
 {
     Console.ForegroundColor = ConsoleColor.Cyan;
     Console.WriteLine($"[CREDENTIALS LOADED] DPAPI decrypted DeviceId: {config.DeviceId}");
+    Console.WriteLine($"  Backend URL: {config.BackendBaseUrl}");
     Console.ResetColor();
 }
 
@@ -115,14 +158,14 @@ try
     if (hbOk)
     {
         Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("[Heartbeat] Device status is now ONLINE.");
+        Console.WriteLine("[Heartbeat] Device status is now ONLINE on shop dashboard.");
         Console.ResetColor();
     }
 }
 catch (UnauthorizedAccessException)
 {
     Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine("[DEVICE REVOKED] This device was revoked by shop management. Exiting.");
+    Console.WriteLine("[DEVICE REVOKED] This device was revoked by shop management. Please generate a new pairing code.");
     Console.ResetColor();
     return;
 }
@@ -152,11 +195,12 @@ try
         Console.WriteLine("    S2P CONTROLLED 1-PAGE PHYSICAL HARDWARE TEST MODE    ");
         Console.WriteLine("==========================================================");
 
-        var targetPrinter = discovered.FirstOrDefault(p => p.PrinterKind == "PHYSICAL" && p.DisplayName.Contains("HP Smart Tank"));
+        var targetPrinter = discovered.FirstOrDefault(p => p.PrinterKind == "PHYSICAL" && p.DisplayName.Contains("HP Smart Tank"))
+                           ?? discovered.FirstOrDefault(p => p.PrinterKind == "PHYSICAL");
         if (targetPrinter == null)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("[ERROR] Physical printer 'HP Smart Tank' not found!");
+            Console.WriteLine("[ERROR] Physical printer not found!");
             Console.ResetColor();
             return;
         }
@@ -185,13 +229,11 @@ try
         Console.WriteLine($"  Expected Sheet: 1 PAGE / 1 COPY / B&W");
         Console.ResetColor();
 
-        // 1. Capture queue before submission
         Console.WriteLine("");
         Console.WriteLine("[1/4] Capturing Windows Spooler queue state before submission...");
         var jobsBefore = WindowsSpoolerService.GetCurrentSpoolJobIds(targetPrinter.QueueName);
         Console.WriteLine($"  Active queue jobs before: {jobsBefore.Count}");
 
-        // 2. Submit to Spooler
         Console.WriteLine("[2/4] Submitting test document to Windows Spooler via driver rendering engine...");
         var spooler = new WindowsSpoolerService();
         bool isDryRun = argsList.Contains("--dry-run");
@@ -205,29 +247,24 @@ try
             return;
         }
 
-        // 3. Capture queue after submission
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine("");
         Console.WriteLine("[3/4] SUCCESS: Windows Spooler Job Registered!");
-        Console.WriteLine($"  Windows Spooler Job ID: {result.SpoolJobId}");
+        Console.WriteLine($"  Windows Spool Job ID: {result.SpoolJobId}");
         Console.WriteLine($"  Printer Queue:          {result.QueueName}");
         Console.WriteLine($"  Document Name:          {result.DocumentTitle}");
         Console.WriteLine($"  Rendering Method:       {result.RenderingMethod}");
-        Console.WriteLine($"  Data Format:            {result.DataType}");
-        Console.WriteLine($"  Raw PDF Direct:         {result.RawPdfDirect}");
         Console.WriteLine($"  Submission Timestamp:   {result.SubmittedAt:O}");
         Console.ResetColor();
 
-        // 4. Verification Check
         Console.WriteLine("");
         Console.WriteLine("[4/4] Hardware Spool Verification:");
         Console.WriteLine($"  Total Spool Submissions: 1");
         Console.WriteLine($"  Expected Physical Sheets: 1");
-        Console.WriteLine(">> OBSERVATION REQUIRED: Please check the HP Smart Tank 580-590 series printer for 1 physical printed page. <<");
+        Console.WriteLine(">> OBSERVATION REQUIRED: Please check printer for 1 physical printed page. <<");
 
         return;
     }
-    Console.WriteLine($"[Printer Sync] Synced {synced} printer(s) to cloud backend.");
 }
 catch (Exception ex)
 {
@@ -358,85 +395,142 @@ while (!cts.IsCancellationRequested)
                 Console.WriteLine($"[TEMP FILE RETAINED] Preserved verified file at {tempPath}");
                 Console.ResetColor();
 
-                bool controlledTest = argsList.Contains("--controlled-test");
                 bool isDryRun = argsList.Contains("--dry-run");
 
-                if (controlledTest || isDryRun)
-                {
-                    Console.ForegroundColor = ConsoleColor.Cyan;
-                    Console.WriteLine("[CONTROLLED SPOOLER SUBMISSION MODE ACTIVATED]");
-                    Console.ResetColor();
+                // Target physical printer selection based on mapped configuration
+                DiscoveredPrinter? targetPrinter = null;
 
-                    // 1. Identify target physical printer
-                    var targetPrinter = discovered.FirstOrDefault(p => p.PrinterKind == "PHYSICAL");
-                    if (targetPrinter == null)
+                // 1. Check if job has specific assigned printerId
+                if (!string.IsNullOrEmpty(job.PrinterId))
+                {
+                    targetPrinter = discovered.FirstOrDefault(p =>
+                        (p.QueueName == job.PrinterId || p.DisplayName == job.PrinterId) && p.PrinterKind == "PHYSICAL");
+                }
+
+                // 2. Match based on color mode capability
+                if (targetPrinter == null)
+                {
+                    bool requiresColor = false;
+                    if (job.PrintConfigSnapshot != null && job.PrintConfigSnapshot.TryGetValue("colorMode", out var cmObj))
                     {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("[ERROR] No physical printer found for spooler submission!");
-                        Console.ResetColor();
+                        var cm = cmObj?.ToString() ?? "";
+                        requiresColor = cm.Equals("COLOR", StringComparison.OrdinalIgnoreCase);
+                    }
+
+                    if (requiresColor)
+                    {
+                        targetPrinter = discovered.FirstOrDefault(p => p.PrinterKind == "PHYSICAL" && p.Capabilities.ColorSupported);
                     }
                     else
                     {
-                        Console.WriteLine($"[TARGET PRINTER] {targetPrinter.DisplayName} (Queue: {targetPrinter.QueueName})");
+                        // Standard B&W physical printer (prefer HP Smart Tank if present, otherwise first physical printer)
+                        targetPrinter = discovered.FirstOrDefault(p => p.PrinterKind == "PHYSICAL" && p.DisplayName.Contains("HP Smart Tank"))
+                                       ?? discovered.FirstOrDefault(p => p.PrinterKind == "PHYSICAL");
+                    }
+                }
 
-                        // 2. Irreversible Stage Model Boundary
-                        Console.WriteLine($"[Irreversible Boundary] Setting irreversibleStageReached = true for job {job.Id}...");
-                        await client.UpdateJobStatusAsync(config, job.Id, leaseToken, "SUBMITTING");
-                        await db.UpdateLeaseStatusAsync(job.Id, "SUBMITTING");
+                if (targetPrinter == null)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"[DISPATCH ERROR] No physical printer found eligible for job {job.Id}! (Virtual printers rejected)");
+                    Console.ResetColor();
 
-                        // 3. Spooler Submission
-                        var spooler = new WindowsSpoolerService();
-                        var spoolRes = spooler.SubmitToSpooler(
-                            targetPrinter.QueueName,
-                            $"S2P_Order_{job.OrderNumber}",
-                            tempPath!,
-                            dryRun: isDryRun
-                        );
+                    await client.UpdateJobStatusAsync(
+                        config,
+                        job.Id,
+                        leaseToken,
+                        "FAILED",
+                        "NO_PHYSICAL_PRINTER",
+                        "No physical Windows printer queue available on paired device"
+                    );
+                    continue;
+                }
 
-                        if (spoolRes.Success)
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine($"[DISPATCHING] Target Printer: {targetPrinter.DisplayName} (Queue: {targetPrinter.QueueName})");
+                Console.ResetColor();
+
+                // Irreversible Stage Model Boundary
+                Console.WriteLine($"[Irreversible Boundary] Setting irreversibleStageReached = true for job {job.Id}...");
+                await client.UpdateJobStatusAsync(config, job.Id, leaseToken, "SUBMITTING");
+                await db.UpdateLeaseStatusAsync(job.Id, "SUBMITTING");
+
+                if (isDryRun)
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine($"[DRY RUN] Simulating spooler submission for job {job.Id}. Job preserved; not advancing to COMPLETED.");
+                    Console.ResetColor();
+                    continue;
+                }
+
+                // Native Win32 Spooler Submission
+                var spooler = new WindowsSpoolerService();
+                var spoolRes = spooler.SubmitToSpooler(
+                    targetPrinter.QueueName,
+                    $"S2P_Order_{job.OrderNumber}",
+                    tempPath!,
+                    dryRun: false
+                );
+
+                if (spoolRes.Success)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"[SPOOLER SUBMISSION SUCCESS] Windows Spool Job ID: {spoolRes.SpoolJobId}");
+                    Console.WriteLine($"  Queue:     {spoolRes.QueueName}");
+                    Console.WriteLine($"  Document:  {spoolRes.DocumentTitle}");
+                    Console.WriteLine($"  Timestamp: {spoolRes.SubmittedAt:O}");
+                    Console.ResetColor();
+
+                    // Transition: SUBMITTED -> PRINTING
+                    await client.UpdateJobStatusAsync(config, job.Id, leaseToken, "SUBMITTED");
+                    await db.UpdateLeaseStatusAsync(job.Id, "SUBMITTED");
+
+                    await client.UpdateJobStatusAsync(config, job.Id, leaseToken, "PRINTING");
+                    await db.UpdateLeaseStatusAsync(job.Id, "PRINTING");
+
+                    // Monitor queue: wait until spooler has sent job bytes to printer
+                    Console.WriteLine("[Spooler Monitor] Waiting for spool queue to transfer bytes to printer...");
+                    for (int wait = 0; wait < 8; wait++)
+                    {
+                        await Task.Delay(1000, cts.Token);
+                        var activeJobs = WindowsSpoolerService.GetCurrentSpoolJobIds(targetPrinter.QueueName);
+                        if (!activeJobs.Contains(spoolRes.SpoolJobId))
                         {
-                            Console.ForegroundColor = ConsoleColor.Green;
-                            Console.WriteLine($"[SPOOLER SUBMISSION SUCCESS] Windows Spool Job ID: {spoolRes.SpoolJobId}");
-                            Console.WriteLine($"  Queue: {spoolRes.QueueName}");
-                            Console.WriteLine($"  Title: {spoolRes.DocumentTitle}");
-                            Console.WriteLine($"  Timestamp: {spoolRes.SubmittedAt:O}");
-                            Console.ResetColor();
-
-                            // Transition: SUBMITTED -> PRINTING -> COMPLETED
-                            await client.UpdateJobStatusAsync(config, job.Id, leaseToken, "SUBMITTED");
-                            await db.UpdateLeaseStatusAsync(job.Id, "SUBMITTED");
-
-                            await client.UpdateJobStatusAsync(config, job.Id, leaseToken, "PRINTING");
-                            await db.UpdateLeaseStatusAsync(job.Id, "PRINTING");
-
-                            await client.UpdateJobStatusAsync(config, job.Id, leaseToken, "COMPLETED");
-                            await db.UpdateLeaseStatusAsync(job.Id, "COMPLETED");
-
-                            // Auto File Purge: Remove temporary document upon confirmed completion
-                            Console.WriteLine($"[AUTO PURGE] Cleaning up temp document {Path.GetFileName(tempPath)}...");
-                            tempManager.CleanupJobTempFile(tempPath);
-                            await db.ClearActiveLeaseAsync(job.Id);
-                            Console.WriteLine($"[JOB COMPLETE] Job {job.Id} completed successfully!");
-                        }
-                        else
-                        {
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine($"[SPOOLER ERROR] {spoolRes.ErrorMessage}");
-                            Console.ResetColor();
-                            await client.UpdateJobStatusAsync(config, job.Id, leaseToken, "STATUS_UNKNOWN");
+                            break;
                         }
                     }
+
+                    // Transition to SPOOL_COMPLETED
+                    await client.UpdateJobStatusAsync(config, job.Id, leaseToken, "SPOOL_COMPLETED");
+                    await db.UpdateLeaseStatusAsync(job.Id, "SPOOL_COMPLETED");
+
+                    // Auto File Purge: Remove temporary document upon confirmed completion
+                    Console.WriteLine($"[AUTO PURGE] Cleaning up temp document {Path.GetFileName(tempPath)}...");
+                    tempManager.CleanupJobTempFile(tempPath);
+                    await db.ClearActiveLeaseAsync(job.Id);
+
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"[JOB COMPLETE] Order #{job.OrderNumber} (Job {job.Id}) sent to printer successfully!");
+                    Console.ResetColor();
                 }
                 else
                 {
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine(">> STOP BEFORE PHYSICAL PRINT: Controlled test flag (--controlled-test) required for physical spooling. <<");
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"[SPOOLER ERROR] Submission failed: {spoolRes.ErrorMessage}");
                     Console.ResetColor();
+
+                    await client.UpdateJobStatusAsync(
+                        config,
+                        job.Id,
+                        leaseToken,
+                        "STATUS_UNKNOWN",
+                        "SPOOLER_SUBMISSION_FAILED",
+                        spoolRes.ErrorMessage ?? "Windows Spooler submission error"
+                    );
                 }
             }
             finally
             {
-                // Stop the lease renewal background task
                 renewCts.Cancel();
                 try { await renewTask; } catch { }
             }
@@ -454,7 +548,7 @@ while (!cts.IsCancellationRequested)
                 Console.WriteLine("[Single Pass] Queue empty. Exiting.");
                 break;
             }
-            await Task.Delay(2000, cts.Token);
+            await Task.Delay(2500, cts.Token);
         }
     }
     catch (OperationCanceledException)
@@ -464,7 +558,7 @@ while (!cts.IsCancellationRequested)
     catch (UnauthorizedAccessException)
     {
         Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine("\n[DEVICE REVOKED] Device credentials rejected (Revoked). Terminating agent.");
+        Console.WriteLine("\n[DEVICE REVOKED] Device credentials rejected (Revoked). Please generate a new pairing code.");
         Console.ResetColor();
         break;
     }
