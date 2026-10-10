@@ -13,7 +13,7 @@
 **WhatsApp Helpline:** `+91 9581529381`  
 **Production HTTPS URL:** https://sos-print.vercel.app  
 **Production Aliased Domains:** `sos-print.vercel.app`, `sos-print-dxsqq9s2e-shaikshadaab951-1346s-projects.vercel.app`  
-**Deployed Commit:** `862e548`  
+**Deployed Commit:** `412ed41`  
 **Vercel Deployment ID:** `dpl_8vwNci7qEEVM8bEVpa9SqBpZZFeo`  
 **Windows Agent Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (33,087,108 bytes [31.55 MB], SHA-256: `6856A267A1D066ACB9932F1CE0097DBB048F39A134E1E125C4A5361DFDBD2DFF`)
 
@@ -71,6 +71,36 @@ These features are fully built, unit-tested, and verified live on production at 
   6. Confirm physical paper output before unpausing customer intake (`manualPause: false`).
 
 ---
+
+
+### Firestore Production Index Audit & Direct Activation Links
+- **CLI / MCP Probe Result:** The global Firebase CLI on the Windows host is currently unauthenticated.
+- **Service Account Probe Result:** The local service account (`firebase-adminsdk-fbsvc@shakeel-online-services-951ec.iam.gserviceaccount.com`) has document read/write credentials, but Google Cloud Datastore Index Admin API returned `403 PERMISSION_DENIED` for programmatic index creation.
+- **Active Firestore Live Query Probing:** Verified directly against Firestore production database `shakeel-online-services-951ec`. The exact required composite indexes were triggered and the official 1-click console activation links were captured:
+
+| Collection Group | Query Fields | Order | Direct 1-Click Console Activation Link |
+|---|---|---|---|
+| **orders** | `shopId` (ASC), `createdAt` (DESC) | Primary Feed | [Create Orders Index](https://console.firebase.google.com/v1/r/project/shakeel-online-services-951ec/firestore/indexes?create_composite=Clxwcm9qZWN0cy9zaGFrZWVsLW9ubGluZS1zZXJ2aWNlcy05NTFlYy9kYXRhYmFzZXMvKGRlZmF1bHQpL2NvbGxlY3Rpb25Hcm91cHMvb3JkZXJzL2luZGV4ZXMvXxABGgoKBnNob3BJZBABGg0KCWNyZWF0ZWRBdBACGgwKCF9fbmFtZV9fEAI) |
+| **orders** | `shopId` (ASC), `status` (ASC), `createdAt` (DESC) | Status Filter | [Create Orders Status Index](https://console.firebase.google.com/v1/r/project/shakeel-online-services-951ec/firestore/indexes?create_composite=Clxwcm9qZWN0cy9zaGFrZWVsLW9ubGluZS1zZXJ2aWNlcy05NTFlYy9kYXRhYmFzZXMvKGRlZmF1bHQpL2NvbGxlY3Rpb25Hcm91cHMvb3JkZXJzL2luZGV4ZXMvXxABGgoKBnNob3BJZBABGgoKBnN0YXR1cxABGg0KCWNyZWF0ZWRBdBACGgwKCF9fbmFtZV9fEAI) |
+| **orders** | `shopId` (ASC), `paymentStatus` (ASC), `createdAt` (DESC) | Payment Filter | [Create Orders Payment Index](https://console.firebase.google.com/v1/r/project/shakeel-online-services-951ec/firestore/indexes?create_composite=Clxwcm9qZWN0cy9zaGFrZWVsLW9ubGluZS1zZXJ2aWNlcy05NTFlYy9kYXRhYmFzZXMvKGRlZmF1bHQpL2NvbGxlY3Rpb25Hcm91cHMvb3JkZXJzL2luZGV4ZXMvXxABGhEKDXBheW1lbnRTdGF0dXMQARoKCgZzaG9wSWQQARoNCgljcmVhdGVkQXQQAhoMCghfX25hbWVfXxAC) |
+| **printJobs** | `shopId` (ASC), `createdAt` (DESC) | Queue Recents | [Create PrintJobs Index](https://console.firebase.google.com/v1/r/project/shakeel-online-services-951ec/firestore/indexes?create_composite=Cl9wcm9qZWN0cy9zaGFrZWVsLW9ubGluZS1zZXJ2aWNlcy05NTFlYy9kYXRhYmFzZXMvKGRlZmF1bHQpL2NvbGxlY3Rpb25Hcm91cHMvcHJpbnRKb2JzL2luZGV4ZXMvXxABGgoKBnNob3BJZBABGg0KCWNyZWF0ZWRBdBACGgwKCF9fbmFtZV9fEAI) |
+| **printJobs** | `shopId` (ASC), `status` (ASC), `createdAt` (ASC) | Active Spooler FIFO | [Create PrintJobs FIFO Index](https://console.firebase.google.com/v1/r/project/shakeel-online-services-951ec/firestore/indexes?create_composite=Cl9wcm9qZWN0cy9zaGFrZWVsLW9ubGluZS1zZXJ2aWNlcy05NTFlYy9kYXRhYmFzZXMvKGRlZmF1bHQpL2NvbGxlY3Rpb25Hcm91cHMvcHJpbnRKb2JzL2luZGV4ZXMvXxABGgoKBnNob3BJZBABGgoKBnN0YXR1cxABGg0KCWNyZWF0ZWRBdBABGgwKCF9fbmFtZV9fEAE) |
+| **devices** | `shopId` (ASC), `createdAt` (DESC) | Device Pairing | [Create Devices Index](https://console.firebase.google.com/v1/r/project/shakeel-online-services-951ec/firestore/indexes?create_composite=Cl1wcm9qZWN0cy9zaGFrZWVsLW9ubGluZS1zZXJ2aWNlcy05NTFlYy9kYXRhYmFzZXMvKGRlZmF1bHQpL2NvbGxlY3Rpb25Hcm91cHMvZGV2aWNlcy9pbmRleGVzL18QARoKCgZzaG9wSWQQARoNCgljcmVhdGVkQXQQAhoMCghfX25hbWVfXxAC) |
+| **printers** | `shopId` (ASC), `isOnline` (ASC), `lastSeenAt` (DESC) | Online Heartbeat | [Create Printers Index](https://console.firebase.google.com/v1/r/project/shakeel-online-services-951ec/firestore/indexes?create_composite=Cl5wcm9qZWN0cy9zaGFrZWVsLW9ubGluZS1zZXJ2aWNlcy05NTFlYy9kYXRhYmFzZXMvKGRlZmF1bHQpL2NvbGxlY3Rpb25Hcm91cHMvcHJpbnRlcnMvaW5kZXhlcy9fEAEaDAoIaXNPbmxpbmUQARoKCgZzaG9wSWQQARoOCgpsYXN0U2VlbkF0EAIaDAoIX19uYW1lX18QAg) |
+| **auditLogs** | `shopId` (ASC), `timestamp` (DESC) | Security Logs | [Create AuditLogs Index](https://console.firebase.google.com/v1/r/project/shakeel-online-services-951ec/firestore/indexes?create_composite=Cl9wcm9qZWN0cy9zaGFrZWVsLW9ubGluZS1zZXJ2aWNlcy05NTFlYy9kYXRhYmFzZXMvKGRlZmF1bHQpL2NvbGxlY3Rpb25Hcm91cHMvYXVkaXRMb2dzL2luZGV4ZXMvXxABGgoKBnNob3BJZBABGg0KCXRpbWVzdGFtcBACGgwKCF9fbmFtZV9fEAI) |
+
+### Visual Brand & Mobile Tooling Verification Evidence
+1. **Restored Logo Across All Touchpoints:**
+   - Desktop & Mobile header: Emerald vector printer/scanner mark + "SOS PRINT" wordmark + "SHAKEEL ONLINE SERVICES, GUNTUR" subtitle.
+   - Screenshots: `live_final_desktop_home.png`, `live_final_mobile_home_375.png`, `verify_home_375.png`, `verify_print_375.png`, `verify_login_375.png`.
+   - Brand Isolation: Hardened CSS tokens (`color-scheme: light !important;`) ensure host IDE dark mode never bleeds into client web interfaces.
+2. **Mobile Image Editor Suite (EnhancedImageEditor):**
+   - Verified on mobile viewport (`375x812`) with touch handles and responsive clamping:
+     - **Crop & Ratios (`mobile_editor_crop_tab.png`):** Free Crop, Original, Square (1:1), 4:6 Photo presets; draggable edge/corner handles; rotate 90°; flip H/V; 4-corner perspective warp; passport head alignment oval; live DPI indicator (e.g. "282 DPI (GOOD)").
+     - **Background Removal (`mobile_editor_background_tab.png`):** Pure White (Passport), Light Blue (Visa/Official), Transparent, Keep Original; manual Erase & Restore brush with variable brush size slider.
+     - **Enhance Filters (`mobile_editor_enhance_tab.png`):** 1-Click Auto Enhance, Document Scan Mode (preserving handwriting/stamps), Clean Grayscale, High Contrast B&W, 2x Digital Upscale Resampling.
+     - **Fine Tuning (`mobile_editor_tune_tab.png`):** Responsive sliders for Brightness, Contrast, Saturation, Sharpness (Unsharp Mask), and Restrained Denoise.
+
 
 ## 2. Technical Clarifications & Acceptance Resolutions
 
