@@ -11,3 +11,4 @@ export * from './audit';
 export * from './file';
 export * from './agent-contract';
 export * from './document-group';
+export * from './upload-grant';

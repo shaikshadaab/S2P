@@ -60,11 +60,11 @@ export default function DiagnosticsPage() {
     },
     {
       id: "storage-rules",
-      name: "Private Storage Gate",
+      name: "File Storage Architecture",
       category: "Security",
       status: "healthy",
-      detail: "Client direct access denied (deny-by-default)",
-      info: "Customer documents served exclusively via short-lived authenticated server endpoints."
+      detail: "Shop-PC Local Storage (Free Tier • No Blaze Required)",
+      info: "Customer documents route directly to shop PC via high-entropy scoped upload grants (5-min TTL). Zero cloud storage bills."
     },
     {
       id: "auth-rbac",

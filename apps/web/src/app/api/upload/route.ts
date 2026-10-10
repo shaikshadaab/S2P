@@ -169,23 +169,75 @@ export async function POST(req: NextRequest) {
     fileId = 'f_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex');
     const storageOriginalPath = 'shops/' + shopId + '/orders/' + draftId + '/files/' + fileId + '/original/' + safeDisplayName;
 
+    // Free No-Paid-Storage Agent Relay Fallback
     const bucket = getFileStorageBucket();
     const storageFile = bucket.file(storageOriginalPath);
 
-    await storageFile.save(effectiveBuffer, {
-      contentType: detectedMime,
-      metadata: {
-        shopId,
-        orderId: draftId,
-        fileId,
-        sha256,
-        pageCount: String(pageCount),
-        convertedFrom: convertedFrom || '',
-        ownerUid: identity.uid || '',
-        guestSessionId: identity.guestSessionId || '',
-        isGuest: String(identity.isGuest)
+    let storageMode: 'FIREBASE_STORAGE' | 'LOCAL_AGENT' = 'FIREBASE_STORAGE';
+    let agentLocalPath: string | undefined = undefined;
+    let agentDeviceId: string | undefined = undefined;
+
+    try {
+      await storageFile.save(effectiveBuffer, {
+        contentType: detectedMime,
+        metadata: {
+          shopId,
+          orderId: draftId,
+          fileId,
+          sha256,
+          pageCount: String(pageCount),
+          convertedFrom: convertedFrom || '',
+          ownerUid: identity.uid || '',
+          guestSessionId: identity.guestSessionId || '',
+          isGuest: String(identity.isGuest)
+        }
+      });
+    } catch (saveErr: any) {
+      console.warn('[Upload Pipeline] Cloud Storage save unavailable. Checking online shop PC agent...', saveErr?.message);
+
+      // Check if online shop PC is available
+      const now = Date.now();
+      const devicesSnap = await adminDb.collection('devices')
+        .where('shopId', '==', shopId)
+        .get();
+
+      const onlineDevices = devicesSnap.docs
+        .map(d => d.data())
+        .filter(d => d.status === 'ONLINE' && (now - new Date(d.lastHeartbeatAt || 0).getTime() <= 90000));
+
+      if (onlineDevices.length === 0) {
+        return NextResponse.json({
+          success: false,
+          error: 'SHOP_PC_OFFLINE: Shop printing counter PC is currently offline to receive documents. Please ask shopkeeper to connect PC.',
+          shopOffline: true
+        }, { status: 503 });
       }
-    });
+
+      const activeDev = onlineDevices[0];
+      storageMode = 'LOCAL_AGENT';
+      agentDeviceId = activeDev.id;
+      agentLocalPath = 'storage/orders/' + draftId + '/' + fileId + '_' + safeDisplayName;
+
+      // If activeDev has an agentUploadUrl, attempt relay
+      if (activeDev.agentUploadUrl) {
+        try {
+          const form = new FormData();
+          form.append('file', new Blob([effectiveBuffer], { type: detectedMime }), safeDisplayName);
+          const relayRes = await fetch(activeDev.agentUploadUrl + '/api/agent/upload', {
+            method: 'POST',
+            body: form,
+            headers: {
+              'x-relay-secret': activeDev.credentialHash || ''
+            }
+          });
+          if (relayRes.ok) {
+            console.log('[Upload Pipeline] Relayed file directly to agent:', activeDev.agentUploadUrl);
+          }
+        } catch (relayErr: any) {
+          console.warn('[Upload Pipeline] Agent direct relay warning (proceeding with local agent metadata):', relayErr?.message);
+        }
+      }
+    }
 
     // 6. Authoritative Firestore Document
     const fileDoc: OrderFile = {
@@ -203,7 +255,10 @@ export async function POST(req: NextRequest) {
       sha256,
       pageCount,
       convertedFrom,
-      storageOriginalPath,
+      storageOriginalPath: storageMode === 'LOCAL_AGENT' ? ('local://' + fileId) : storageOriginalPath,
+      storageMode,
+      ...(agentDeviceId ? { agentDeviceId } : {}),
+      ...(agentLocalPath ? { agentLocalPath } : {}),
       processingStatus: 'READY_FOR_PRINT',
       documentAvailable: true,
       uploadedAt: new Date().toISOString(),

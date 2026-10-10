@@ -30,6 +30,20 @@ if (argsList.Contains("--url"))
     if (urlIdx + 1 < argsList.Count) backendUrl = argsList[urlIdx + 1];
 }
 
+int uploadPort = 5218;
+if (argsList.Contains("--port"))
+{
+    var pIdx = argsList.IndexOf("--port");
+    if (pIdx + 1 < argsList.Count && int.TryParse(argsList[pIdx + 1], out var parsedPort)) uploadPort = parsedPort;
+}
+
+string? agentUploadUrl = null;
+if (argsList.Contains("--upload-url"))
+{
+    var uIdx = argsList.IndexOf("--upload-url");
+    if (uIdx + 1 < argsList.Count) agentUploadUrl = argsList[uIdx + 1];
+}
+
 // Check for unpair/reset
 if (argsList.Contains("--unpair") || argsList.Contains("--reset"))
 {
@@ -124,6 +138,10 @@ else
 
 var client = new S2PAgentApiClient(config.BackendBaseUrl);
 
+// Start embedded private local upload server for customer mobile direct file uploads
+using var uploadServer = new AgentUploadServer(client, config, uploadPort);
+uploadServer.Start();
+
 // 3. Crash Recovery Check
 var unfinished = await db.GetUnfinishedLeasesAsync();
 if (unfinished.Count > 0)
@@ -154,7 +172,7 @@ if (unfinished.Count > 0)
 Console.WriteLine("[Heartbeat] Sending initial heartbeat to backend...");
 try
 {
-    var hbOk = await client.SendHeartbeatAsync(config);
+    var hbOk = await client.SendHeartbeatAsync(config, agentUploadUrl);
     if (hbOk)
     {
         Console.ForegroundColor = ConsoleColor.Green;
@@ -295,7 +313,7 @@ while (!cts.IsCancellationRequested)
         // Periodic Heartbeat (~30 seconds)
         if ((DateTime.UtcNow - lastHeartbeat).TotalSeconds >= 30)
         {
-            await client.SendHeartbeatAsync(config);
+            await client.SendHeartbeatAsync(config, agentUploadUrl);
             lastHeartbeat = DateTime.UtcNow;
             await db.SetMarkerAsync("last_heartbeat", DateTime.UtcNow.ToString("O"));
         }
@@ -346,11 +364,30 @@ while (!cts.IsCancellationRequested)
                 await client.UpdateJobStatusAsync(config, job.Id, leaseToken, "DOWNLOADING");
                 await db.UpdateLeaseStatusAsync(job.Id, "DOWNLOADING");
 
-                // Download file to temp
-                tempPath = tempManager.AllocateJobTempPath(job.Id);
-                Console.WriteLine($"[Download] Downloading authorized document to: {Path.GetFileName(tempPath)}...");
+                // Check if file is already stored in local agent storage directory
+                string? existingLocal = null;
+                var filesInStorage = Directory.GetFiles(uploadServer.StorageDirectory, $"*{job.FileId}*");
+                if (filesInStorage.Length > 0 && File.Exists(filesInStorage[0]))
+                {
+                    existingLocal = filesInStorage[0];
+                }
 
-                var expectedSha = await client.DownloadFileAsync(config, job.Id, leaseToken, tempPath);
+                string expectedSha;
+                if (!string.IsNullOrEmpty(existingLocal))
+                {
+                    tempPath = existingLocal;
+                    expectedSha = job.FileSnapshot?.Sha256 ?? "";
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"[LOCAL AGENT FILE] File already present on local shop PC: {Path.GetFileName(tempPath)}");
+                    Console.ResetColor();
+                }
+                else
+                {
+                    // Download file to temp
+                    tempPath = tempManager.AllocateJobTempPath(job.Id);
+                    Console.WriteLine($"[Download] Downloading authorized document to: {Path.GetFileName(tempPath)}...");
+                    expectedSha = await client.DownloadFileAsync(config, job.Id, leaseToken, tempPath);
+                }
                 if (string.IsNullOrEmpty(expectedSha) && job.FileSnapshot != null)
                 {
                     expectedSha = job.FileSnapshot.Sha256;

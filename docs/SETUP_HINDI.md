@@ -22,9 +22,9 @@
    - Location में भारत के नज़दीक sia-south1 (Mumbai) चुनें।
    - **Production mode** चुनें और Done दबाएं।
 
-4. **Storage चालू करें:**
-   - **Build > Storage** पर जाएं और **Get started** दबाएं।
-   - Default Bucket चुनें (Blaze plan / pay-as-you-go की आवश्यकता होती है temporary documents के लिए)।
+4. **Storage की जानकारी (Blaze या Paid Storage की ज़रूरत नहीं):**
+   - दुकान के सिस्टम में शून्य-खर्च (Zero Cloud Bill) लोकल स्टोरेज पाइपलाइन लगाई गई है।
+   - आपको Blaze प्लान चालू करने की आवश्यकता नहीं है। ग्राहक के दस्तावेज़ सीधे दुकान के PC के सुरक्षित फोल्डर (`storage/orders/`) में आते हैं और प्रिंट के बाद सुरक्षित साफ़ हो जाते हैं।
 
 5. **Web App Config निकालें:**
    - Project Settings (गियर आइकन ⚙️) में जाएं।
@@ -95,7 +95,8 @@
    - इस ZIP को किसी अलग फोल्डर (जैसे `C:\\SOSPrint-Agent`) में **Extract All** (अनज़िप) करें।
    - ब्राउज़र में Owner Dashboard के [Printers](https://sos-print.vercel.app/dashboard/printers) पेज पर जाएं।
    - **"Generate Pairing Code"** बटन दबाएं। 6 अंकों का सुरक्षित कोड मिलेगा (जैसे: 849201).
-   - Agent फोल्डर में जाकर **`pair-agent.bat`** पर डबल-क्लिक करें।
+   - Agent फोल्डर में जाकर सबसे पहले **`start-free-tunnel.bat`** चलाएं (यह Cloudflare का मुफ़्त और सुरक्षित HTTPS टनल चालू करता है जिससे ग्राहक के मोबाइल से फाइल सीधे आपके PC तक पहुंच सके)।
+    - इसके बाद **`pair-agent.bat`** पर डबल-क्लिक करें।
    - प्रॉम्प्ट में वही 6-अंकों का कोड डालें। Agent तुरंत सर्वर से सुरक्षित DPAPI चाबी के साथ पेयर हो जाएगा।
 
 3. **Controlled Commissioning Test Print (ग्राहक ऑर्डर अभी बंद रहेंगे):**

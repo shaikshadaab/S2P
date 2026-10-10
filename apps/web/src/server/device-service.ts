@@ -243,14 +243,18 @@ export async function recordAgentHeartbeat(
   const device = await authenticateAgent(db, deviceId, deviceSecret);
 
   const nowIso = new Date().toISOString();
-  await db.collection('devices').doc(deviceId).update({
+  const updateData: Record<string, unknown> = {
     lastHeartbeatAt: nowIso,
     status: 'ONLINE',
     hostname: payload.hostname || device.hostname,
     windowsVersion: payload.windowsVersion || device.windowsVersion,
     agentVersion: payload.agentVersion || device.agentVersion,
     updatedAt: nowIso
-  });
+  };
+  if (payload.agentUploadUrl) {
+    updateData.agentUploadUrl = payload.agentUploadUrl;
+  }
+  await db.collection('devices').doc(deviceId).update(updateData);
 
   return {
     success: true,

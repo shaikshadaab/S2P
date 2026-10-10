@@ -36,6 +36,9 @@ export interface OrderFile {
   sha256: string;
   pageCount: number;
   convertedFrom?: 'DOCX' | 'PPTX' | null;
+  storageMode?: 'FIREBASE_STORAGE' | 'LOCAL_AGENT';
+  agentDeviceId?: string;
+  agentLocalPath?: string;
   storageOriginalPath?: string | null;
   storageProcessedPath?: string | null;
   previewPaths?: string[];

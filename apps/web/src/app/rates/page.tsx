@@ -179,7 +179,7 @@ export default function RatesPage() {
               <div className="flex justify-between items-center text-xs py-1.5 border-b border-slate-100">
                 <div>
                   <span className="font-medium text-slate-700 block">Passport Photos Set</span>
-                  <span className="text-[10px] text-amber-600">Needs owner confirmation (count & size)</span>
+                  <span className="text-[10px] text-slate-500">Owner-configured set (choose 4, 6, 8, or 12 photos in Studio)</span>
                 </div>
                 <span className="font-bold text-emerald-700 font-mono">₹100.00 / set</span>
               </div>

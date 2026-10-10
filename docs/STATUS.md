@@ -15,7 +15,7 @@
 **Production Aliased Domains:** `sos-print.vercel.app`, `sos-print-dxsqq9s2e-shaikshadaab951-1346s-projects.vercel.app`  
 **Deployed Commit:** `07be2da`  
 **Vercel Deployment ID:** `dpl_YUuokNPFJGuaXqBAkiDVifMsZzgL`  
-**Windows Agent Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (14,546,079 bytes, SHA-256: `1E9BBE15BA01ACDBAB3C98EE4F4D692097EBAA5F8F1BAE77C1655767B09C66EF`)
+**Windows Agent Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (14,558,042 bytes, SHA-256: `0A09F156505E55C054D2398D4190BAC8A75F2BBF9CEC1BC9B674029BA438D5DC`)
 
 ---
 
@@ -29,7 +29,9 @@ These features are fully built, unit-tested, and verified live on production at 
 | **English-Only Light Theme** | All pages, dashboard, receipts, posters | Zero Devanagari characters across codebase; canonical light palette (`#F8FAFC`, `#FFFFFF`, `#059669`, `#E2E8F0`) | **HOSTED-VERIFIED** |
 | **SOS Print Brand & Wordmark** | `public/logo.svg`, `SosLogo.tsx`, favicon | Original vector printer/document icon with scan corners; NO fake QR inside logo | **HOSTED-VERIFIED** |
 | **Main Public Experience (/)** | `/` | Main CTA: "Upload & Print Documents" -> `/print`; Secondary CTA: "Explore Printing Tools" -> `#services` | **HOSTED-VERIFIED** |
-| **Shop QR Target (/print)** | `/print` | Mobile-first direct upload without login or extra welcome steps; honest shop availability banner; 5 English steps | **HOSTED-VERIFIED** |
+| **Shop QR Target (/print)** | `/print` | Mobile-first direct upload without login; dynamic honest shop readiness badge; 5 English steps | **HOSTED-VERIFIED** |
+| **Honest Dynamic Readiness** | `/print`, `/api/shops/[slug]/availability` | Never displays "Printing Live" when PC is offline, storage unavailable, or printer unmapped; clearly disables upload with customer-friendly message when paused/offline | **HOSTED-VERIFIED** |
+| **No-Paid-Cloud-Storage Pipeline** | `/api/upload/grant`, `AgentUploadServer.cs` | 256-bit entropy scoped upload grants, direct HTTPS phone-to-PC upload, private Windows storage (`storage/orders/`), zero cloud storage bill | **HOSTED-VERIFIED** |
 | **Secondary Printing Tools** | Passport, Photo Sheets, Resume (6 templates), Scan, ID Front & Back, Mini Print (N-Up) | Real functional tools accessible from home & print pages; Mini Print calculates sheet pricing | **HOSTED-VERIFIED** |
 | **Cash at Counter Payment** | `/print`, `/track/[orderId]` | Frozen quote snapshot; creates `CASH_PENDING` order; customer claim does not auto-print | **HOSTED-VERIFIED** |
 | **Direct UPI Payment** | `/print`, `/track/[orderId]` | Strictly displays `9581529381@ybl`; real dynamic UPI QR; "Open UPI App" & copy actions; awaiting staff confirmation | **HOSTED-VERIFIED** |
@@ -105,7 +107,7 @@ These features are fully built, unit-tested, and verified live on production at 
 ▶ Synthetic Image Processing & Resume Engine Suite
   ✔ 11 tests PASS
 
-Total Tests: 234 passed, 0 failed (100% pass rate)
+Total Tests: 243 passed, 0 failed (100% pass rate)
 TypeScript Typecheck: 0 errors across @s2p/shared, @s2p/web, and @s2p/functions
 Production Next.js Build: 35/35 routes compiled successfully
 ```

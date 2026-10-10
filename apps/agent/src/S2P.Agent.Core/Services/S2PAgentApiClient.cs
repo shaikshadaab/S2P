@@ -51,7 +51,7 @@ public class S2PAgentApiClient
         };
     }
 
-    public async Task<bool> SendHeartbeatAsync(DeviceConfig config)
+    public async Task<bool> SendHeartbeatAsync(DeviceConfig config, string? agentUploadUrl = null)
     {
         var url = $"{_baseUrl}/api/agent/heartbeat";
         var payload = new
@@ -60,7 +60,8 @@ public class S2PAgentApiClient
             deviceSecret = config.DeviceSecret,
             hostname = Environment.MachineName,
             windowsVersion = Environment.OSVersion.ToString(),
-            agentVersion = config.AgentVersion
+            agentVersion = config.AgentVersion,
+            agentUploadUrl = agentUploadUrl
         };
 
         var request = new HttpRequestMessage(HttpMethod.Post, url)
@@ -192,6 +193,25 @@ public class S2PAgentApiClient
         }
 
         return expectedSha ?? string.Empty;
+    }
+
+    public async Task<string> ConfirmUploadAsync(DeviceConfig config, object payload)
+    {
+        var url = $"{_baseUrl}/api/upload/agent-confirm";
+        var request = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
+        };
+        request.Headers.Add("x-device-id", config.DeviceId);
+        request.Headers.Add("x-device-secret", config.DeviceSecret);
+
+        var response = await _httpClient.SendAsync(request);
+        var json = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException($"Upload confirmation failed ({response.StatusCode}): {json}");
+        }
+        return json;
     }
 
     public async Task UpdateJobStatusAsync(

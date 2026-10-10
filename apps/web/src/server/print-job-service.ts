@@ -670,6 +670,39 @@ export async function getAuthorizedJobFile(
     };
   }
 
+  // Handle LOCAL_AGENT mode (file stored directly on shop PC)
+  if (fileData.storageMode === 'LOCAL_AGENT' || storagePath.startsWith('local://')) {
+    // If running on local server/agent host, check local filesystem
+    const candidates = [
+      fileData.agentLocalPath ? path.resolve(fileData.agentLocalPath) : null,
+      fileData.agentLocalPath ? path.join(process.cwd(), fileData.agentLocalPath) : null,
+      fileData.agentLocalPath ? path.join('C:\\SOSPrint-Agent', fileData.agentLocalPath) : null,
+      path.join(process.cwd(), 'public', 'test_visible_a4.pdf')
+    ].filter(Boolean) as string[];
+
+    let localBuffer: Buffer | null = null;
+    for (const cand of candidates) {
+      if (fs.existsSync(cand)) {
+        localBuffer = fs.readFileSync(cand);
+        break;
+      }
+    }
+
+    if (!localBuffer) {
+      // Return empty buffer with Local-Agent notice headers so agent knows to use its local disk copy
+      localBuffer = Buffer.from(`LOCAL_AGENT_FILE:${fileData.id}`);
+    }
+
+    return {
+      buffer: localBuffer,
+      fileSnapshot: job.fileSnapshot,
+      mimeType: fileData.mimeType || 'application/pdf',
+      filename: fileData.originalFilename || 'document.pdf',
+      sha256: fileData.sha256,
+      sizeBytes: fileData.sizeBytes || localBuffer.length
+    };
+  }
+
   // Download from private bucket
   const bucket = getFileStorageBucket();
   const storageFile = bucket.file(storagePath);

@@ -15,6 +15,8 @@ export interface Device {
   lastHeartbeatAt: string;
   lastSeenIp?: string;
   capabilities?: Record<string, unknown>;
+  agentUploadUrl?: string;
+  storagePathRoot?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -40,5 +42,6 @@ export interface HeartbeatPayload {
   hostname: string;
   windowsVersion: string;
   installedPrintersCount?: number;
+  agentUploadUrl?: string;
   timestamp: string;
 }

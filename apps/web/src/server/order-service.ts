@@ -674,10 +674,11 @@ export interface CreateAuthoritativeOrderInput {
 
 export interface AvailabilityCheckResult {
   available: boolean;
-  reason?: 'AGENT_OFFLINE' | 'PRINTER_OFFLINE' | 'NO_COMPATIBLE_ROUTE';
+  reason?: 'AGENT_OFFLINE' | 'PRINTER_OFFLINE' | 'NO_COMPATIBLE_ROUTE' | 'INTAKE_PAUSED' | 'SHOP_INACTIVE';
   message: string;
   onlineDeviceCount: number;
   onlinePhysicalPrinters: number;
+  agentUploadUrl?: string | null;
 }
 
 export async function checkShopPrintingAvailability(

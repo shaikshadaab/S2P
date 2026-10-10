@@ -38,6 +38,7 @@ export async function GET(
       message: availability.message,
       onlineDeviceCount: availability.onlineDeviceCount,
       onlinePhysicalPrinters: availability.onlinePhysicalPrinters,
+      agentUploadUrl: availability.agentUploadUrl || null,
       shop: {
         id: shop.id,
         name: shop.name,

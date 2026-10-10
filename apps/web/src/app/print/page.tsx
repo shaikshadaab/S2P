@@ -74,7 +74,14 @@ export default function DirectPrintPage() {
   // Dynamic Shop Options & UPI Configuration from Firestore
   const [shopOptions, setShopOptions] = useState<ShopPrintOptions | null>(null);
   const [shopUpiConfig, setShopUpiConfig] = useState<UpiConfiguration | null>(null);
-  const [availability, setAvailability] = useState<{ available: boolean; message: string } | null>(null);
+  const [availability, setAvailability] = useState<{
+    available: boolean;
+    reason?: string;
+    message: string;
+    agentUploadUrl?: string | null;
+    onlineDeviceCount: number;
+  } | null>(null);
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState<boolean>(true);
 
   // Print Configuration States
   const [paperSize, setPaperSize] = useState<PaperSize>("A4");
