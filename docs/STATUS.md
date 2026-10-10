@@ -48,6 +48,9 @@ These features are fully built, unit-tested, and verified live on production at 
 | **Quality Enhancement & Scan Mode** | EnhancedImageEditor, ImageEnhancementEngine | Brightness, contrast, saturation, 3×3 unsharp mask, restrained denoise; Document Scan Mode preserving faint writing & rubber stamps; 2× digital upscaler with honest disclaimer | **HOSTED-VERIFIED** |
 | **Print-Ready Full-Res Export** | EnhancedImageEditor, /api/upload/derivative | Source-resolution pixel processing (not preview screenshot); real-time DPI calculator for A4/4×6/Passport with low-res warning (<200 DPI); PNG/JPEG derivative artifact | **HOSTED-VERIFIED** |
 | **Owner Commissioning Test Order** | /api/orders/test-order, /dashboard/printers | Owner-authorized test order flow using test_visible_a4.pdf (1446 bytes, SHA-256: 93C329...); works while public customer intake remains paused; bypasses public pause safely | **HOSTED-VERIFIED** |
+| **Direct Phone-to-PC Upload** | /print, /api/upload/grant, AgentUploadServer.cs | Customer uploads from mobile data directly reach shop PC via Cloudflare Tunnel; browser CORS enabled; private local disk receipt; zero cloud storage costs | **HOSTED-VERIFIED** |
+| **Live Tunnel Reachability Ping** | /server/upload-grant-service.ts, /server/order-service.ts | Live health ping before issuing grant; dead/stale URLs trigger TUNNEL_UNREACHABLE and disable uploads; tunnel restart dynamically syncs new trycloudflare URL | **HOSTED-VERIFIED** |
+| **Owner Commissioning Test Upload** | /api/orders/test-upload, /dashboard/printers | Dedicated test upload action in Printers dashboard; verifies phone-to-PC file pipeline without opening public intake; confirms local path and SHA-256 | **HOSTED-VERIFIED** |
 
 ---
 

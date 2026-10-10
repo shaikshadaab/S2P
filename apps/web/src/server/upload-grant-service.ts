@@ -52,7 +52,27 @@ export async function issueUploadGrant(
     throw new Error('SHOP_INACTIVE: Target shop is currently inactive.');
   }
   if (shopData?.settings?.manualPause === true) {
-    throw new Error('INTAKE_PAUSED: Customer intake is currently paused at this shop.');
+    // Owner commissioning flow: Allow authorized OWNER or MANAGER to test uploads while public intake is paused
+    let isAuthorizedStaff = false;
+    if (identity.uid) {
+      try {
+        const memberSnap = await db.collection('members')
+          .where('shopId', '==', shopId)
+          .where('userId', '==', identity.uid)
+          .where('status', '==', 'ACTIVE')
+          .limit(1)
+          .get();
+        if (!memberSnap.empty) {
+          const role = memberSnap.docs[0].data().role;
+          if (role === 'OWNER' || role === 'MANAGER') {
+            isAuthorizedStaff = true;
+          }
+        }
+      } catch { }
+    }
+    if (!isAuthorizedStaff) {
+      throw new Error('INTAKE_PAUSED: Customer intake is currently paused at this shop.');
+    }
   }
 
   // 2. Draft Check
@@ -98,7 +118,29 @@ export async function issueUploadGrant(
   }
 
   const primaryDevice = onlineDevices[0];
-  const agentUploadUrl = primaryDevice.agentUploadUrl || (shopData.settings?.agentUploadUrl as string) || '';
+  const agentUploadUrl = (primaryDevice.agentUploadUrl || (shopData.settings?.agentUploadUrl as string) || '').trim();
+
+  if (!agentUploadUrl) {
+    throw new Error('UPLOAD_ENDPOINT_NOT_CONFIGURED: Direct HTTPS upload tunnel is not configured on the shop PC.');
+  }
+
+  // Live endpoint reachability verification: check reachability, not merely a stored HTTPS URL
+  const isLocalOrTest = process.env.S2P_TEST_MODE === 'true' || agentUploadUrl.includes('localhost') || agentUploadUrl.includes('127.0.0.1');
+  if (!isLocalOrTest) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const pingRes = await fetch(`${agentUploadUrl}/api/agent/health`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (!pingRes.ok) {
+        throw new Error(`Endpoint returned HTTP ${pingRes.status}`);
+      }
+    } catch (pingErr: any) {
+      throw new Error(`TUNNEL_UNREACHABLE: Direct shop PC upload endpoint (${agentUploadUrl}) is unreachable (${pingErr?.message || 'timeout'}). Please restart start-free-tunnel.bat on the shop PC.`);
+    }
+  }
 
   // 4. File Size & MIME Checks
   if (sizeBytes && sizeBytes > MAX_UPLOAD_SIZE_BYTES) {

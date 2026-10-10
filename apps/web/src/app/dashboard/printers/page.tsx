@@ -97,6 +97,53 @@ export default function DashboardPrintersPage() {
     }
   };
 
+  // Commissioning Test Upload State (Phone-to-PC verification)
+  const [isTriggeringTestUpload, setIsTriggeringTestUpload] = useState(false);
+  const [testUploadResult, setTestUploadResult] = useState<{
+    message: string;
+    localPath?: string;
+    sha256?: string;
+    fileId?: string;
+    sizeBytes?: number;
+  } | null>(null);
+  const [testUploadError, setTestUploadError] = useState<string | null>(null);
+
+  const handleTriggerCommissioningUpload = async () => {
+    if (!user) return;
+    setIsTriggeringTestUpload(true);
+    setTestUploadError(null);
+    setTestUploadResult(null);
+
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/orders/test-upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ shopId: PRIMARY_PILOT_SHOP.id })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || data.error || 'Failed to trigger commissioning test upload');
+      }
+      setTestUploadResult({
+        message: data.message || 'Test document received and verified on shop PC!',
+        localPath: data.file?.localPath || data.file?.agentLocalPath,
+        sha256: data.file?.sha256,
+        fileId: data.file?.id,
+        sizeBytes: data.file?.sizeBytes
+      });
+      fetchData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error triggering test upload';
+      setTestUploadError(msg);
+    } finally {
+      setIsTriggeringTestUpload(false);
+    }
+  };
+
   // Commissioning Test Print State
   const [isTriggeringTestPrint, setIsTriggeringTestPrint] = useState(false);
   const [testPrintResult, setTestPrintResult] = useState<{
@@ -490,6 +537,27 @@ export default function DashboardPrintersPage() {
             </button>
           )}
         </div>
+
+        {testUploadResult && (
+          <div className="p-4 bg-emerald-50 border border-emerald-300 rounded-xl space-y-1.5">
+            <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{testUploadResult.message}</span>
+            </div>
+            <div className="text-[11px] text-slate-700 font-mono space-y-0.5">
+              <div>File ID: <strong className="text-slate-900">{testUploadResult.fileId}</strong> • Size: {testUploadResult.sizeBytes} bytes</div>
+              <div>Local PC Path: <strong className="text-emerald-900">{testUploadResult.localPath || 'storage/orders/...'}</strong></div>
+              <div>SHA-256: <span className="text-slate-600">{testUploadResult.sha256}</span></div>
+            </div>
+          </div>
+        )}
+
+        {testUploadError && (
+          <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+            <span>{testUploadError}</span>
+          </div>
+        )}
 
         {testPrintResult && (
           <div className="p-3 bg-white border border-emerald-300 rounded-xl space-y-1 text-xs">

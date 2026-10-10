@@ -674,7 +674,7 @@ export interface CreateAuthoritativeOrderInput {
 
 export interface AvailabilityCheckResult {
   available: boolean;
-  reason?: 'AGENT_OFFLINE' | 'PRINTER_OFFLINE' | 'NO_COMPATIBLE_ROUTE' | 'INTAKE_PAUSED' | 'SHOP_INACTIVE' | 'UPLOAD_ENDPOINT_NOT_CONFIGURED';
+  reason?: 'AGENT_OFFLINE' | 'PRINTER_OFFLINE' | 'NO_COMPATIBLE_ROUTE' | 'INTAKE_PAUSED' | 'SHOP_INACTIVE' | 'UPLOAD_ENDPOINT_NOT_CONFIGURED' | 'TUNNEL_UNREACHABLE';
   message: string;
   onlineDeviceCount: number;
   onlinePhysicalPrinters: number;
@@ -687,6 +687,37 @@ export async function checkShopPrintingAvailability(
   requiredItems?: Array<{ paperSize?: string; colorMode?: string }>
 ): Promise<AvailabilityCheckResult> {
   const now = Date.now();
+
+  // 0. Check shop exists, active status, and manualPause
+  const shopDoc = await db.collection('shops').doc(shopId).get();
+  if (!shopDoc.exists) {
+    return {
+      available: false,
+      reason: 'SHOP_INACTIVE',
+      message: 'Target shop does not exist.',
+      onlineDeviceCount: 0,
+      onlinePhysicalPrinters: 0
+    };
+  }
+  const shopData = shopDoc.data();
+  if (shopData?.status !== 'ACTIVE') {
+    return {
+      available: false,
+      reason: 'SHOP_INACTIVE',
+      message: 'Target shop is currently inactive.',
+      onlineDeviceCount: 0,
+      onlinePhysicalPrinters: 0
+    };
+  }
+  if (shopData?.settings?.manualPause === true) {
+    return {
+      available: false,
+      reason: 'INTAKE_PAUSED',
+      message: 'Customer intake is temporarily paused by shop staff.',
+      onlineDeviceCount: 0,
+      onlinePhysicalPrinters: 0
+    };
+  }
 
   // 1. Check devices for this shop
   const devicesSnap = await db.collection('devices')
@@ -710,6 +741,52 @@ export async function checkShopPrintingAvailability(
     };
   }
 
+  const primaryDevice = onlineDevices[0].data();
+  const agentUploadUrl = (primaryDevice.agentUploadUrl || shopData?.settings?.agentUploadUrl || '').trim();
+
+  if (!agentUploadUrl) {
+    return {
+      available: false,
+      reason: 'UPLOAD_ENDPOINT_NOT_CONFIGURED',
+      message: 'Shop PC direct upload tunnel is not configured.',
+      onlineDeviceCount: onlineDevices.length,
+      onlinePhysicalPrinters: 0,
+      agentUploadUrl: null
+    };
+  }
+
+  // Live endpoint reachability verification: check reachability, not merely a stored HTTPS URL
+  const isLocalOrTest = process.env.S2P_TEST_MODE === 'true' || agentUploadUrl.includes('localhost') || agentUploadUrl.includes('127.0.0.1');
+  if (!isLocalOrTest) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const pingRes = await fetch(`${agentUploadUrl}/api/agent/health`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (!pingRes.ok) {
+        return {
+          available: false,
+          reason: 'TUNNEL_UNREACHABLE',
+          message: 'Shop PC upload endpoint is unreachable. Please restart start-free-tunnel.bat.',
+          onlineDeviceCount: onlineDevices.length,
+          onlinePhysicalPrinters: 0,
+          agentUploadUrl
+        };
+      }
+    } catch {
+      return {
+        available: false,
+        reason: 'TUNNEL_UNREACHABLE',
+        message: 'Shop PC upload endpoint is unreachable. Please restart start-free-tunnel.bat.',
+        onlineDeviceCount: onlineDevices.length,
+        onlinePhysicalPrinters: 0,
+        agentUploadUrl
+      };
+    }
+  }
+
   // 2. Check enabled physical printers
   const printersSnap = await db.collection('printers')
     .where('shopId', '==', shopId)
@@ -727,7 +804,8 @@ export async function checkShopPrintingAvailability(
       reason: 'PRINTER_OFFLINE',
       message: 'Printing is temporarily unavailable at this shop. Please try again shortly.',
       onlineDeviceCount: onlineDevices.length,
-      onlinePhysicalPrinters: 0
+      onlinePhysicalPrinters: 0,
+      agentUploadUrl
     };
   }
 
@@ -750,7 +828,8 @@ export async function checkShopPrintingAvailability(
           reason: 'NO_COMPATIBLE_ROUTE',
           message: 'Printing is temporarily unavailable at this shop. Please try again shortly.',
           onlineDeviceCount: onlineDevices.length,
-          onlinePhysicalPrinters: onlinePrinters.length
+          onlinePhysicalPrinters: onlinePrinters.length,
+          agentUploadUrl
         };
       }
     }
@@ -760,19 +839,11 @@ export async function checkShopPrintingAvailability(
     available: true,
     message: 'Printing is available.',
     onlineDeviceCount: onlineDevices.length,
-    onlinePhysicalPrinters: onlinePrinters.length
+    onlinePhysicalPrinters: onlinePrinters.length,
+    agentUploadUrl
   };
 }
 
-/**
- * Section 6, 7, 8, 9: Atomic Authoritative Order Creation
- * Single concurrency-safe transaction enforcing:
- * - One draft -> Maximum one order
- * - quoteId required
- * - Quote configuration is authoritative (no client override)
- * - Detects active pricing changes and throws PRICE_CHANGED
- * - Atomic sequential shop counter reservation
- */
 export async function createAuthoritativeOrder(
   db: Firestore,
   input: CreateAuthoritativeOrderInput,

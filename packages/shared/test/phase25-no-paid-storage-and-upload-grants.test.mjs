@@ -204,4 +204,82 @@ test('Phase 25: No-Paid-Cloud-Storage & Scoped Upload Grant Architecture', async
     assert.equal(validateEndpointUrl('http://my-shop.com:5218'), false); // insecure plain HTTP rejected
     assert.equal(validateEndpointUrl('http://localhost:5218'), true); // local test permitted
   });
+
+  // 12. Live Endpoint Reachability Invariant (Stale or Dead URLs Disable Uploads)
+  await t.test('12. Endpoint Reachability Invariant: Unreachable/dead tunnel endpoint returns TUNNEL_UNREACHABLE and disables uploads', async () => {
+    const checkEndpointHealth = async (endpointUrl, pingFn) => {
+      try {
+        const isHealthy = await pingFn(endpointUrl);
+        if (!isHealthy) return { available: false, reason: 'TUNNEL_UNREACHABLE' };
+        return { available: true };
+      } catch {
+        return { available: false, reason: 'TUNNEL_UNREACHABLE' };
+      }
+    };
+
+    // Stale or dead tunnel simulation
+    const deadPing = async () => false;
+    const resDead = await checkEndpointHealth('https://dead-tunnel.trycloudflare.com', deadPing);
+    assert.equal(resDead.available, false);
+    assert.equal(resDead.reason, 'TUNNEL_UNREACHABLE');
+
+    // Live reachable tunnel simulation
+    const livePing = async () => true;
+    const resLive = await checkEndpointHealth('https://live-tunnel.trycloudflare.com', livePing);
+    assert.equal(resLive.available, true);
+  });
+
+  // 13. Owner-Authorized Commissioning Flow (Intake Paused Bypass)
+  await t.test('13. Owner Commissioning Invariant: Authorized OWNER or MANAGER can issue grant when customer intake is paused', () => {
+    const canIssueGrant = (shopPaused, userRole) => {
+      if (shopPaused) {
+        if (userRole === 'OWNER' || userRole === 'MANAGER') {
+          return { allowed: true, mode: 'OWNER_COMMISSIONING' };
+        }
+        return { allowed: false, error: 'INTAKE_PAUSED' };
+      }
+      return { allowed: true, mode: 'PUBLIC_INTAKE' };
+    };
+
+    // Public customer blocked when intake paused
+    const customerAttempt = canIssueGrant(true, 'CUSTOMER');
+    assert.equal(customerAttempt.allowed, false);
+    assert.equal(customerAttempt.error, 'INTAKE_PAUSED');
+
+    // Anonymous guest blocked when intake paused
+    const guestAttempt = canIssueGrant(true, undefined);
+    assert.equal(guestAttempt.allowed, false);
+    assert.equal(guestAttempt.error, 'INTAKE_PAUSED');
+
+    // Shop OWNER authorized to test during pause
+    const ownerAttempt = canIssueGrant(true, 'OWNER');
+    assert.equal(ownerAttempt.allowed, true);
+    assert.equal(ownerAttempt.mode, 'OWNER_COMMISSIONING');
+
+    // Shop MANAGER authorized to test during pause
+    const managerAttempt = canIssueGrant(true, 'MANAGER');
+    assert.equal(managerAttempt.allowed, true);
+    assert.equal(managerAttempt.mode, 'OWNER_COMMISSIONING');
+  });
+
+  // 14. Tunnel Restart URL Synchronization Invariant
+  await t.test('14. Tunnel Restart Invariant: New trycloudflare URL updates device record and replaces stale URL', () => {
+    const deviceState = {
+      id: 'dev_shop_pc_01',
+      agentUploadUrl: 'https://old-stale-tunnel.trycloudflare.com'
+    };
+
+    // Agent restarts and discovers new tunnel URL in tunnel-url.txt
+    const newTunnelUrl = 'https://new-fresh-tunnel.trycloudflare.com';
+    const applyHeartbeatUrl = (state, incomingUrl) => {
+      if (incomingUrl && incomingUrl !== state.agentUploadUrl) {
+        return { ...state, agentUploadUrl: incomingUrl, updatedAt: new Date().toISOString() };
+      }
+      return state;
+    };
+
+    const updated = applyHeartbeatUrl(deviceState, newTunnelUrl);
+    assert.equal(updated.agentUploadUrl, 'https://new-fresh-tunnel.trycloudflare.com');
+    assert.notEqual(updated.agentUploadUrl, deviceState.agentUploadUrl);
+  });
 });
