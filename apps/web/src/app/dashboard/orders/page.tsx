@@ -63,7 +63,7 @@ export default function DashboardOrdersView() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to load orders");
+        throw new Error(data.message || data.error || "Failed to load orders");
       }
       setOrders(data.orders || []);
       if (selectedOrder) {

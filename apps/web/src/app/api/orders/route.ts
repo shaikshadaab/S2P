@@ -55,6 +55,26 @@ export async function GET(req: NextRequest) {
     }
 
     if (shopId) {
+      if (identity.authError) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'AUTHENTICATION_REQUIRED',
+            message: `Authentication failed: ${identity.authError}`
+          },
+          { status: 401 }
+        );
+      }
+      if (!identity.isAuthenticated || !identity.uid) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'AUTHENTICATION_REQUIRED',
+            message: 'Authentication required for shop orders.'
+          },
+          { status: 401 }
+        );
+      }
       const orders = await getShopOrdersAuthoritative(adminDb, shopId, identity);
       return NextResponse.json({ success: true, orders });
     }
@@ -62,7 +82,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'orderId or shopId required' }, { status: 400 });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Fetch orders error';
-    const status = msg.includes('not found') ? 404 : (msg.includes('Unauthorized') || msg.includes('Access denied')) ? 403 : 400;
+    const isAuth = msg.includes('UNAUTHORIZED') || msg.includes('Authentication required'); const isForbidden = msg.includes('FORBIDDEN') || msg.includes('Staff membership') || msg.includes('Access denied'); const status = msg.includes('not found') ? 404 : isAuth ? 401 : isForbidden ? 403 : 400;
     return NextResponse.json({ success: false, error: msg }, { status });
   }
 }

@@ -205,7 +205,27 @@ export async function getActiveShopMember(
 
   const memberDocId = `${uid}_${shopId}`;
   const docRef = db.collection('shopMembers').doc(memberDocId);
-  const snap = await docRef.get();
+  let snap = await docRef.get();
+
+  if (!snap.exists) {
+    const querySnap = await db.collection('shopMembers')
+      .where('shopId', '==', shopId)
+      .where('userId', '==', uid)
+      .limit(1)
+      .get();
+    if (!querySnap.empty) {
+      snap = querySnap.docs[0];
+    } else {
+      const querySnap2 = await db.collection('shopMembers')
+        .where('shopId', '==', shopId)
+        .where('uid', '==', uid)
+        .limit(1)
+        .get();
+      if (!querySnap2.empty) {
+        snap = querySnap2.docs[0];
+      }
+    }
+  }
 
   if (!snap.exists) {
     throw new Error('UNAUTHORIZED: Staff membership required for this shop.');

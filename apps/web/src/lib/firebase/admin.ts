@@ -40,6 +40,9 @@ function getAdminApp(): App {
     try {
       const raw = fs.readFileSync(localSecretPath, 'utf8');
       const serviceAccount = JSON.parse(raw);
+      if (typeof serviceAccount.private_key === 'string' && serviceAccount.private_key.includes('\\n')) {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      }
       return initializeApp({
         credential: cert(serviceAccount),
         projectId: serviceAccount.project_id || effectiveProjectId,
@@ -53,15 +56,42 @@ function getAdminApp(): App {
   // 2. Check JSON string in environment variable (Vercel deployment)
   if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
     try {
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+      let raw = process.env.FIREBASE_SERVICE_ACCOUNT_KEY.trim();
+      if (!raw.startsWith('{')) {
+        try {
+          const b64 = Buffer.from(raw, 'base64').toString('utf8');
+          if (b64.startsWith('{')) raw = b64;
+        } catch {}
+      }
+      const serviceAccount = JSON.parse(raw);
+      if (typeof serviceAccount.private_key === 'string' && serviceAccount.private_key.includes('\\n')) {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      }
       return initializeApp({
         credential: cert(serviceAccount),
-        projectId: effectiveProjectId,
+        projectId: serviceAccount.project_id || effectiveProjectId,
         storageBucket
       });
     } catch (e) {
       console.error('[Firebase Admin] Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:', e);
       throw e;
+    }
+  }
+
+  // 3. Check separate client email and private key env vars
+  if (process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+    try {
+      return initializeApp({
+        credential: cert({
+          projectId: effectiveProjectId,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+        }),
+        projectId: effectiveProjectId,
+        storageBucket
+      });
+    } catch (e) {
+      console.error('[Firebase Admin] Failed to init with clientEmail/privateKey:', e);
     }
   }
 

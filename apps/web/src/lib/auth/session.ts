@@ -1,4 +1,4 @@
-﻿import {
+import {
   getGuestSessionSecret,
   createGuestSessionToken,
   verifyGuestSessionToken
@@ -8,9 +8,11 @@ import { adminAuth, adminDb } from '../firebase/admin';
 export interface VerifiedIdentity {
   isAuthenticated: boolean;
   uid?: string;
+  email?: string;
   isGuest: boolean;
   guestSessionId?: string;
   newGuestSessionToken?: string;
+  authError?: string;
 }
 
 export { createGuestSessionToken, verifyGuestSessionToken, getGuestSessionSecret };
@@ -18,20 +20,38 @@ export { createGuestSessionToken, verifyGuestSessionToken, getGuestSessionSecret
 /**
  * Derives authoritative caller identity from the request.
  * NEVER trusts client-submitted ownerUid in form data.
+ * NEVER downgrades a supplied Bearer token to guest identity.
  */
 export async function authenticateOrGuest(req: Request): Promise<VerifiedIdentity> {
   const authHeader = req.headers.get('authorization') || '';
   if (authHeader.startsWith('Bearer ')) {
     const idToken = authHeader.slice(7).trim();
+    if (!idToken) {
+      return {
+        isAuthenticated: false,
+        isGuest: false,
+        authError: 'EMPTY_BEARER_TOKEN'
+      };
+    }
+
     try {
       const decoded = await adminAuth.verifyIdToken(idToken);
       return {
         isAuthenticated: true,
         uid: decoded.uid,
+        email: decoded.email,
         isGuest: false
       };
-    } catch {
-      // Invalid Firebase ID token; fall through to guest session check
+    } catch (err: unknown) {
+      const errCode = (err as any)?.code || 'TOKEN_VERIFICATION_FAILED';
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error(`[authenticateOrGuest] Token verification failed (${errCode}): ${errMsg}`);
+      // Strict Invariant: Never downgrade an explicit Bearer token to guest
+      return {
+        isAuthenticated: false,
+        isGuest: false,
+        authError: `${errCode}: ${errMsg}`
+      };
     }
   }
 
