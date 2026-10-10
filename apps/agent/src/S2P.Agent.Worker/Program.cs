@@ -159,6 +159,11 @@ if (config == null || string.IsNullOrWhiteSpace(config.DeviceId))
 }
 else
 {
+    // If command line specifies backendUrl, ensure it overrides stored URL
+    if (!string.IsNullOrWhiteSpace(backendUrl))
+    {
+        config.BackendBaseUrl = backendUrl;
+    }
     Console.ForegroundColor = ConsoleColor.Cyan;
     Console.WriteLine($"[CREDENTIALS LOADED] DPAPI decrypted DeviceId: {config.DeviceId}");
     Console.WriteLine($"  Backend URL: {config.BackendBaseUrl}");
@@ -208,6 +213,12 @@ try
         Console.WriteLine("[Heartbeat] Device status is now ONLINE on shop dashboard.");
         Console.ResetColor();
     }
+    else
+    {
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine("[Heartbeat] Backend returned non-success. Will retry in loop.");
+        Console.ResetColor();
+    }
 }
 catch (UnauthorizedAccessException)
 {
@@ -215,6 +226,12 @@ catch (UnauthorizedAccessException)
     Console.WriteLine("[DEVICE REVOKED] This device was revoked by shop management. Please generate a new pairing code.");
     Console.ResetColor();
     return;
+}
+catch (Exception ex)
+{
+    Console.ForegroundColor = ConsoleColor.Yellow;
+    Console.WriteLine($"[Heartbeat Warning] Initial heartbeat warning ({ex.Message}). Will retry in loop.");
+    Console.ResetColor();
 }
 
 // 5. Windows Installed Printers Discovery

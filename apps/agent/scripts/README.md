@@ -22,8 +22,9 @@ This official Windows agent links physical printers connected to your shop PC in
 4. Enter this 6-digit code into the agent window and press Enter.
 5. Your PC will pair securely using DPAPI encryption.
 
-### Step 2: Start Printing Agent (प्रिंट एजेंट चालू करें)
-- Double click **`start-agent.bat`**.
+### All-in-One Launcher (एक ही क्लिक में सब चालू करें)
+- Double click **`Start-SOS-Print.bat`**.
+  यह एक ही फाइल Cloudflare Tunnel चालू करेगी, उसका URL अपने आप निकालेगी, और Agent को चालू करेगी। अलग से tunnel चलाने की जरूरत नहीं है।
 - The agent will discover your physical Windows printers, sync them to your dashboard, and start listening for paid print jobs.
 - Status will display **ONLINE** on the dashboard.
 

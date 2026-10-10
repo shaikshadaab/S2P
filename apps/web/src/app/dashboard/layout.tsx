@@ -34,13 +34,15 @@ import {
   Star,
   LayoutGrid,
   FileText,
-  CreditCard
+  CreditCard,
+  Sparkles
 } from "lucide-react";
 import { useAuth } from "../../lib/firebase/auth-context";
 import { SosLogo } from "@/components/common/SosLogo";
 
 const NAV_ITEMS = [
   { label: "Overview", href: "/dashboard", icon: ShoppingBag, status: "Overview" },
+  { label: "Guided Setup", href: "/dashboard/setup", icon: Sparkles, status: "Station Setup" },
   { label: "Counter", href: "/dashboard/counter", icon: Calculator, status: "Cashier" },
   { label: "Orders", href: "/dashboard/orders", icon: FileText, status: "Live Feed" },
   { label: "Print Queue", href: "/dashboard/queue", icon: Layers, status: "Queue" },

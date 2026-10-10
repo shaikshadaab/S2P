@@ -15,7 +15,7 @@
 **Production Aliased Domains:** `sos-print.vercel.app`, `sos-print-dxsqq9s2e-shaikshadaab951-1346s-projects.vercel.app`  
 **Deployed Commit:** `d3a3de4`  
 **Vercel Deployment ID:** `dpl_9wrEXAHPSiRw5fAcZLBWLcUzRn5P`  
-**Windows Agent Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (14,559,420 bytes, SHA-256: `EB184B34C5801FBF1B0E9BF68F4C167320477485B4CE6B61204FBA52B1AEA2F0`)
+**Windows Agent Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (33,087,108 bytes [31.55 MB], SHA-256: `6856A267A1D066ACB9932F1CE0097DBB048F39A134E1E125C4A5361DFDBD2DFF`)
 
 ---
 
@@ -51,6 +51,8 @@ These features are fully built, unit-tested, and verified live on production at 
 | **Direct Phone-to-PC Upload** | /print, /api/upload/grant, AgentUploadServer.cs | Customer uploads from mobile data directly reach shop PC via Cloudflare Tunnel; browser CORS enabled; private local disk receipt; zero cloud storage costs | **HOSTED-VERIFIED** |
 | **Live Tunnel Reachability Ping** | /server/upload-grant-service.ts, /server/order-service.ts | Live health ping before issuing grant; dead/stale URLs trigger TUNNEL_UNREACHABLE and disable uploads; tunnel restart dynamically syncs new trycloudflare URL | **HOSTED-VERIFIED** |
 | **Owner Commissioning Test Upload** | /api/orders/test-upload, /dashboard/printers | Dedicated test upload action in Printers dashboard; verifies phone-to-PC file pipeline without opening public intake; confirms local path and SHA-256 | **HOSTED-VERIFIED** |
+| **Guided Setup Screen** | `/dashboard/setup` | Single comprehensive setup screen covering Agent Download, PC Setup, Pairing, Tunnel Health, Printer Mapping, Commissioning Tests (Upload + Spooler Print), and QR Standee | **HOSTED-VERIFIED** |
+| **All-in-One Windows Launcher** | `Start-SOS-Print.bat` | Single launcher script combining Cloudflare Free Tunnel and Agent Worker; prevents duplicate processes, auto-detects trycloudflare HTTPS URL, checks DPAPI credentials, passes tunnel URL in heartbeat, and cleans up on exit | **HOSTED-VERIFIED** |
 
 ---
 

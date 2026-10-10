@@ -37,9 +37,9 @@ export default function DashboardOverviewPage() {
       num: 2,
       title: "Pair Shop PC",
       desc: "Generate 5-min pairing code and enter it into the agent.",
-      href: "/dashboard/printers",
+      href: "/dashboard/setup",
       icon: Laptop,
-      cta: "Open Printers",
+      cta: "Guided Setup",
       isExternal: false
     },
     {
