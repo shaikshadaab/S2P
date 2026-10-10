@@ -74,10 +74,18 @@ These features are fully built, unit-tested, and verified live on production at 
 ---
 
 
-### Firestore Production Index Audit & Direct Activation Links
-- **CLI / MCP Probe Result:** The global Firebase CLI on the Windows host is currently unauthenticated.
-- **Service Account Probe Result:** The local service account (`firebase-adminsdk-fbsvc@shakeel-online-services-951ec.iam.gserviceaccount.com`) has document read/write credentials, but Google Cloud Datastore Index Admin API returned `403 PERMISSION_DENIED` for programmatic index creation.
-- **Active Firestore Live Query Probing:** Verified directly against Firestore production database `shakeel-online-services-951ec`. The exact required composite indexes were triggered and the official 1-click console activation links were captured:
+### Firestore Production Composite Indexes Status: DEPLOYED & 100% READY (8/8)
+- **CLI Authentication:** Successfully authenticated as `shaikshadaab16@gmail.com` via Firebase CLI OAuth.
+- **Index Deployment:** Deployed via `npx firebase-tools deploy --only firestore:indexes --project shakeel-online-services-951ec`.
+- **Readiness Verification:** Active Firestore live query probe confirmed all 8 composite queries are in state **`READY / PASS`** (0 FAILED_PRECONDITION errors):
+  * `orders (shopId ASC, createdAt DESC)`: **READY / PASS**
+  * `orders (shopId ASC, status ASC, createdAt DESC)`: **READY / PASS**
+  * `orders (shopId ASC, paymentStatus ASC, createdAt DESC)`: **READY / PASS**
+  * `printJobs (shopId ASC, status ASC, createdAt ASC)`: **READY / PASS**
+  * `devices (shopId ASC, status ASC, lastSeenAt DESC)`: **READY / PASS**
+  * `printers (shopId ASC, isOnline ASC, displayName ASC)`: **READY / PASS**
+  * `auditLogs (shopId ASC, createdAt DESC)`: **READY / PASS**
+  * `payments (shopId ASC, createdAt DESC)`: **READY / PASS**
 
 | Collection Group | Query Fields | Order | Direct 1-Click Console Activation Link |
 |---|---|---|---|
