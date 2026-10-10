@@ -355,8 +355,8 @@ export default function DashboardPrintersPage() {
               <span>Download SOS Print Windows Agent (ZIP)</span>
             </a>
             <div className="text-[11px] text-[#475569] text-center sm:text-right space-y-0.5">
-              <p>Package: <span className="font-mono font-bold text-[#111827]">SOS-Print-Agent-Package.zip (13.9 MB)</span></p>
-              <p className="text-[10px] font-mono text-slate-500 break-all">SHA-256: EB184B34C5801FBF1B0E9BF68F4C167320477485B4CE6B61204FBA52B1AEA2F0</p>
+              <p>Package: <span className="font-mono font-bold text-[#111827]">SOS-Print-Agent-Package.zip (31.55 MB)</span></p>
+              <p className="text-[10px] font-mono text-slate-500 break-all">SHA-256: 114ABBF738D75C4109D735541579A8FCFDF6D58F5BA7048EB62E79C885BE4C56</p>
               <p className="text-[10px] text-emerald-700 font-semibold">Build: Release v1.0.0 (LTS) · Source Commit: 1068489</p>
             </div>
           </div>
