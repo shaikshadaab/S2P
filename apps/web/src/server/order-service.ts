@@ -1381,7 +1381,7 @@ export async function updateOrderStatusAtomic(
         }
         newPaymentStatus = 'PAID';
         isPaymentChanged = true;
-        if (order.status === 'SUBMITTED' || order.status === 'RECEIVED') {
+        if ((order.status as string) === 'SUBMITTED' || order.status === 'RECEIVED') {
           newStatus = 'ACCEPTED';
           isStatusChanged = true;
         }
@@ -1401,7 +1401,7 @@ export async function updateOrderStatusAtomic(
         }
         newPaymentStatus = 'PAID';
         isPaymentChanged = true;
-        if (order.status === 'SUBMITTED' || order.status === 'RECEIVED') {
+        if ((order.status as string) === 'SUBMITTED' || order.status === 'RECEIVED') {
           newStatus = 'ACCEPTED';
           isStatusChanged = true;
         }
