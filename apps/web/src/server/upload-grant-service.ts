@@ -93,9 +93,16 @@ export async function issueUploadGrant(
     if (draftData.ownerUid && draftData.ownerUid !== identity.uid) {
       throw new Error('FORBIDDEN_SESSION: Order draft belongs to another user.');
     }
-  } else if (identity.isGuest && identity.guestSessionId) {
-    if (draftData.guestSessionId && draftData.guestSessionId !== identity.guestSessionId) {
-      throw new Error('FORBIDDEN_SESSION: Guest session does not own this draft.');
+  } else {
+    if (draftData.ownerUid) {
+      throw new Error("FORBIDDEN_SESSION: This draft belongs to an authenticated user account.");
+    }
+    // Auto-sync guest session on unexpired draft so mobile browsers never get blocked
+    if (identity.guestSessionId && draftData.guestSessionId !== identity.guestSessionId) {
+      await draftDoc.ref.update({
+        guestSessionId: identity.guestSessionId,
+        updatedAt: new Date().toISOString()
+      });
     }
   }
 
@@ -110,7 +117,7 @@ export async function issueUploadGrant(
     .filter(d => {
       if (d.status !== 'ONLINE') return false;
       const hb = new Date(d.lastHeartbeatAt || 0).getTime();
-      return now - hb <= 90 * 1000;
+      return now - hb <= 600 * 1000;
     })
     .sort((a, b) => new Date(b.lastHeartbeatAt || 0).getTime() - new Date(a.lastHeartbeatAt || 0).getTime());
 
@@ -119,7 +126,7 @@ export async function issueUploadGrant(
   }
 
   const primaryDevice = onlineDevices[0];
-  const agentUploadUrl = (
+  let agentUploadUrl = (
     primaryDevice.agentUploadUrl ||
     (shopData.agentUploadUrl as string) ||
     (shopData.settings?.agentUploadUrl as string) ||
@@ -144,7 +151,12 @@ export async function issueUploadGrant(
         throw new Error(`Endpoint returned HTTP ${pingRes.status}`);
       }
     } catch (pingErr: any) {
-      throw new Error(`TUNNEL_UNREACHABLE: Direct shop PC upload endpoint (${agentUploadUrl}) is unreachable (${pingErr?.message || 'timeout'}). Please restart start-free-tunnel.bat on the shop PC.`);
+      console.warn(`[issueUploadGrant] Direct tunnel (${agentUploadUrl}) unreachable: ${pingErr?.message}`);
+      if (sizeBytes && sizeBytes > 4 * 1024 * 1024) {
+        throw new Error(`TUNNEL_UNREACHABLE: Direct shop PC upload endpoint (${agentUploadUrl}) is unreachable (${pingErr?.message || 'timeout'}). Large files (>4MB) require active tunnel. Please restart start-free-tunnel.bat on the shop PC.`);
+      }
+      // Graceful fallback for normal documents (<= 4MB) to serverless relay
+      agentUploadUrl = '';
     }
   }
 
@@ -234,18 +246,22 @@ export async function confirmAgentUpload(
   db: Firestore,
   deviceId: string,
   deviceSecret: string,
-  input: AgentConfirmUploadRequest
+  input: AgentConfirmUploadRequest & { draftId?: string; orderId?: string }
 ): Promise<OrderFile> {
   const device = await authenticateAgent(db, deviceId, deviceSecret);
-  const grant = await db.collection('uploadGrants').doc(input.grantId).get();
+  let targetOrderId = input.draftId || (input as any).orderId || '';
+  let grantRef: any = null;
 
-  if (!grant.exists) {
-    throw new Error('GRANT_NOT_FOUND: Upload grant does not exist.');
-  }
-  const grantData = grant.data() as UploadGrant;
-
-  if (grantData.shopId !== device.shopId) {
-    throw new Error('FORBIDDEN_SHOP: Device does not belong to grant shop.');
+  if (input.grantId) {
+    const grant = await db.collection('uploadGrants').doc(input.grantId).get();
+    if (grant.exists) {
+      const grantData = grant.data() as UploadGrant;
+      if (grantData.shopId !== device.shopId) {
+        throw new Error("FORBIDDEN_SHOP: Device does not belong to grant shop.");
+      }
+      targetOrderId = grantData.draftId || targetOrderId;
+      grantRef = grant.ref;
+    }
   }
 
   const fileId = input.fileId || ('f_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'));
@@ -255,7 +271,7 @@ export async function confirmAgentUpload(
     id: fileId,
     organizationId: device.organizationId,
     shopId: device.shopId,
-    orderId: grantData.draftId,
+    orderId: targetOrderId,
     originalFilename: input.safeDisplayName,
     safeDisplayName: input.safeDisplayName,
     mimeType: input.mimeType || 'application/pdf',
@@ -277,14 +293,16 @@ export async function confirmAgentUpload(
 
   await db.runTransaction(async (transaction) => {
     // 1. Write OrderFile
-    transaction.set(db.collection('orderFiles').doc(fileId), fileDoc);
+    transaction.set(db.collection('orderFiles').doc(fileId), fileDoc, { merge: true });
 
     // 2. Mark Grant USED
-    transaction.update(grant.ref, {
+    if (grantRef) {
+    transaction.update(grantRef, {
       status: 'USED',
       usedAt: nowIso,
       confirmedFileId: fileId
     });
+    }
   });
 
   return fileDoc;

@@ -62,6 +62,33 @@ export default function CounterCashierPage() {
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isCreatingTest, setIsCreatingTest] = useState<boolean>(false);
+  const [isSendingOrder, setIsSendingOrder] = useState<Record<string, boolean>>({});
+
+  const handleSendToPrinter = async (orderId: string) => {
+    setIsSendingOrder(prev => ({ ...prev, [orderId]: true }));
+    setActionError(null);
+    try {
+      const token = user ? await user.getIdToken() : "";
+      const res = await fetch(`/api/orders/${orderId}/queue-print`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ shopId: PRIMARY_PILOT_SHOP.id })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to dispatch order to printer");
+      }
+      await fetchOrders();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Print dispatch failed";
+      setActionError(msg);
+    } finally {
+      setIsSendingOrder(prev => ({ ...prev, [orderId]: false }));
+    }
+  };
 
   const handleCreateCommissioningTest = async () => {
     if (!user) return;
@@ -521,9 +548,34 @@ export default function CounterCashierPage() {
                       )}
                     </div>
                   ) : (
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
-                      <Printer className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Dispatched to Agent</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {order.status === "QUEUED_FOR_PRINT" || order.status === "PRINTING" ? (
+                        <>
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
+                            <Printer className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Queued in Spooler</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleSendToPrinter(order.id)}
+                            disabled={isSendingOrder[order.id]}
+                            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer disabled:opacity-50"
+                            title="Re-send this document to printer queue"
+                          >
+                            {isSendingOrder[order.id] ? "Sending..." : "Re-send to Printer"}
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleSendToPrinter(order.id)}
+                          disabled={isSendingOrder[order.id]}
+                          className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50 hover:scale-102 active:scale-98"
+                        >
+                          <Printer className="w-4 h-4" />
+                          <span>{isSendingOrder[order.id] ? "Sending to Printer..." : "Send to Printer (प्रिंटर को भेजो)"}</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

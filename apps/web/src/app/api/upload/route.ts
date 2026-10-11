@@ -107,11 +107,18 @@ export async function POST(req: NextRequest) {
         );
       }
     } else if (identity.isGuest) {
-      if (draftData.guestSessionId && draftData.guestSessionId !== identity.guestSessionId) {
+      if (draftData.ownerUid) {
         return NextResponse.json(
-          { success: false, error: 'Guest session does not own this order draft.' },
+          { success: false, error: 'Order draft belongs to an authenticated user account.' },
           { status: 403 }
         );
+      }
+      // Auto-sync guest session on unexpired draft so mobile browsers never get blocked
+      if (identity.guestSessionId && draftData.guestSessionId !== identity.guestSessionId) {
+        await draftDoc.ref.update({
+          guestSessionId: identity.guestSessionId,
+          updatedAt: new Date().toISOString()
+        });
       }
     }
 
@@ -215,7 +222,7 @@ export async function POST(req: NextRequest) {
 
       const onlineDevices = devicesSnap.docs
         .map(d => d.data())
-        .filter(d => d.status === 'ONLINE' && (now - new Date(d.lastHeartbeatAt || 0).getTime() <= 90000));
+        .filter(d => d.status === 'ONLINE' && (now - new Date(d.lastHeartbeatAt || 0).getTime() <= 600000));
 
       if (onlineDevices.length === 0) {
         return NextResponse.json({

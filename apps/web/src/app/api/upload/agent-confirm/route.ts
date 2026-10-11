@@ -7,11 +7,11 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const deviceId = req.headers.get('x-device-id');
-    const deviceSecret = req.headers.get('x-device-secret');
+    const deviceSecret = req.headers.get('x-device-secret') || req.headers.get('x-credential-hash');
 
     if (!deviceId || !deviceSecret) {
       return NextResponse.json(
-        { success: false, error: 'Device credentials required (x-device-id and x-device-secret).' },
+        { success: false, error: 'Device credentials required (x-device-id and x-device-secret or x-credential-hash).' },
         { status: 401 }
       );
     }

@@ -543,7 +543,13 @@ export async function calculateQuoteService(
   if (identity.isAuthenticated && identity.uid) {
     if (draft.ownerUid && draft.ownerUid !== identity.uid) throw new Error('Draft belongs to another user account.');
   } else if (identity.isGuest) {
-    if (draft.guestSessionId && draft.guestSessionId !== identity.guestSessionId) throw new Error('Guest session does not own this draft.');
+    if (draft.ownerUid) throw new Error('Draft belongs to an authenticated user account.');
+    if (draft.guestSessionId && draft.guestSessionId !== identity.guestSessionId) {
+      await db.collection('orderDrafts').doc(draftId).update({
+        guestSessionId: identity.guestSessionId,
+        updatedAt: new Date().toISOString()
+      });
+    }
   }
 
   const fileDoc = await db.collection('orderFiles').doc(fileId).get();
@@ -926,8 +932,12 @@ export async function createAuthoritativeOrder(
         throw new Error('Draft belongs to another user account.');
       }
     } else if (identity.isGuest) {
+      if (draft.ownerUid) throw new Error('Draft belongs to another user account.');
       if (draft.guestSessionId && draft.guestSessionId !== identity.guestSessionId) {
-        throw new Error('Guest session does not own this draft.');
+        transaction.update(draftRef, {
+          guestSessionId: identity.guestSessionId,
+          updatedAt: new Date().toISOString()
+        });
       }
     }
 
@@ -1526,8 +1536,16 @@ export async function updateOrderStatusAtomic(
 
   if (txResult && (txResult as any).success && (action === 'MARK_CASH_PAID' || action === 'CONFIRM_UPI_PAID')) {
     try {
-      const { autoDispatchOrderForPrint } = await import('./print-job-service');
-      await autoDispatchOrderForPrint(db, (txResult as any).order.id, (txResult as any).order.shopId);
+      const shopDoc = await db.collection('shops').doc((txResult as any).order.shopId).get();
+      const shopData = shopDoc.data();
+      const shouldAutoDispatch = shopData?.printDispatchMode === 'AUTO_AFTER_PAYMENT' || shopData?.autoQueueForPrint === true;
+
+      if (shouldAutoDispatch) {
+        const { autoDispatchOrderForPrint } = await import('./print-job-service');
+        await autoDispatchOrderForPrint(db, (txResult as any).order.id, (txResult as any).order.shopId);
+      } else {
+        console.log('[Order ' + (txResult as any).order.id + '] Manual dispatch mode active. Order held for staff manual send to printer.');
+      }
     } catch (dispErr: any) {
       console.warn('[updateOrderStatusAtomic] Auto dispatch warning:', dispErr?.message);
     }

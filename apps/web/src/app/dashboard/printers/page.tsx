@@ -59,6 +59,8 @@ export default function DashboardPrintersPage() {
 
   // Printer Management Action States
   const [updatingPrinterId, setUpdatingPrinterId] = useState<string | null>(null);
+  const [dispatchMode, setDispatchMode] = useState<"MANUAL_QUEUE" | "AUTO_AFTER_PAYMENT">("MANUAL_QUEUE");
+  const [isUpdatingDispatchMode, setIsUpdatingDispatchMode] = useState<boolean>(false);
   const [executingActionId, setExecutingActionId] = useState<string | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string; printerName?: string } | null>(null);
   const [isRefreshingPrinters, setIsRefreshingPrinters] = useState(false);
@@ -85,13 +87,19 @@ export default function DashboardPrintersPage() {
       const token = user ? await user.getIdToken() : "";
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const [devRes, printRes] = await Promise.all([
+      const [devRes, printRes, settRes] = await Promise.all([
         fetch(`/api/devices?shopId=${PRIMARY_PILOT_SHOP.id}`, { headers }),
-        fetch(`/api/printers?shopId=${PRIMARY_PILOT_SHOP.id}`, { headers })
+        fetch(`/api/printers?shopId=${PRIMARY_PILOT_SHOP.id}`, { headers }),
+        fetch(`/api/shops/${PRIMARY_PILOT_SHOP.id}/settings`, { headers })
       ]);
 
       const devData = await devRes.json();
       const printData = await printRes.json();
+      const settData = await settRes.json();
+
+      if (settData?.success && settData?.settings?.printDispatchMode) {
+        setDispatchMode(settData.settings.printDispatchMode);
+      }
 
       if (devData.success) {
         setDevices(devData.devices || []);
@@ -127,6 +135,39 @@ export default function DashboardPrintersPage() {
     const timer = setInterval(updateCountdown, 1000);
     return () => clearInterval(timer);
   }, [pairingCodeData]);
+
+  // Handle updating print dispatch mode (Manual Queue vs Auto Spooler)
+  const handleUpdateDispatchMode = async (newMode: "MANUAL_QUEUE" | "AUTO_AFTER_PAYMENT") => {
+    if (!user) return;
+    setIsUpdatingDispatchMode(true);
+    setActionFeedback(null);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/shops/${PRIMARY_PILOT_SHOP.id}/settings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ printDispatchMode: newMode })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to update print dispatch mode");
+      }
+      setDispatchMode(newMode);
+      setActionFeedback({
+        type: "success",
+        message: newMode === "MANUAL_QUEUE"
+          ? "Manual Dispatch Mode Active: Customer payment ke baad order Counter par rahega. Aap khud 'Send to Printer (प्रिंटर को भेजो)' dabayenge."
+          : "Automatic Spooler Mode Active: Payment confirm hote hi orders seedha Windows Spooler ko chale jayenge."
+      });
+    } catch (err: any) {
+      setActionFeedback({ type: "error", message: err?.message || "Failed to save dispatch mode" });
+    } finally {
+      setIsUpdatingDispatchMode(false);
+    }
+  };
 
   // Handle setting SOS PRINT preferred printer
   const handleSelectPreferredPrinter = async (printerId: string) => {
@@ -552,6 +593,81 @@ export default function DashboardPrintersPage() {
                 <span className="font-mono text-emerald-800 font-bold truncate max-w-xs">{activeDevice.agentUploadUrl}</span>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Print Dispatch Mode (Manual vs Auto Spooler) */}
+        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E2E8F0] pb-3">
+            <div>
+              <h3 className="text-sm font-bold text-[#111827] flex items-center gap-2">
+                <PrinterIcon className="w-4 h-4 text-emerald-600" />
+                <span>Print Dispatch Mode (प्रिंट डिस्पैच मोड)</span>
+              </h3>
+              <p className="text-xs text-[#475569] mt-0.5">
+                दुकानदार तय कर सकता है कि प्रिंट तुरंत Spooler को जाए या काउंटर से खुद भेजा जाए (Spooler Optional)
+              </p>
+            </div>
+            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold self-start sm:self-auto ${
+              dispatchMode === "MANUAL_QUEUE"
+                ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                : "bg-blue-100 text-blue-800 border border-blue-300"
+            }`}>
+              {dispatchMode === "MANUAL_QUEUE" ? "Manual Dispatch (Recommended)" : "Auto Spooler Active"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => handleUpdateDispatchMode("MANUAL_QUEUE")}
+              disabled={isUpdatingDispatchMode}
+              className={`p-4 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between gap-2 ${
+                dispatchMode === "MANUAL_QUEUE"
+                  ? "border-emerald-500 bg-emerald-50/50 ring-2 ring-emerald-500/20"
+                  : "border-[#E2E8F0] hover:border-slate-300 bg-white"
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="font-bold text-xs text-[#111827] flex items-center gap-1.5">
+                    <span>🔘 Manual Dispatch (दुकानदार खुद प्रिंट भेजेगा)</span>
+                    <span className="px-1.5 py-0.2 bg-emerald-100 text-emerald-700 text-[9px] font-black rounded">Recommended</span>
+                  </div>
+                  <p className="text-[11px] text-[#475569] mt-1">
+                    Customer pay karega, fir Counter screen par <strong>&quot;Send to Printer (प्रिंटर को भेजो)&quot;</strong> button aayega. Spooler optional rahega taaki koi galat print na nikle.
+                  </p>
+                </div>
+              </div>
+              <div className="text-[10px] font-bold text-emerald-700">
+                {dispatchMode === "MANUAL_QUEUE" ? "✓ Currently Active" : "Click to Activate"}
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleUpdateDispatchMode("AUTO_AFTER_PAYMENT")}
+              disabled={isUpdatingDispatchMode}
+              className={`p-4 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between gap-2 ${
+                dispatchMode === "AUTO_AFTER_PAYMENT"
+                  ? "border-blue-500 bg-blue-50/50 ring-2 ring-blue-500/20"
+                  : "border-[#E2E8F0] hover:border-slate-300 bg-white"
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="font-bold text-xs text-[#111827]">
+                    ⚪ Automatic Spooler (Payment होते ही तुरंत Spooler को भेजे)
+                  </div>
+                  <p className="text-[11px] text-[#475569] mt-1">
+                    Payment confirm hote hi bina kisi staff click ke seedha Windows Spooler queue me job dispatch ho jayegi.
+                  </p>
+                </div>
+              </div>
+              <div className="text-[10px] font-bold text-blue-700">
+                {dispatchMode === "AUTO_AFTER_PAYMENT" ? "✓ Currently Active" : "Click to Activate"}
+              </div>
+            </button>
           </div>
         </div>
 

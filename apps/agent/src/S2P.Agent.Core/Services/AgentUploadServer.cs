@@ -325,6 +325,7 @@ startxref
     {
         var grantId = req.Headers["x-upload-grant-id"] ?? req.QueryString["grantId"] ?? "";
         var grantToken = req.Headers["x-upload-grant-token"] ?? req.QueryString["token"] ?? "";
+        var draftId = req.Headers["x-draft-id"] ?? req.QueryString["draftId"] ?? "";
         var relaySecret = req.Headers["x-relay-secret"] ?? "";
 
         // Require grantId or relay secret
@@ -407,6 +408,7 @@ startxref
         var confirmPayload = new
         {
             grantId = grantId,
+            draftId = draftId,
             fileId = fileId,
             sha256 = sha256,
             pageCount = pageCount,
@@ -441,8 +443,22 @@ startxref
         catch (Exception ex)
         {
             Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine($"[Confirm Warning] Backend confirmation error: {ex.Message}");
+            Console.WriteLine($"[Confirm Retry] Initial backend confirmation failed ({ex.Message}), retrying in 500ms...");
             Console.ResetColor();
+            try
+            {
+                await Task.Delay(500);
+                var retryResult = await _apiClient.ConfirmUploadAsync(_config, confirmPayload);
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"[CLOUD CONFIRMED ON RETRY] File registered in Firestore: {fileId}");
+                Console.ResetColor();
+            }
+            catch (Exception retryEx)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[Confirm Warning] Backend confirmation error: {retryEx.Message}");
+                Console.ResetColor();
+            }
 
             await WriteJsonAsync(res, 200, new
             {

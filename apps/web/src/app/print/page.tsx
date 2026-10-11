@@ -214,11 +214,15 @@ export default function DirectPrintPage() {
     const res = await fetch("/api/draft", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ shopId: PRIMARY_PILOT_SHOP.id })
     });
     const data = await res.json();
     if (!res.ok || !data.success || !data.draftId) {
       throw new Error(data.error || "Failed to initialize order session.");
+    }
+    if (data.guestSessionToken && typeof window !== "undefined") {
+      sessionStorage.setItem("s2p_guest_token", data.guestSessionToken);
     }
     setOrderDraftId(data.draftId);
     return data.draftId;
@@ -250,31 +254,42 @@ export default function DirectPrintPage() {
           throw new Error(`File ${f.name} exceeds 50MB limit.`);
         }
 
-        setUploadProgressMsg(`Securing upload grant for ${f.name}...`);
+        setUploadProgressMsg(`Preparing secure upload for ${f.name}...`);
+        const guestToken = typeof window !== "undefined" ? sessionStorage.getItem("s2p_guest_token") || "" : "";
+        let grantData: any = null;
 
         // Step 1: Issue scoped grant token
-        const grantRes = await fetch("/api/upload/grant", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            shopId: PRIMARY_PILOT_SHOP.id,
-            draftId,
-            filename: f.name,
-            mimeType: f.type,
-            sizeBytes: f.size
-          })
-        });
-
-        const grantData = await grantRes.json();
-        if (!grantRes.ok || !grantData.success) {
-          throw new Error(grantData.error || `Upload grant denied for ${f.name}`);
+        try {
+          const grantRes = await fetch("/api/upload/grant", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(guestToken ? { "x-guest-session-token": guestToken } : {})
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              shopId: PRIMARY_PILOT_SHOP.id,
+              draftId,
+              filename: f.name,
+              mimeType: f.type,
+              sizeBytes: f.size
+            })
+          });
+          const resJson = await grantRes.json();
+          if (grantRes.ok && resJson.success) {
+            grantData = resJson;
+          } else {
+            console.warn("[Upload Grant] Notice:", resJson.error);
+          }
+        } catch (grantErr: any) {
+          console.warn("[Upload Grant] Connection notice:", grantErr?.message);
         }
 
         let uploadedFileRecord: any = null;
         let directSuccess = false;
 
         // Step 2: Direct browser-to-PC upload via Cloudflare Tunnel
-        if (grantData.agentUploadUrl) {
+        if (grantData?.agentUploadUrl) {
           setUploadProgressMsg(`Sending ${f.name} directly to shop PC via secure tunnel...`);
           try {
             const directForm = new FormData();
@@ -283,7 +298,8 @@ export default function DirectPrintPage() {
               method: "POST",
               headers: {
                 "x-upload-grant-id": grantData.grantId,
-                "x-upload-grant-token": grantData.token
+                "x-upload-grant-token": grantData.token,
+                "x-draft-id": draftId
               },
               body: directForm
             });
@@ -312,6 +328,10 @@ export default function DirectPrintPage() {
 
           const relayRes = await fetch("/api/upload", {
             method: "POST",
+            headers: {
+              ...(guestToken ? { "x-guest-session-token": guestToken } : {})
+            },
+            credentials: "include",
             body: relayForm
           });
           const relayJson = await relayRes.json();
@@ -398,9 +418,14 @@ export default function DirectPrintPage() {
           finishing
         };
 
+        const guestToken = typeof window !== "undefined" ? sessionStorage.getItem("s2p_guest_token") || "" : "";
         const res = await fetch("/api/quote", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(guestToken ? { "x-guest-session-token": guestToken } : {})
+          },
+          credentials: "include",
           body: JSON.stringify(payload)
         });
 
@@ -484,9 +509,14 @@ export default function DirectPrintPage() {
         paymentMethod
       };
 
+      const guestToken = typeof window !== "undefined" ? sessionStorage.getItem("s2p_guest_token") || "" : "";
       const res = await fetch("/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(guestToken ? { "x-guest-session-token": guestToken } : {})
+        },
+        credentials: "include",
         body: JSON.stringify(orderPayload)
       });
 

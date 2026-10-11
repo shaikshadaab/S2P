@@ -33,7 +33,8 @@ export async function GET(
       settings: {
         shopName: shopData?.name || PRIMARY_PILOT_SHOP.name,
         phone: shopData?.phone || "+91 95815 29381",
-        googleReviewUrl: shopData?.googleReviewUrl || ""
+        googleReviewUrl: shopData?.googleReviewUrl || "",
+        printDispatchMode: shopData?.printDispatchMode || shopData?.settings?.printDispatchMode || 'MANUAL_QUEUE'
       }
     });
   } catch (err: unknown) {
@@ -72,6 +73,9 @@ export async function POST(
     }
     if (typeof body.phone === 'string') {
       updateData.phone = body.phone.trim();
+    }
+    if (typeof body.printDispatchMode === 'string' && ['MANUAL_QUEUE', 'AUTO_AFTER_PAYMENT'].includes(body.printDispatchMode)) {
+      updateData.printDispatchMode = body.printDispatchMode;
     }
 
     await adminDb.collection('shops').doc(shopId).set(updateData, { merge: true });

@@ -65,8 +65,9 @@ export async function queueOrderForPrint(
     }
 
     // Status check: ACCEPTED or already QUEUED_FOR_PRINT (idempotent double-click protection)
-    if (order.status !== 'ACCEPTED' && order.status !== 'QUEUED_FOR_PRINT') {
-      throw new Error('INVALID_ORDER_STATUS: Order must be in ACCEPTED or QUEUED_FOR_PRINT status to queue for print. Current status: ' + order.status);
+    const validStatuses = ['SUBMITTED', 'ACCEPTED', 'QUEUED_FOR_PRINT', 'PAYMENT_CONFIRMED', 'PRINTING', 'FAILED'];
+    if (!validStatuses.includes(order.status)) {
+      throw new Error('INVALID_ORDER_STATUS: Order cannot be queued for print in status: ' + order.status);
     }
 
     // Payment check
@@ -848,6 +849,22 @@ export async function autoDispatchOrderForPrint(
 
     if (order.paymentStatus !== 'PAID') {
       throw new Error('UNPAID_ORDER: Order must be PAID before auto-dispatch. Current: ' + order.paymentStatus);
+    }
+
+    // Check shop dispatch mode: if MANUAL_QUEUE, hold for manual dispatch by owner
+    const shopRef = db.collection('shops').doc(requestedShopId);
+    const shopDoc = await transaction.get(shopRef);
+    const shopData = shopDoc.exists ? shopDoc.data() : null;
+    const dispatchMode = (shopData?.printDispatchMode || shopData?.settings?.printDispatchMode || 'MANUAL_QUEUE');
+
+    if (dispatchMode !== 'AUTO_AFTER_PAYMENT') {
+      return {
+        success: true,
+        dispatched: false,
+        heldForManual: true,
+        orderId,
+        message: 'Order held for manual review. Shopkeeper will dispatch to printer when ready at counter.'
+      };
     }
 
     // Read all order items (Multi-item support, No limit(1))

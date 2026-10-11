@@ -219,13 +219,14 @@ export async function authenticateAgent(
   const storedHash = device.credentialHash || '';
 
   const incomingBuffer = Buffer.from(incomingHash, 'hex');
+  const directBuffer = Buffer.from(deviceSecret, 'hex');
   const storedBuffer = Buffer.from(storedHash, 'hex');
 
-  if (
-    incomingBuffer.length !== storedBuffer.length ||
-    !crypto.timingSafeEqual(incomingBuffer, storedBuffer)
-  ) {
-    throw new Error('INVALID_DEVICE_CREDENTIALS: Device secret verification failed.');
+  const matchesRawSecret = incomingBuffer.length === storedBuffer.length && crypto.timingSafeEqual(incomingBuffer, storedBuffer);
+  const matchesDirectHash = directBuffer.length === storedBuffer.length && crypto.timingSafeEqual(directBuffer, storedBuffer);
+
+  if (!matchesRawSecret && !matchesDirectHash) {
+    throw new Error("INVALID_DEVICE_CREDENTIALS: Device secret verification failed.");
   }
 
   return device;
