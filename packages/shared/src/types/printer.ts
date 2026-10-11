@@ -32,6 +32,7 @@ export interface Printer {
   isDefault: boolean;
   isOnline: boolean;
   isEnabled: boolean;
+  isIgnored?: boolean;
   capabilities: PrinterCapabilities;
   lastDiscoveredAt: string;
   createdAt: string;

@@ -111,14 +111,20 @@ export async function issueUploadGrant(
       if (d.status !== 'ONLINE') return false;
       const hb = new Date(d.lastHeartbeatAt || 0).getTime();
       return now - hb <= 90 * 1000;
-    });
+    })
+    .sort((a, b) => new Date(b.lastHeartbeatAt || 0).getTime() - new Date(a.lastHeartbeatAt || 0).getTime());
 
   if (onlineDevices.length === 0) {
     throw new Error('AGENT_OFFLINE: Shop printing counter PC is currently offline. Please ask shopkeeper to connect PC.');
   }
 
   const primaryDevice = onlineDevices[0];
-  const agentUploadUrl = (primaryDevice.agentUploadUrl || (shopData.settings?.agentUploadUrl as string) || '').trim();
+  const agentUploadUrl = (
+    primaryDevice.agentUploadUrl ||
+    (shopData.agentUploadUrl as string) ||
+    (shopData.settings?.agentUploadUrl as string) ||
+    ''
+  ).trim();
 
   if (!agentUploadUrl) {
     throw new Error('UPLOAD_ENDPOINT_NOT_CONFIGURED: Direct HTTPS upload tunnel is not configured on the shop PC.');

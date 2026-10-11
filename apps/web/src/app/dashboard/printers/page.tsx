@@ -54,6 +54,37 @@ export default function DashboardPrintersPage() {
   const [isSavingTunnelUrl, setIsSavingTunnelUrl] = useState<Record<string, boolean>>({});
   const [tunnelStatusMsg, setTunnelStatusMsg] = useState<Record<string, { type: 'success' | 'error'; text: string }>>({});
 
+  const [updatingPrinterId, setUpdatingPrinterId] = useState<string | null>(null);
+
+  const handleUpdatePrinter = async (printerId: string, updates: { isEnabled?: boolean; isDefault?: boolean; isIgnored?: boolean }) => {
+    if (!user) return;
+    setUpdatingPrinterId(printerId);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/printers', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          printerId,
+          shopId: PRIMARY_PILOT_SHOP.id,
+          ...updates
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update printer');
+      }
+      await fetchData();
+    } catch (err: any) {
+      alert(err.message || 'Error updating printer');
+    } finally {
+      setUpdatingPrinterId(null);
+    }
+  };
+
   const handleSaveTunnelUrl = async (deviceId: string) => {
     if (!user) return;
     const url = (tunnelUrlInputs[deviceId] ?? devices.find(d => d.id === deviceId)?.agentUploadUrl ?? '').trim();
@@ -618,8 +649,9 @@ export default function DashboardPrintersPage() {
         ) : (
           <div className="grid md:grid-cols-2 gap-4">
             {devices.map((device) => {
-              const lastSeenMs = device.lastSeen ? Date.now() - new Date(device.lastSeen).getTime() : Infinity;
-              const isOnline = lastSeenMs < 90000; // 90 seconds threshold
+              const hbTime = device.lastHeartbeatAt || device.lastSeen || device.lastSeenAt;
+              const lastSeenMs = hbTime ? Date.now() - new Date(hbTime).getTime() : Infinity;
+              const isOnline = device.status === "ONLINE" || device.status === "ACTIVE" || lastSeenMs < 90000;
 
               return (
                 <div
@@ -674,24 +706,34 @@ export default function DashboardPrintersPage() {
                   <div className="grid grid-cols-2 gap-2 text-[11px] bg-[#F8FAFC] p-3 rounded-xl border border-[#E2E8F0]">
                     <div>
                       <span className="text-[#475569]">Discovered Queues:</span>{" "}
-                      <span className="font-bold text-[#111827]">{device.printerCount || 0} printers</span>
+                      <span className="font-bold text-[#111827]">
+                        {device.printerCount ?? printers.filter(p => p.deviceId === device.id).length} printers
+                      </span>
                     </div>
                     <div>
                       <span className="text-[#475569]">Agent Version:</span>{" "}
-                      <span className="font-mono text-[#111827]">{device.version || "1.0.0 LTS"}</span>
+                      <span className="font-mono text-[#111827]">{device.version || device.agentVersion || "1.0.0 LTS"}</span>
                     </div>
                     <div className="col-span-2">
                       <span className="text-[#475569]">Last Heartbeat:</span>{" "}
                       <span className="text-[#111827] font-medium">
-                        {device.lastSeen ? new Date(device.lastSeen).toLocaleTimeString() : "Never"}
+                        {hbTime ? new Date(hbTime).toLocaleTimeString() : "Never"}
                       </span>
                     </div>
+                    {device.agentUploadUrl && (
+                      <div className="col-span-2 pt-1 border-t border-[#E2E8F0]/60">
+                        <span className="text-[#475569]">Live Upload Tunnel:</span>{" "}
+                        <span className="font-mono text-emerald-700 font-bold block truncate">
+                          {device.agentUploadUrl}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
             })}
-          </div>
-        )}
+        </div>
+      )}
       </div>
 
       {/* Discovered Printers Section */}
@@ -720,41 +762,109 @@ export default function DashboardPrintersPage() {
                 <thead className="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[#475569] font-bold text-[11px]">
                   <tr>
                     <th className="py-3 px-4">Printer Name</th>
-                    <th className="py-3 px-4">Driver / Model</th>
+                    <th className="py-3 px-4">Driver & Port</th>
                     <th className="py-3 px-4">Type</th>
                     <th className="py-3 px-4">Duplex</th>
                     <th className="py-3 px-4">Color</th>
                     <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E2E8F0]">
-                  {printers.map((p) => (
-                    <tr key={p.id} className="hover:bg-slate-50 transition">
-                      <td className="py-3 px-4 font-bold text-[#111827]">
-                        {p.displayName || p.queueName}
-                      </td>
-                      <td className="py-3 px-4 text-[#475569]">
-                        {p.driverName || "Standard Driver"}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-[#475569]">
-                          {p.connectionType || "USB / Network"}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-[#475569]">
-                        {p.capabilities?.duplexSupported ? "Supported" : "Single Only"}
-                      </td>
-                      <td className="py-3 px-4 text-[#475569]">
-                        {p.capabilities?.colorSupported ? "Color & B&W" : "B&W Only"}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                          <CheckCircle2 className="w-3 h-3" />
-                          Ready
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {printers.map((p) => {
+                    const isDefault = Boolean(p.isDefault);
+                    const isExcluded = Boolean(p.isIgnored || !p.isEnabled);
+                    const isReady = !isExcluded && p.isOnline;
+
+                    return (
+                      <tr key={p.id} className={`hover:bg-slate-50 transition ${isExcluded ? "opacity-60 bg-slate-50/50" : ""}`}>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-[#111827]">
+                              {p.displayName || p.queueName}
+                            </span>
+                            {isDefault && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                Default Printer
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-[#64748B]">
+                            Queue: {p.queueName}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-[#475569]">
+                          <div>{p.driverName || "Standard Driver"}</div>
+                          <div className="text-[10px] font-mono text-[#64748B]">{p.portName || "Port N/A"}</div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-[#475569]">
+                            {p.connectionType || "USB / Network"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-[#475569]">
+                          {p.capabilities?.duplexSupported ? "Auto Duplex" : "Single Only"}
+                        </td>
+                        <td className="py-3 px-4 text-[#475569]">
+                          {p.capabilities?.colorSupported ? "Color & B&W" : "B&W Only"}
+                        </td>
+                        <td className="py-3 px-4">
+                          {isExcluded ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700">
+                              <XCircle className="w-3 h-3 text-slate-500" />
+                              Excluded / Ignored
+                            </span>
+                          ) : isReady ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              Ready / Active
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                              <AlertCircle className="w-3 h-3 text-amber-600" />
+                              Offline
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          {isOwnerOrManager && (
+                            <div className="inline-flex items-center gap-2">
+                              {isExcluded ? (
+                                <button
+                                  onClick={() => handleUpdatePrinter(p.id, { isEnabled: true, isIgnored: false })}
+                                  disabled={updatingPrinterId === p.id}
+                                  className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 transition"
+                                >
+                                  {updatingPrinterId === p.id ? <Loader2 className="w-3 h-3 animate-spin inline" /> : "Enable"}
+                                </button>
+                              ) : (
+                                <>
+                                  {!isDefault && (
+                                    <button
+                                      onClick={() => handleUpdatePrinter(p.id, { isDefault: true })}
+                                      disabled={updatingPrinterId === p.id}
+                                      className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+                                      title="Set as Default Printer"
+                                    >
+                                      Make Default
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleUpdatePrinter(p.id, { isEnabled: false, isIgnored: true })}
+                                    disabled={updatingPrinterId === p.id}
+                                    className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-700 transition"
+                                    title="Exclude from printing services"
+                                  >
+                                    Disable
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

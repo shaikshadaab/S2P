@@ -92,7 +92,7 @@ export default function DashboardGuidedSetupPage() {
 
       if (devData.success) {
         setDevices(devData.devices || []);
-        const activeDev = devData.devices?.find((d: any) => d.status === "ACTIVE" || d.agentUploadUrl);
+        const activeDev = devData.devices?.find((d: any) => d.status === "ONLINE" || d.status === "ACTIVE" || d.agentUploadUrl);
         if (activeDev?.agentUploadUrl && !tunnelUrlInput) {
           setTunnelUrlInput(activeDev.agentUploadUrl);
         }
@@ -534,16 +534,21 @@ export default function DashboardGuidedSetupPage() {
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-xs text-[#0F172A]">{dev.name || dev.hostname || "Shop PC"}</span>
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${dev.status === "ACTIVE" ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700"}`}>
-                              {dev.status === "ACTIVE" ? "ONLINE" : "OFFLINE"}
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${(dev.status === "ONLINE" || dev.status === "ACTIVE") ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700"}`}>
+                              {(dev.status === "ONLINE" || dev.status === "ACTIVE") ? "ONLINE" : "OFFLINE"}
                             </span>
                           </div>
                           <div className="text-[11px] text-[#64748B]">
-                            OS: {dev.os || "Windows 64-bit"} • Agent v{dev.version || "1.0"}
+                            OS: {dev.os || dev.windowsVersion || "Windows 64-bit"} • Agent v{dev.version || dev.agentVersion || "1.0.0"} • Discovered: {dev.printerCount ?? 0} queues
                           </div>
                           <div className="text-[11px] text-[#64748B]">
-                            Last Heartbeat: {dev.lastSeenAt ? new Date(dev.lastSeenAt).toLocaleTimeString() : "Never"}
+                            Last Heartbeat: {(dev.lastHeartbeatAt || dev.lastSeenAt || dev.lastSeen) ? new Date(dev.lastHeartbeatAt || dev.lastSeenAt || dev.lastSeen).toLocaleTimeString() : "Never"}
                           </div>
+                          {dev.agentUploadUrl && (
+                            <div className="text-[10px] font-mono text-emerald-700 truncate max-w-xs">
+                              Tunnel: {dev.agentUploadUrl}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}

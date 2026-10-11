@@ -183,3 +183,23 @@ Production Next.js Build: 35/35 routes compiled successfully
 - **Sanitized Source Backup:** Local source archive `C:\\SOSPrint-Backups\\SOS-Print-Source-20261010-1351.zip` (62.99 MB / 66,045,623 bytes, SHA-256: `FC227CC44BF9995A066EBE54888A6AF5879CBFAB61A326FCDF58455C55C46A7D`).
 - **Integrity Notice:** Backups are standard sanitized zip archives excluding `.git`, `node_modules`, `.next`, and secrets; they are not encrypted.
 - **Physical Printing Status:** Remains strictly **PHYSICAL PENDING** until actual paper feed and print output are executed on the shop Windows PC in Guntur.
+
+
+## 2. Printer Hardware Mapping & Exclusion Enforcement (Verified Live)
+
+| Item | Queue / Field | Real Config / Value | Status |
+|---|---|---|---|
+| **Retained Hardware Queue** | `HP SHADAAB Smart Tank 580–590 series` | Driver: `HP Smart Tank 580-590 series PCL-3 (V4)`, Port: `USB002`, Kind: `PHYSICAL`, Default: `true`, Enabled: `true`, Ignored: `false` | **VERIFIED & ACTIVE** |
+| **Excluded Virtual Queue** | `OneNote for Windows 10` | Driver: `Microsoft Software Printer Driver`, Kind: `VIRTUAL`, Default: `false`, Enabled: `false`, Ignored: `true` | **EXCLUDED & LOCKED** |
+| **Excluded Physical Queue** | `HP Ink Tank 310 series` | Port: `USB003`, Kind: `PHYSICAL`, Default: `false`, Enabled: `false`, Ignored: `true` | **EXCLUDED & LOCKED** |
+| **Service Mapping** | Services: A4 B&W, A4 Colour | Mapped exclusively to `HP SHADAAB Smart Tank 580–590 series` | **MAPPED** |
+| **Duplex Invariant** | `capabilities.duplexSupported` & `printOptions.duplexModes.DOUBLE` | `enabled: false`, `duplexSupported: false` (Automatic duplex strictly disabled pending physical calibration) | **CALIBRATION-LOCKED** |
+| **A3 Size Invariant** | `printOptions.paperSizes.A3` | `enabled: false` (A3 disabled; Smart Tank 580 is an A4 printer) | **CALIBRATION-LOCKED** |
+| **Owner Ignore/Disable Action** | `PATCH /api/printers` & Dashboard UI | Allows owner to toggle disable/ignore or make default without deleting records | **HOSTED-VERIFIED** |
+| **Exclusion Persistence** | `syncDiscoveredPrinters` in `device-service.ts` | Automatically checks existing printer doc and enforces exclusion rules across restarts | **VERIFIED** |
+| **Paired Device Readiness** | `SHAKEEL` (`dev_mv3fgisc_f2b64723`) | Status: `ONLINE`, Heartbeat active every ~30s, accurately displays 3 discovered queues | **VERIFIED ONLINE** |
+| **Direct Upload Tunnel** | `https://profits-attitude-voice-newsletter.trycloudflare.com` | Active Cloudflare tunnel reaching agent upload server on port 5218; verified direct phone upload | **VERIFIED LIVE** |
+| **Commissioning Test Print** | Order `S2P-TEST-1716` / Job `job_test_mv3gs27q_eae742` | Routed to `HP SHADAAB Smart Tank 580-590 series`; status transitioned to `SPOOL_COMPLETED` | **SPOOL_COMPLETED** |
+
+---
+

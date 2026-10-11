@@ -256,6 +256,20 @@ export async function recordAgentHeartbeat(
   }
   await db.collection('devices').doc(deviceId).update(updateData);
 
+  // Sync active upload tunnel URL and active device directly to shop record
+  if (device.shopId) {
+    const shopUpdate: Record<string, unknown> = {
+      activeDeviceId: deviceId,
+      updatedAt: nowIso
+    };
+    if (payload.agentUploadUrl) {
+      shopUpdate.agentUploadUrl = payload.agentUploadUrl;
+    }
+    await db.collection('shops').doc(device.shopId).update(shopUpdate).catch(err => {
+      console.warn('[Heartbeat Shop Sync Warning]', err?.message);
+    });
+  }
+
   return {
     success: true,
     deviceId,
@@ -312,6 +326,30 @@ export async function syncDiscoveredPrinters(
         : 'UNKNOWN'
     ) as PrinterKind;
 
+    // Read existing printer doc to respect owner-configured exclusions and defaults
+    const existingDoc = await db.collection('printers').doc(printerId).get();
+    const existing = existingDoc.exists ? (existingDoc.data() as Partial<Printer>) : null;
+
+    const lowerName = (q.queueName || '').toLowerCase();
+    const lowerDriver = (q.driverName || '').toLowerCase();
+
+    // Respect owner exclusions: OneNote and HP Ink Tank 310 series
+    const isExcluded = lowerName.includes('onenote') ||
+                       lowerName.includes('ink tank 310') ||
+                       lowerDriver.includes('ink tank 310') ||
+                       existing?.isIgnored === true ||
+                       existing?.isEnabled === false;
+
+    // Retained printer: HP SHADAAB Smart Tank 580-590 series
+    const isSmartTank580 = lowerName.includes('smart tank 580') ||
+                           lowerName.includes('smart tank 580-590') ||
+                           lowerName.includes('shadaab smart tank') ||
+                           lowerDriver.includes('smart tank 580');
+
+    let isEnabled = isExcluded ? false : (existing?.isEnabled ?? true);
+    let isIgnored = isExcluded ? true : (existing?.isIgnored ?? false);
+    let isDefault = isExcluded ? false : (isSmartTank580 ? true : (existing?.isDefault ?? false));
+
     const printerRecord: Printer = {
       id: printerId,
       organizationId: device.organizationId,
@@ -323,9 +361,10 @@ export async function syncDiscoveredPrinters(
       portName: q.portName || 'UNKNOWN',
       printerKind: validKind,
       connectionType: validConnection,
-      isDefault: Boolean(q.isDefault),
+      isDefault,
       isOnline: q.isOnline !== false,
-      isEnabled: true,
+      isEnabled,
+      isIgnored,
       capabilities: {
         // Enforce physical capability calibration: filter out uncalibrated A3 and disable automatic duplex
         paperSizes: (q.capabilities?.paperSizes || ['A4']).filter((s: string) => s !== 'A3'),
@@ -334,11 +373,18 @@ export async function syncDiscoveredPrinters(
         supportedResolutionsDpi: q.capabilities?.supportedResolutionsDpi || [600]
       },
       lastDiscoveredAt: nowIso,
-      createdAt: nowIso,
+      createdAt: existing?.createdAt || nowIso,
       updatedAt: nowIso
     };
 
     await db.collection('printers').doc(printerId).set(printerRecord, { merge: true });
+
+    if (isDefault) {
+      await db.collection('shops').doc(device.shopId).update({
+        defaultPrinterId: printerId,
+        updatedAt: nowIso
+      }).catch(() => {});
+    }
   }
 
   // Mark disappeared printers from this device as offline
@@ -434,10 +480,24 @@ export async function getShopDevices(
   db: Firestore,
   shopId: string
 ) {
-  const snapshot = await db.collection('devices')
-    .where('shopId', '==', shopId)
-    .orderBy('createdAt', 'desc')
-    .get();
+  const [snapshot, printersSnap] = await Promise.all([
+    db.collection('devices')
+      .where('shopId', '==', shopId)
+      .orderBy('createdAt', 'desc')
+      .get(),
+    db.collection('printers')
+      .where('shopId', '==', shopId)
+      .get()
+  ]);
+
+  const devicePrinterCounts = new Map<string, number>();
+  for (const pDoc of printersSnap.docs) {
+    const pData = pDoc.data();
+    const devId = pData.deviceId;
+    if (devId) {
+      devicePrinterCounts.set(devId, (devicePrinterCounts.get(devId) || 0) + 1);
+    }
+  }
 
   const now = Date.now();
   return snapshot.docs.map(doc => {
@@ -451,17 +511,24 @@ export async function getShopDevices(
       }
     }
 
+    const pCount = devicePrinterCounts.get(data.id) || 0;
+
     // NEVER return credentialHash to UI
     return {
       id: data.id,
       name: data.name,
       hostname: data.hostname,
       windowsVersion: data.windowsVersion,
+      os: data.windowsVersion,
       agentVersion: data.agentVersion,
+      version: data.agentVersion,
       status: computedStatus,
       agentUploadUrl: data.agentUploadUrl || null,
       pairedAt: data.pairedAt,
       lastHeartbeatAt: data.lastHeartbeatAt,
+      lastSeen: data.lastHeartbeatAt,
+      lastSeenAt: data.lastHeartbeatAt,
+      printerCount: pCount,
       createdAt: data.createdAt
     };
   });
@@ -525,6 +592,14 @@ export async function updateDeviceUploadUrl(
     uploadUrlVerifiedAt: healthVerified ? nowIso : null,
     updatedAt: nowIso
   });
+
+  if (shopId) {
+    await db.collection('shops').doc(shopId).update({
+      agentUploadUrl: normalizedUrl,
+      activeDeviceId: deviceId,
+      updatedAt: nowIso
+    }).catch(() => {});
+  }
 
   return {
     success: true,

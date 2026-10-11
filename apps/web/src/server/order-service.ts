@@ -724,12 +724,14 @@ export async function checkShopPrintingAvailability(
     .where('shopId', '==', shopId)
     .get();
 
-  const onlineDevices = devicesSnap.docs.filter(doc => {
-    const d = doc.data();
-    if (d.status !== 'ONLINE') return false;
-    const hb = new Date(d.lastHeartbeatAt || 0).getTime();
-    return now - hb <= 90 * 1000;
-  });
+  const onlineDevices = devicesSnap.docs
+    .map(doc => doc.data() as any)
+    .filter(d => {
+      if (d.status !== 'ONLINE') return false;
+      const hb = new Date(d.lastHeartbeatAt || 0).getTime();
+      return now - hb <= 90 * 1000;
+    })
+    .sort((a, b) => new Date(b.lastHeartbeatAt || 0).getTime() - new Date(a.lastHeartbeatAt || 0).getTime());
 
   if (onlineDevices.length === 0) {
     return {
@@ -741,8 +743,13 @@ export async function checkShopPrintingAvailability(
     };
   }
 
-  const primaryDevice = onlineDevices[0].data();
-  const agentUploadUrl = (primaryDevice.agentUploadUrl || shopData?.settings?.agentUploadUrl || '').trim();
+  const primaryDevice = onlineDevices[0];
+  const agentUploadUrl = (
+    primaryDevice.agentUploadUrl ||
+    shopData?.agentUploadUrl ||
+    shopData?.settings?.agentUploadUrl ||
+    ''
+  ).trim();
 
   if (!agentUploadUrl) {
     return {
