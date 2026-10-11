@@ -13,8 +13,8 @@
 **WhatsApp Helpline:** `+91 9581529381`  
 **Production HTTPS URL:** https://sos-print.vercel.app  
 **Production Aliased Domains:** `sos-print.vercel.app`, `sos-print-dxsqq9s2e-shaikshadaab951-1346s-projects.vercel.app`  
-**Deployed Commit:** `45a63e6`  
-**Vercel Deployment ID:** `dpl_DyAxy5eyJheU4YbJVeqPitTAcCFh`  
+**Deployed Commit:** `36a72b3`  
+**Vercel Deployment ID:** `dpl_jtosZhtgHbf57iXo6uisdHSNXmqR`  
 **Windows Agent Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (2,782,466 bytes [2.65 MB], SHA-256: `8B7A581442657D245A492D0B12FD3C10734081E588EA6949141DB25F2AF76345`)
 **Source Backup Archive:** `C:\SOSPrint-Backups\SOS-Print-Source-20261010-2054.zip` (72.29 MB, SHA-256: `67C628D94AE2E59C374FB3544EF39204EEBEA6E33A4AE3EFD7B4D6F6D7039DFE`)
 
@@ -23,6 +23,17 @@
 ## 1. Authoritative Four-Category Status Matrix
 
 ### Category A: IMPLEMENTED & HOSTED-VERIFIED
+
+### Category A (Updated): Security, Upload Grant & Manual Dispatch Hardening (Verified Live)
+
+| Feature | Scope / Route | Verification Method | Status |
+|---|---|---|---|
+| **Strict Customer Draft Ownership** | `/server/upload-grant-service.ts`, `/server/order-service.ts`, `/api/upload/route.ts` | Zero draft session overwrite; strict session ownership check; Customer B cannot upload, quote, submit or access Customer A's drafts/files (403 FORBIDDEN_SESSION) | **HOSTED-VERIFIED** |
+| **Protected Device Authentication** | `/server/device-service.ts`, `/api/upload/agent-confirm`, `AgentUploadServer.cs` | Removed bearer credentialHash authentication; agent must present protected raw device secret; SHA-256 constant-time comparison; safe re-pairing via `/api/devices/rotate` | **HOSTED-VERIFIED** |
+| **Strict Atomic Grant Confirmation** | `/server/upload-grant-service.ts` | Upload confirmation strictly requires valid grantId bound to draft, device, and constraints; checks and consumption atomic in transaction; retries idempotent with 0 duplicate files | **HOSTED-VERIFIED** |
+| **Authorized Counter Payment Confirmation** | `/server/order-service.ts`, `/dashboard/counter` | Unpaid orders strictly blocked from printing; staff payment confirmation marks PAID via authorized Counter API (`updateOrderStatusAtomic`); direct DB edits to PAID rejected as proof | **HOSTED-VERIFIED** |
+| **Manual Dispatch & Double-Click Protection** | `/server/print-job-service.ts`, `/dashboard/counter` | `MANUAL_QUEUE` mode holds paid orders in Counter; "Send to Printer" creates 1 eligible attempt; duplicate clicks return existing job idempotently; explicit re-send supported | **HOSTED-VERIFIED** |
+
 These features are fully built, unit-tested, and verified live on production at `https://sos-print.vercel.app`.
 
 | Feature | Scope / Route | Verification Method | Status |
