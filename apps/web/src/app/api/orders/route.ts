@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     }
     return response;
   } catch (err: unknown) {
+    console.error('[API Orders Error]', err);
     const msg = err instanceof Error ? err.message : 'Order creation error';
     if ((err as any)?.code === 'PRICE_CHANGED') {
       return NextResponse.json({

@@ -1294,6 +1294,8 @@ export async function createAuthoritativeOrder(
       order: orderRecord
     };
   });
+
+  return txResult;
 }
 
 /**
