@@ -31,7 +31,8 @@ import {
   PlayCircle,
   ChevronDown,
   ChevronUp,
-  Cpu
+  Cpu,
+  KeyRound
 } from "lucide-react";
 import { PRIMARY_PILOT_SHOP, Printer, Device } from "@s2p/shared";
 import { useAuth } from "../../../lib/firebase/auth-context";
@@ -56,6 +57,17 @@ export default function DashboardPrintersPage() {
   } | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(300);
+
+  // Repair Existing Pairing state (bound specifically to retained SHAKEEL PC)
+  const [isRepairModalOpen, setIsRepairModalOpen] = useState(false);
+  const [isRepairingPairing, setIsRepairingPairing] = useState(false);
+  const [repairCodeData, setRepairCodeData] = useState<{
+    code: string;
+    deviceId: string;
+    expiresAt: string;
+  } | null>(null);
+  const [copiedRepairCode, setCopiedRepairCode] = useState(false);
+  const [repairTimeLeft, setRepairTimeLeft] = useState<number>(900);
 
   // Action feedback & state
   const [updatingPrinterId, setUpdatingPrinterId] = useState<string | null>(null);
@@ -193,6 +205,21 @@ export default function DashboardPrintersPage() {
     const timer = setInterval(updateCountdown, 1000);
     return () => clearInterval(timer);
   }, [pairingCodeData]);
+
+  // Repair code countdown (15 minutes)
+  useEffect(() => {
+    if (!repairCodeData) return;
+    const updateCountdown = () => {
+      const remainingSec = Math.max(
+        0,
+        Math.floor((new Date(repairCodeData.expiresAt).getTime() - Date.now()) / 1000)
+      );
+      setRepairTimeLeft(remainingSec);
+    };
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+    return () => clearInterval(timer);
+  }, [repairCodeData]);
 
   // Handle Pause / Resume Customer Intake
   const handleToggleIntake = async (targetPause: boolean) => {
@@ -466,6 +493,52 @@ export default function DashboardPrintersPage() {
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
+  // Secure owner-authorized Repair Existing Pairing action bound specifically to retained device
+  const handleRepairExistingPairing = async () => {
+    if (!user) return;
+    setIsRepairingPairing(true);
+    setError(null);
+    setActionFeedback(null);
+    try {
+      const token = await user.getIdToken();
+      const targetDeviceId = activeDevice?.id || "dev_mv3i3w5y_d9b5539c";
+      const res = await fetch("/api/devices/rotate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          deviceId: targetDeviceId,
+          shopId: PRIMARY_PILOT_SHOP.id
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to generate repair pairing code");
+      }
+      setRepairCodeData({
+        code: data.pairingCode,
+        deviceId: data.deviceId,
+        expiresAt: data.expiresAt
+      });
+      setRepairTimeLeft(900);
+      setIsRepairModalOpen(true);
+    } catch (err: any) {
+      setError(err?.message || "Failed to generate repair pairing code");
+      setActionFeedback({ type: "error", message: err?.message || "Failed to initiate pairing repair" });
+    } finally {
+      setIsRepairingPairing(false);
+    }
+  };
+
+  const copyRepairCodeToClipboard = () => {
+    if (!repairCodeData) return;
+    navigator.clipboard.writeText(repairCodeData.code);
+    setCopiedRepairCode(true);
+    setTimeout(() => setCopiedRepairCode(false), 2000);
+  };
+
   return (
     <ErrorBoundary>
       <div className="space-y-6 max-w-6xl mx-auto pb-12">
@@ -527,18 +600,35 @@ export default function DashboardPrintersPage() {
             </button>
 
             {isOwnerOrManager && (
-              <button
-                onClick={handleGeneratePairingCode}
-                disabled={isGeneratingCode}
-                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                {isGeneratingCode ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Plus className="w-4 h-4" />
-                )}
-                <span>Pair Windows PC</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={handleRepairExistingPairing}
+                  disabled={isRepairingPairing}
+                  className="px-3.5 py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  title="Repair existing pairing for retained SHAKEEL PC without creating a new device registration"
+                >
+                  {isRepairingPairing ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-700" />
+                  ) : (
+                    <KeyRound className="w-3.5 h-3.5 text-amber-700" />
+                  )}
+                  <span>Repair Pairing</span>
+                </button>
+
+                <button
+                  onClick={handleGeneratePairingCode}
+                  disabled={isGeneratingCode}
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  {isGeneratingCode ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4" />
+                  )}
+                  <span>Pair Windows PC</span>
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -617,11 +707,27 @@ export default function DashboardPrintersPage() {
               )}
             </div>
 
-            <div className="pt-2 border-t border-[#E2E8F0]">
+            <div className="pt-2 border-t border-[#E2E8F0] space-y-2">
               <div className="flex items-center justify-between text-[11px] text-slate-500">
                 <span>Active Windows Pairing:</span>
                 <span className="font-bold text-emerald-700 font-mono">1 PC Verified</span>
               </div>
+              {isOwnerOrManager && (
+                <button
+                  type="button"
+                  onClick={handleRepairExistingPairing}
+                  disabled={isRepairingPairing}
+                  className="w-full py-2.5 px-3 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs disabled:opacity-50"
+                  title="Generate one-time code to repair pairing for this specific PC without creating a new device"
+                >
+                  {isRepairingPairing ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-700" />
+                  ) : (
+                    <KeyRound className="w-3.5 h-3.5 text-amber-700" />
+                  )}
+                  <span>Repair Existing Pairing (Re-Pair SHAKEEL PC)</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -977,6 +1083,86 @@ export default function DashboardPrintersPage() {
                 <button
                   onClick={() => setIsPairingModalOpen(false)}
                   className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 6. REPAIR EXISTING PAIRING MODAL */}
+        {isRepairModalOpen && repairCodeData && (
+          <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
+                <h3 className="text-base font-black text-[#111827] flex items-center gap-2">
+                  <KeyRound className="w-5 h-5 text-amber-600" />
+                  <span>Repair Existing PC Pairing</span>
+                </h3>
+                <button
+                  onClick={() => setIsRepairModalOpen(false)}
+                  className="text-[#475569] hover:text-[#111827] text-lg font-bold cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 space-y-1">
+                <div className="font-bold flex items-center gap-1.5 text-amber-800">
+                  <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Single Retained Device: {activeDevice?.name || "SHAKEEL PC"} ({repairCodeData.deviceId})</span>
+                </div>
+                <p className="text-[11px] text-amber-700 leading-relaxed">
+                  Yeh code sirf retained SHAKEEL PC ko connect karega. Isse koi naya device create nahi hoga, aur HP Smart Tank 580 printer mapping, print history aur payments bilkul safe rahenge.
+                </p>
+              </div>
+
+              {/* 6-Character Code Display */}
+              <div className="bg-[#F8FAFC] border-2 border-dashed border-amber-500/50 rounded-xl p-5 text-center space-y-2">
+                <div className="text-xs uppercase tracking-wider text-slate-500 font-extrabold">
+                  One-Time Repair Pairing Code
+                </div>
+                <div className="text-3xl font-black font-mono tracking-widest text-[#111827]">
+                  {repairCodeData.code}
+                </div>
+                <div className="flex items-center justify-center gap-1.5 text-[11px] text-[#475569]">
+                  <Clock className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Expires in <strong className="text-[#111827]">{Math.floor(repairTimeLeft / 60)}m {repairTimeLeft % 60}s</strong></span>
+                </div>
+              </div>
+
+              {/* Step-by-Step Hindi & English Instructions */}
+              <div className="space-y-2 text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+                <div className="font-bold text-slate-900 text-xs flex items-center gap-1">
+                  <span>Shop PC par ye 3 steps karein:</span>
+                </div>
+                <ol className="list-decimal list-inside space-y-1.5 text-[11px] leading-relaxed text-slate-600">
+                  <li>
+                    Shop PC ke Agent folder me pehle <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-800 font-mono font-bold">unpair-agent.bat</code> chalayein taaki purane revoked credentials clear ho sakein.
+                  </li>
+                  <li>
+                    Uske baad <code className="bg-slate-200 px-1 py-0.5 rounded text-amber-800 font-mono font-bold">pair-agent.bat</code> chalayein aur upar diya gaya code (<strong className="font-mono text-slate-800">{repairCodeData.code}</strong>) enter karein.
+                  </li>
+                  <li>
+                    Pairing complete hone par <code className="bg-slate-200 px-1 py-0.5 rounded text-emerald-800 font-mono font-bold">Start-SOS-Print.bat</code> chalayein. Fresh heartbeat aate hi yahan PC <strong className="text-emerald-700 font-bold">ONLINE</strong> dikh jayega.
+                  </li>
+                </ol>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={copyRepairCodeToClipboard}
+                  className="flex-1 py-2.5 rounded-xl border border-[#E2E8F0] hover:bg-slate-50 text-[#111827] font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {copiedRepairCode ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedRepairCode ? "Copied!" : "Copy Code"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsRepairModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition cursor-pointer"
                 >
                   Done
                 </button>
