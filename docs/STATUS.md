@@ -13,8 +13,8 @@
 **WhatsApp Helpline:** `+91 9581529381`  
 **Production HTTPS URL:** https://sos-print.vercel.app  
 **Production Aliased Domains:** `sos-print.vercel.app`, `sos-print-dxsqq9s2e-shaikshadaab951-1346s-projects.vercel.app`  
-**Deployed Commit:** `548482e`  
-**Vercel Deployment ID:** `dpl_Hm5ruBvJZJwPwy8evP3stLnVdYFp`  
+**Deployed Commit:** `45a63e6`  
+**Vercel Deployment ID:** `dpl_DyAxy5eyJheU4YbJVeqPitTAcCFh`  
 **Windows Agent Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (2,782,466 bytes [2.65 MB], SHA-256: `8B7A581442657D245A492D0B12FD3C10734081E588EA6949141DB25F2AF76345`)
 **Source Backup Archive:** `C:\SOSPrint-Backups\SOS-Print-Source-20261010-2054.zip` (72.29 MB, SHA-256: `67C628D94AE2E59C374FB3544EF39204EEBEA6E33A4AE3EFD7B4D6F6D7039DFE`)
 
@@ -57,6 +57,9 @@ These features are fully built, unit-tested, and verified live on production at 
 | **Owner Commissioning Test Upload** | /api/orders/test-upload, /dashboard/printers | Dedicated test upload action in Printers dashboard; verifies phone-to-PC file pipeline without opening public intake; confirms local path and SHA-256 | **HOSTED-VERIFIED** |
 | **Guided Setup Screen** | `/dashboard/setup` | Single comprehensive setup screen covering Agent Download, PC Setup, Pairing, Tunnel Health, Printer Mapping, Commissioning Tests (Upload + Spooler Print), and QR Standee | **HOSTED-VERIFIED** |
 | **All-in-One Windows Launcher** | `Start-SOS-Print.bat` | Single launcher script combining Cloudflare Free Tunnel and Agent Worker; prevents duplicate processes, auto-detects trycloudflare HTTPS URL, checks DPAPI credentials, passes tunnel URL in heartbeat, and cleans up on exit | **HOSTED-VERIFIED** |
+| **Manual Print Dispatch Mode** | `/dashboard/printers`, `/server/print-job-service.ts` | Shopkeeper retains full manual print control at Counter; Spooler auto-dispatch is optional; default mode is `MANUAL_QUEUE` (`AUTO_AFTER_PAYMENT` configurable) | **HOSTED-VERIFIED** |
+| **Counter Manual Send to Printer** | `/dashboard/counter`, `/api/orders/[orderId]/queue-print` | Paid orders display emerald "Send to Printer (प्रिंटर को भेजो)" button; supports re-dispatching; supports `RECEIVED` & `SUBMITTED` orders | **HOSTED-VERIFIED** |
+| **Backend Upload & Order Fix** | `/server/order-service.ts`, `/server/upload-grant-service.ts` | Fixed missing `return txResult;` resolving `Value is not JSON serializable` error on order checkout; fixed agent upload cloud confirmation with credential hash | **HOSTED-VERIFIED** |
 
 ---
 
