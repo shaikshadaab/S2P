@@ -180,8 +180,8 @@ export async function queueOrderForPrint(
       };
     }
 
-    // 7. Transition order: ACCEPTED / RECEIVED / SUBMITTED -> QUEUED_FOR_PRINT
-    if (order.status === 'ACCEPTED' || order.status === 'RECEIVED' || order.status === 'SUBMITTED') {
+    // 7. Transition order: ACCEPTED / RECEIVED -> QUEUED_FOR_PRINT
+    if (order.status === 'ACCEPTED' || order.status === 'RECEIVED' || (order.status as string) === 'SUBMITTED') {
       assertValidOrderTransition(order.status as any, 'QUEUED_FOR_PRINT');
       transaction.update(orderRef, {
         status: 'QUEUED_FOR_PRINT',
