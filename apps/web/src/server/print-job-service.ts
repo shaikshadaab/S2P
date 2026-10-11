@@ -648,12 +648,15 @@ export async function getAuthorizedJobFile(
     throw new Error('STORAGE_PATH_MISSING: Storage path not found on file record.');
   }
 
-  // Special test document handling for commissioning test orders
-  if (
-    (fileData as any).isTestFile ||
+  // Special test document handling ONLY for explicit commissioning test orders
+  const isExplicitTestOrder = Boolean(
+    (fileData as any).isTestFile === true ||
+    (job as any).isTestJob === true ||
     storagePath === 'system/test_visible_a4.pdf' ||
-    fileData.originalFilename === 'test_visible_a4.pdf'
-  ) {
+    ((job as any).orderNumber && String((job as any).orderNumber).startsWith('S2P-TEST-'))
+  );
+
+  if (isExplicitTestOrder) {
     const candidates = [
       path.join(process.cwd(), 'public', 'test_visible_a4.pdf'),
       path.join(process.cwd(), 'apps', 'web', 'public', 'test_visible_a4.pdf'),
@@ -679,14 +682,13 @@ export async function getAuthorizedJobFile(
     };
   }
 
-  // Handle LOCAL_AGENT mode (file stored directly on shop PC)
+  // Handle LOCAL_AGENT mode (file stored directly on shop PC via tunnel/local storage)
   if (fileData.storageMode === 'LOCAL_AGENT' || storagePath.startsWith('local://')) {
-    // If running on local server/agent host, check local filesystem
+    // Check if running directly on shop PC host where local agent path exists
     const candidates = [
       fileData.agentLocalPath ? path.resolve(fileData.agentLocalPath) : null,
       fileData.agentLocalPath ? path.join(process.cwd(), fileData.agentLocalPath) : null,
-      fileData.agentLocalPath ? path.join('C:\\SOSPrint-Agent', fileData.agentLocalPath) : null,
-      path.join(process.cwd(), 'public', 'test_visible_a4.pdf')
+      fileData.agentLocalPath ? path.join('C:\\SOSPrint-Agent', fileData.agentLocalPath) : null
     ].filter(Boolean) as string[];
 
     let localBuffer: Buffer | null = null;
@@ -697,37 +699,46 @@ export async function getAuthorizedJobFile(
       }
     }
 
-    if (!localBuffer) {
-      // Return empty buffer with Local-Agent notice headers so agent knows to use its local disk copy
-      localBuffer = Buffer.from(`LOCAL_AGENT_FILE:${fileData.id}`);
+    if (localBuffer) {
+      const actualSha = crypto.createHash('sha256').update(localBuffer).digest('hex');
+      if (fileData.sha256 && actualSha !== fileData.sha256) {
+        throw new Error(`FILE_HASH_MISMATCH: Local file SHA-256 (${actualSha}) does not match authoritative snapshot (${fileData.sha256}).`);
+      }
+      return {
+        buffer: localBuffer,
+        fileSnapshot: job.fileSnapshot,
+        mimeType: fileData.mimeType || 'application/octet-stream',
+        filename: fileData.originalFilename || 'document',
+        sha256: actualSha,
+        sizeBytes: localBuffer.length
+      };
     }
 
-    return {
-      buffer: localBuffer,
-      fileSnapshot: job.fileSnapshot,
-      mimeType: fileData.mimeType || 'application/pdf',
-      filename: fileData.originalFilename || 'document.pdf',
-      sha256: fileData.sha256,
-      sizeBytes: fileData.sizeBytes || localBuffer.length
-    };
+    // STRICT INVARIANT: Real customer files must NEVER be silently replaced with test PDFs or dummy text.
+    // Throw a typed error indicating the file resides on the agent's local filesystem.
+    throw new Error(`FILE_STORED_ON_AGENT: Document '${fileData.originalFilename}' is stored locally on the shop PC at '${fileData.agentLocalPath || storagePath}'. Server will not substitute placeholder bytes.`);
   }
 
-  // Download from private bucket
+  // Download from Cloud Storage bucket
   const bucket = getFileStorageBucket();
   const storageFile = bucket.file(storagePath);
-  const [exists] = await storageFile.exists();
+  const [exists] = await storageFile.exists().catch(() => [false]);
   if (!exists) {
-    throw new Error('STORAGE_FILE_MISSING: Storage object not found.');
+    throw new Error(`STORAGE_FILE_MISSING: Storage object '${storagePath}' not found on cloud bucket. Document cannot be downloaded.`);
   }
 
   const [buffer] = await storageFile.download();
+  const actualSha = crypto.createHash('sha256').update(buffer).digest('hex');
+  if (fileData.sha256 && actualSha !== fileData.sha256) {
+    throw new Error(`FILE_HASH_MISMATCH: Downloaded storage object SHA-256 (${actualSha}) does not match authoritative file record (${fileData.sha256}).`);
+  }
 
   return {
     buffer,
     fileSnapshot: job.fileSnapshot,
     mimeType: fileData.mimeType || 'application/pdf',
     filename: fileData.originalFilename || 'document.pdf',
-    sha256: fileData.sha256,
+    sha256: actualSha,
     sizeBytes: buffer.length
   };
 }

@@ -439,21 +439,63 @@ while (!cts.IsCancellationRequested)
                 await client.UpdateJobStatusAsync(config, job.Id, leaseToken, "DOWNLOADING");
                 await db.UpdateLeaseStatusAsync(job.Id, "DOWNLOADING");
 
-                // Check if file is already stored in local agent storage directory
+                // Check if file is already stored in local agent storage directory (search recursively across storage trees)
                 string? existingLocal = null;
-                var filesInStorage = Directory.GetFiles(uploadServer.StorageDirectory, $"*{job.FileId}*");
-                if (filesInStorage.Length > 0 && File.Exists(filesInStorage[0]))
+                var candidateSearchDirs = new List<string>
                 {
-                    existingLocal = filesInStorage[0];
+                    uploadServer.StorageDirectory,
+                    Path.Combine(AppContext.BaseDirectory, "storage"),
+                    Path.Combine(AppContext.BaseDirectory, "storage", "orders"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "storage"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "storage", "orders"),
+                    AppContext.BaseDirectory,
+                    Directory.GetCurrentDirectory()
+                }.Where(Directory.Exists).Distinct().ToList();
+
+                foreach (var dir in candidateSearchDirs)
+                {
+                    try
+                    {
+                        var matches = Directory.GetFiles(dir, $"*{job.FileId}*", SearchOption.AllDirectories);
+                        if (matches.Length > 0 && File.Exists(matches[0]))
+                        {
+                            existingLocal = matches[0];
+                            break;
+                        }
+                    }
+                    catch { }
                 }
 
-                string expectedSha;
+                // If not found by fileId, search by original filename and verify SHA-256
+                if (string.IsNullOrEmpty(existingLocal) && !string.IsNullOrEmpty(job.FileSnapshot?.Filename))
+                {
+                    var rawFilename = Path.GetFileName(job.FileSnapshot.Filename);
+                    foreach (var dir in candidateSearchDirs)
+                    {
+                        try
+                        {
+                            var matches = Directory.GetFiles(dir, $"*{rawFilename}*", SearchOption.AllDirectories);
+                            foreach (var candidate in matches)
+                            {
+                                var h = await AgentFileIntegrity.ComputeSha256Async(candidate);
+                                if (AgentFileIntegrity.VerifyHash(h, job.FileSnapshot.Sha256))
+                                {
+                                    existingLocal = candidate;
+                                    break;
+                                }
+                            }
+                            if (!string.IsNullOrEmpty(existingLocal)) break;
+                        }
+                        catch { }
+                    }
+                }
+
+                string expectedSha = job.FileSnapshot?.Sha256 ?? "";
                 if (!string.IsNullOrEmpty(existingLocal))
                 {
                     tempPath = existingLocal;
-                    expectedSha = job.FileSnapshot?.Sha256 ?? "";
                     Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"[LOCAL AGENT FILE] File already present on local shop PC: {Path.GetFileName(tempPath)}");
+                    Console.WriteLine($"[LOCAL AGENT FILE] Verified local file on shop PC: {tempPath}");
                     Console.ResetColor();
                 }
                 else
@@ -461,11 +503,11 @@ while (!cts.IsCancellationRequested)
                     // Download file to temp
                     tempPath = tempManager.AllocateJobTempPath(job.Id);
                     Console.WriteLine($"[Download] Downloading authorized document to: {Path.GetFileName(tempPath)}...");
-                    expectedSha = await client.DownloadFileAsync(config, job.Id, leaseToken, tempPath);
-                }
-                if (string.IsNullOrEmpty(expectedSha) && job.FileSnapshot != null)
-                {
-                    expectedSha = job.FileSnapshot.Sha256;
+                    var downloadedSha = await client.DownloadFileAsync(config, job.Id, leaseToken, tempPath);
+                    if (!string.IsNullOrEmpty(downloadedSha) && string.IsNullOrEmpty(expectedSha))
+                    {
+                        expectedSha = downloadedSha;
+                    }
                 }
 
                 // Verify SHA-256
@@ -488,7 +530,7 @@ while (!cts.IsCancellationRequested)
                         "Downloaded file SHA-256 did not match authoritative snapshot"
                     );
 
-                    tempManager.CleanupJobTempFile(tempPath);
+                    if (tempPath != existingLocal) { tempManager.CleanupJobTempFile(tempPath); }
                     await db.ClearActiveLeaseAsync(job.Id);
                     continue;
                 }
