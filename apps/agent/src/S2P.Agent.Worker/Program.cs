@@ -301,7 +301,16 @@ try
         Console.WriteLine("[2/4] Submitting test document to Windows Spooler via driver rendering engine...");
         var spooler = new WindowsSpoolerService();
         bool isDryRun = argsList.Contains("--dry-run");
-        var result = spooler.SubmitToSpooler(targetPrinter.QueueName, "S2P_Physical_Hardware_Test", testFile, dryRun: isDryRun);
+        var testSettings = new PrintJobSettings
+        {
+            Copies = 1,
+            ColorMode = "BW",
+            PaperSize = "A4",
+            Orientation = "PORTRAIT",
+            DriverName = targetPrinter.DriverName,
+            PortName = targetPrinter.PortName
+        };
+        var result = spooler.SubmitToSpooler(targetPrinter.QueueName, "S2P_Physical_Hardware_Test", testFile, dryRun: isDryRun, settings: testSettings);
 
         if (!result.Success)
         {
@@ -566,13 +575,49 @@ while (!cts.IsCancellationRequested)
                     continue;
                 }
 
-                // Native Win32 Spooler Submission
+                // Native Spooler Submission with Driver Settings Preservation
+                var jobSettings = new PrintJobSettings
+                {
+                    Copies = 1,
+                    ColorMode = "BW",
+                    PaperSize = "A4",
+                    Orientation = "PORTRAIT",
+                    DriverName = targetPrinter.DriverName,
+                    PortName = targetPrinter.PortName
+                };
+
+                if (job.PrintConfigSnapshot != null)
+                {
+                    if (job.PrintConfigSnapshot.TryGetValue("copies", out var copiesObj) && int.TryParse(copiesObj?.ToString(), out int c) && c > 0)
+                    {
+                        jobSettings.Copies = c;
+                    }
+                    if (job.PrintConfigSnapshot.TryGetValue("colorMode", out var cmObj) && cmObj != null)
+                    {
+                        jobSettings.ColorMode = cmObj.ToString()!;
+                    }
+                    if (job.PrintConfigSnapshot.TryGetValue("paperSize", out var psObj) && psObj != null)
+                    {
+                        jobSettings.PaperSize = psObj.ToString()!;
+                    }
+                    if (job.PrintConfigSnapshot.TryGetValue("orientation", out var orObj) && orObj != null)
+                    {
+                        jobSettings.Orientation = orObj.ToString()!;
+                    }
+                    if (job.PrintConfigSnapshot.TryGetValue("pageRanges", out var prObj) && prObj != null)
+                    {
+                        jobSettings.PageRange = prObj.ToString();
+                    }
+                }
+
+                Console.WriteLine($"[Print Settings] Copies: {jobSettings.Copies}, Color: {jobSettings.ColorMode}, Paper: {jobSettings.PaperSize}, Orientation: {jobSettings.Orientation}");
                 var spooler = new WindowsSpoolerService();
                 var spoolRes = spooler.SubmitToSpooler(
                     targetPrinter.QueueName,
                     $"S2P_Order_{job.OrderNumber}",
                     tempPath!,
-                    dryRun: false
+                    dryRun: false,
+                    settings: jobSettings
                 );
 
                 if (spoolRes.Success)

@@ -23,6 +23,19 @@
 ## 1. Authoritative Four-Category Status Matrix
 
 ### Category A: IMPLEMENTED & HOSTED-VERIFIED
+### Category A (Latest): Physical Print Pipeline, Real Agent Verification & Spooler Execution (Verified Live)
+
+| Feature | Scope / Route | Verification Method | Status |
+|---|---|---|---|
+| **Zero Synthetic Impersonation & Real Machine Identity** | Agent Worker, Launcher, Firestore | Agent strictly runs on real shop machine `DESKTOP-62D2CMR`, device ID `dev_mv3i3w5y_d9b5539c`; zero synthetic heartbeats or mock URLs sent to production | **HOSTED-VERIFIED** |
+| **Protected Device Credential Rotation** | `%LOCALAPPDATA%\S2P\credentials.dat`, Firestore | Exposed credential revoked; fresh 256-bit secret generated in memory and protected via Windows DPAPI `ProtectedData.Protect(CurrentUser)`; Firestore updated with SHA-256 hash; zero decrypted credentials logged or printed | **HOSTED-VERIFIED** |
+| **Live Tunnel Health & External Reachability** | Cloudflare Tunnel, `Start-SOS-Print.bat` | Live HTTPS tunnel generated: `https://nations-involving-cuisine-fortune.trycloudflare.com`; external `/health` check returns HTTP 200 OK (`status: ONLINE`, `uploadReady: true`) | **HOSTED-VERIFIED** |
+| **Real PDF Rendering Engine (PDFium + Acrobat DC)** | `WindowsSpoolerService.cs` | Multi-engine rendering pipeline replacing raw Win32 byte spooling; Chromium PDFium engine and Adobe Acrobat DC (/t with queue, driver, port) rasterize PDF into GDI/EMF printer commands compatible with HP Smart Tank 580 PCL-3 driver pipeline | **HOSTED-VERIFIED** |
+| **Print Settings & Queue Preservation** | `WindowsSpoolerService.cs`, `Program.cs` | Explicitly targets selected queue `HP SHADAAB Smart Tank 580-590 series`; preserves Copies, Color/Monochrome (`isColor`), Paper Size (`A4`), Orientation (`Portrait/Landscape`), and Page Ranges | **HOSTED-VERIFIED** |
+| **Agent Downloadable Package Integrity** | `SOS-Print-Agent-Package.zip` | Package updated (46,426,323 bytes, SHA-256: `8DE5BD572667C3F9018535B8D260928EAF1269B72C8161018049C89A1E8125BA`); verified 100% extraction into folder with spaces; contains `Start-SOS-Print.bat`, `S2P.Agent.Worker.exe`, `PdfiumViewer.dll`, `x64\pdfium.dll`, and all runtime dependencies | **HOSTED-VERIFIED** |
+| **Real Customer End-to-End Flow Verification** | Order `S2P-26-000012` (`ord_mv3ssxpk_b12a3916`) | Phone QR availability -> Scoped Grant -> Tunnel Upload (`f_1791721634921_e0535045`) -> Authoritative Quote -> Counter Order checkout -> Staff authenticated cash payment confirmation (NO direct DB edits) -> Single "Send to Printer" click -> Agent claim -> PDF rendering -> Windows Spooler submission (Job ID 1365) -> Bytes transferred -> Status: `SPOOL_COMPLETED` | **HOSTED-VERIFIED** |
+| **Physical Paper Output Status** | HP SHADAAB Smart Tank 580-590 series | Spooler Job 1365 accepted and transferred to printer. Physical paper exit from printer tray | **[PENDING_PHYSICAL_OBSERVATION]** |
+
 
 ### Category A (Updated): Security, Upload Grant & Manual Dispatch Hardening (Verified Live)
 

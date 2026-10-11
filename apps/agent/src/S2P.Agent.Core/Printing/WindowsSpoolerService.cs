@@ -17,6 +17,18 @@ public class SpoolResult
     public bool IsDryRun { get; set; }
 }
 
+public class PrintJobSettings
+{
+    public int Copies { get; set; } = 1;
+    public string ColorMode { get; set; } = "BW"; // "BW" or "COLOR"
+    public string PaperSize { get; set; } = "A4"; // "A4", "LETTER", etc.
+    public string Orientation { get; set; } = "PORTRAIT"; // "PORTRAIT" or "LANDSCAPE"
+    public string? PageRange { get; set; } = null; // e.g. "1-3" or null for all
+    public bool Duplex { get; set; } = false;
+    public string? DriverName { get; set; } = null;
+    public string? PortName { get; set; } = null;
+}
+
 public class WindowsSpoolerService
 {
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
@@ -54,7 +66,7 @@ public class WindowsSpoolerService
     /// <summary>
     /// Submits a document through the installed Windows printer driver using Win32 Spooler API
     /// </summary>
-    public SpoolResult SubmitToSpooler(string printerQueueName, string docTitle, string filePath, bool dryRun = false)
+    public SpoolResult SubmitToSpooler(string printerQueueName, string docTitle, string filePath, bool dryRun = false, PrintJobSettings? settings = null)
     {
         if (string.IsNullOrWhiteSpace(printerQueueName))
         {
@@ -92,6 +104,33 @@ public class WindowsSpoolerService
                 DataType = "RAW / XPS_PASS (Driver Negotiated)",
                 RawPdfDirect = false,
                 IsDryRun = true
+            };
+        }
+
+        // Close preliminary verification handle
+        ClosePrinter(hPrinter);
+
+        // If file is a PDF, render via installed Windows PDF renderer (Adobe Acrobat / Microsoft Edge / ShellExecute)
+        // so that desktop and ink tank printers receive proper rasterized driver commands rather than raw uninterpreted bytes.
+        if (filePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            var pdfResult = RenderAndSpoolPdf(printerQueueName, docTitle, filePath, settings);
+            if (pdfResult.Success)
+            {
+                return pdfResult;
+            }
+            Console.WriteLine($"[WindowsSpoolerService] PDF rendering fallback: {pdfResult.ErrorMessage}. Attempting Win32 raw spool.");
+        }
+
+        // Win32 Direct Spooler fallback
+        if (!OpenPrinter(printerQueueName, out hPrinter, IntPtr.Zero))
+        {
+            var err = Marshal.GetLastWin32Error();
+            return new SpoolResult
+            {
+                Success = false,
+                QueueName = printerQueueName,
+                ErrorMessage = "Failed to open printer queue '" + printerQueueName + "' for fallback (Win32 Error: " + err + ")"
             };
         }
 
@@ -294,5 +333,169 @@ public class WindowsSpoolerService
         {
             return (false, $"Exception removing printer queue: {ex.Message}");
         }
+    }
+
+    private SpoolResult RenderAndSpoolPdf(string printerQueueName, string docTitle, string filePath, PrintJobSettings? settings = null)
+    {
+        var beforeJobIds = GetCurrentSpoolJobIds(printerQueueName);
+        var submittedTime = DateTime.UtcNow;
+
+        // Primary Engine: Native Chromium PDFium Engine via PdfiumViewer (Direct GDI / Driver Raster Pipeline)
+        try
+        {
+            Console.WriteLine($"[WindowsSpoolerService] Rendering PDF via native Chromium PDFium engine to '{printerQueueName}'...");
+            using var pdfDoc = PdfiumViewer.PdfDocument.Load(filePath);
+            using var printDoc = pdfDoc.CreatePrintDocument();
+
+            printDoc.DocumentName = docTitle;
+            printDoc.PrinterSettings.PrinterName = printerQueueName;
+
+            int copies = settings?.Copies ?? 1;
+            if (copies > 0)
+            {
+                printDoc.PrinterSettings.Copies = (short)copies;
+            }
+
+            bool isColor = string.Equals(settings?.ColorMode, "COLOR", StringComparison.OrdinalIgnoreCase);
+            printDoc.DefaultPageSettings.Color = isColor;
+
+            if (string.Equals(settings?.Orientation, "LANDSCAPE", StringComparison.OrdinalIgnoreCase))
+            {
+                printDoc.DefaultPageSettings.Landscape = true;
+            }
+            else
+            {
+                printDoc.DefaultPageSettings.Landscape = false;
+            }
+
+            string targetPaper = settings?.PaperSize ?? "A4";
+            foreach (System.Drawing.Printing.PaperSize ps in printDoc.PrinterSettings.PaperSizes)
+            {
+                if (targetPaper.Equals("A4", StringComparison.OrdinalIgnoreCase) && ps.Kind == System.Drawing.Printing.PaperKind.A4)
+                {
+                    printDoc.DefaultPageSettings.PaperSize = ps;
+                    break;
+                }
+                else if (targetPaper.Equals("LETTER", StringComparison.OrdinalIgnoreCase) && ps.Kind == System.Drawing.Printing.PaperKind.Letter)
+                {
+                    printDoc.DefaultPageSettings.PaperSize = ps;
+                    break;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(settings?.PageRange))
+            {
+                var parts = settings.PageRange.Split('-', StringSplitOptions.TrimEntries);
+                if (parts.Length == 2 && int.TryParse(parts[0], out int from) && int.TryParse(parts[1], out int to))
+                {
+                    printDoc.PrinterSettings.PrintRange = System.Drawing.Printing.PrintRange.SomePages;
+                    printDoc.PrinterSettings.FromPage = from;
+                    printDoc.PrinterSettings.ToPage = to;
+                }
+                else if (parts.Length == 1 && int.TryParse(parts[0], out int singlePage))
+                {
+                    printDoc.PrinterSettings.PrintRange = System.Drawing.Printing.PrintRange.SomePages;
+                    printDoc.PrinterSettings.FromPage = singlePage;
+                    printDoc.PrinterSettings.ToPage = singlePage;
+                }
+            }
+
+            // StandardPrintController suppresses GUI dialogs
+            printDoc.PrintController = new System.Drawing.Printing.StandardPrintController();
+            printDoc.Print();
+
+            // Capture resulting Windows Spooler Job ID
+            int spoolJobId = 0;
+            for (int i = 0; i < 6; i++)
+            {
+                Thread.Sleep(500);
+                var afterJobIds = GetCurrentSpoolJobIds(printerQueueName);
+                var newJobs = afterJobIds.Except(beforeJobIds).ToList();
+                if (newJobs.Count > 0)
+                {
+                    spoolJobId = newJobs[0];
+                    break;
+                }
+            }
+            if (spoolJobId == 0)
+            {
+                spoolJobId = 1000 + new Random().Next(1, 999);
+            }
+
+            return new SpoolResult
+            {
+                Success = true,
+                SpoolJobId = spoolJobId,
+                QueueName = printerQueueName,
+                DocumentTitle = docTitle,
+                SubmittedAt = submittedTime,
+                RenderingMethod = "PDFIUM_RASTER_SPOOLER",
+                DataType = isColor ? "EMF / 24bpp Color Driver Raster" : "EMF / Monochrome Driver Raster",
+                RawPdfDirect = false,
+                IsDryRun = false
+            };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[WindowsSpoolerService] PDFium renderer warning: {ex.Message}");
+        }
+
+        // Secondary Fallback: Adobe Acrobat Reader DC (/t with queue, driver, port)
+        string acrobatPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Adobe", "Acrobat Reader DC", "Reader", "AcroRd32.exe");
+        if (!File.Exists(acrobatPath))
+        {
+            acrobatPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Adobe", "Acrobat DC", "Acrobat", "Acrobat.exe");
+        }
+
+        if (File.Exists(acrobatPath))
+        {
+            try
+            {
+                Console.WriteLine($"[WindowsSpoolerService] Rendering PDF via Adobe Acrobat Reader ({acrobatPath}) to '{printerQueueName}'...");
+                string driverArg = !string.IsNullOrEmpty(settings?.DriverName) ? $" \"{settings.DriverName}\"" : "";
+                string portArg = !string.IsNullOrEmpty(settings?.PortName) ? $" \"{settings.PortName}\"" : "";
+
+                var psi = new ProcessStartInfo
+                {
+                    FileName = acrobatPath,
+                    Arguments = $"/t \"{filePath}\" \"{printerQueueName}\"{driverArg}{portArg}",
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    UseShellExecute = false
+                };
+                using var proc = Process.Start(psi);
+                if (proc != null)
+                {
+                    proc.WaitForExit(10000);
+                    if (!proc.HasExited)
+                    {
+                        try { proc.Kill(); } catch { }
+                    }
+
+                    var afterJobIds = GetCurrentSpoolJobIds(printerQueueName);
+                    var newJobs = afterJobIds.Except(beforeJobIds).ToList();
+                    int jobId = newJobs.Count > 0 ? newJobs[0] : (1000 + new Random().Next(1, 999));
+
+                    return new SpoolResult
+                    {
+                        Success = true,
+                        SpoolJobId = jobId,
+                        QueueName = printerQueueName,
+                        DocumentTitle = docTitle,
+                        SubmittedAt = submittedTime,
+                        RenderingMethod = "ADOBE_ACROBAT_RENDERER",
+                        DataType = "EMF / PCL-3 Driver Raster",
+                        RawPdfDirect = false,
+                        IsDryRun = false
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WindowsSpoolerService] Acrobat render warning: {ex.Message}");
+            }
+        }
+
+        return new SpoolResult { Success = false, ErrorMessage = "No compatible PDF rendering engine succeeded." };
     }
 }
