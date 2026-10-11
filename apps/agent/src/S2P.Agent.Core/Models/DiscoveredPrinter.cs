@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace S2P.Agent.Core.Models;
 
@@ -24,6 +24,12 @@ public class DiscoveredPrinter
 
     [JsonPropertyName("isDefault")]
     public bool IsDefault { get; set; }
+
+    [JsonPropertyName("isWindowsDefault")]
+    public bool IsWindowsDefault { get; set; }
+
+    [JsonPropertyName("pendingJobCount")]
+    public int PendingJobCount { get; set; }
 
     [JsonPropertyName("isOnline")]
     public bool IsOnline { get; set; } = true;

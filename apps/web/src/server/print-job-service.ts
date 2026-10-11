@@ -1085,6 +1085,7 @@ export async function createOwnerCommissioningTestOrder(
       paymentMethod: 'CASH',
       totalPaise: 200,
       totalRupees: 2,
+      totalAmount: 2,
       subtotalPaise: 200,
       taxPaise: 0,
       itemCount: 1,

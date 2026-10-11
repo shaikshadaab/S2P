@@ -1,4 +1,5 @@
 "use client";
+import { safeFixed } from "@/lib/format";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
@@ -366,9 +367,7 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
   }
 
   const statusMeta = getCustomerStateDisplay(order);
-  const formattedAmount = order.pricingSnapshot
-    ? (order.pricingSnapshot.totalPaise / 100).toFixed(2)
-    : "0.00";
+  const formattedAmount = safeFixed(order.pricingSnapshot?.totalPaise != null ? order.pricingSnapshot.totalPaise / 100 : ((order as any).totalAmount ?? (order as any).totalRupees), 2, "—");
 
   const isPaid = order.paymentStatus === "PAID";
   const isCashPending = order.paymentMethod === "CASH" && !isPaid;

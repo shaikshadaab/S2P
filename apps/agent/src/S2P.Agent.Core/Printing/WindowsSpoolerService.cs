@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace S2P.Agent.Core.Printing;
@@ -47,6 +47,9 @@ public class WindowsSpoolerService
 
     [DllImport("winspool.drv", EntryPoint = "EndDocPrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
     public static extern bool EndDocPrinter(IntPtr hPrinter);
+
+    [DllImport("winspool.drv", EntryPoint = "SetDefaultPrinterA", SetLastError = true, CharSet = CharSet.Ansi, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    public static extern bool SetDefaultPrinterWin32([MarshalAs(UnmanagedType.LPStr)] string pszPrinter);
 
     /// <summary>
     /// Submits a document through the installed Windows printer driver using Win32 Spooler API
@@ -189,5 +192,107 @@ public class WindowsSpoolerService
         }
         catch { }
         return ids;
+    }
+
+    public static (bool Success, string Message) SetAsWindowsDefault(string printerQueueName)
+    {
+        if (string.IsNullOrWhiteSpace(printerQueueName))
+        {
+            return (false, "Printer queue name cannot be empty.");
+        }
+
+        try
+        {
+            // 1. Try Win32 API
+            bool win32Success = SetDefaultPrinterWin32(printerQueueName);
+
+            // 2. PowerShell WScript.Network fallback
+            var escaped = printerQueueName.Replace("'", "''");
+            var psi = new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = $"-NoProfile -Command \"try {{ (New-Object -ComObject WScript.Network).SetDefaultPrinter('{escaped}'); write-output 'OK' }} catch {{ write-output $_.Exception.Message }}\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var p = Process.Start(psi);
+            var output = p?.StandardOutput.ReadToEnd().Trim() ?? "";
+            p?.WaitForExit(4000);
+
+            // 3. Verification check
+            var verifyPsi = new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = "-NoProfile -Command \"(Get-CimInstance Win32_Printer | Where-Object Default -eq $true).Name\"",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var vp = Process.Start(verifyPsi);
+            var actualDefault = vp?.StandardOutput.ReadToEnd().Trim() ?? "";
+            vp?.WaitForExit(3000);
+
+            if (actualDefault.Equals(printerQueueName, StringComparison.OrdinalIgnoreCase))
+            {
+                return (true, $"Windows default printer successfully set to '{printerQueueName}'.");
+            }
+
+            if (win32Success)
+            {
+                return (true, $"Windows default printer set via Win32 Spooler API to '{printerQueueName}'.");
+            }
+
+            return (false, $"Could not verify Windows default change. Current default is '{actualDefault}'. Output: {output}");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Exception setting Windows default printer: {ex.Message}");
+        }
+    }
+
+    public static (bool Success, string Message) RemovePrinterQueue(string printerQueueName, bool force = false)
+    {
+        if (string.IsNullOrWhiteSpace(printerQueueName))
+        {
+            return (false, "Printer queue name cannot be empty.");
+        }
+
+        // Check active jobs
+        var activeJobs = GetCurrentSpoolJobIds(printerQueueName);
+        if (activeJobs.Count > 0 && !force)
+        {
+            return (false, $"Printer '{printerQueueName}' has {activeJobs.Count} active/pending job(s) in Windows Spooler. Cancel pending jobs before removing.");
+        }
+
+        try
+        {
+            var escaped = printerQueueName.Replace("'", "''");
+            // Strict Invariant: Only remove the printer queue object. NEVER remove drivers, driver packages, or ports.
+            var psi = new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = $"-NoProfile -Command \"try {{ Remove-Printer -Name '{escaped}' -ErrorAction Stop; write-output 'SUCCESS' }} catch {{ try {{ (Get-CimInstance Win32_Printer -Filter \\\"Name = '{escaped}'\\\") | Remove-CimInstance -ErrorAction Stop; write-output 'SUCCESS' }} catch {{ write-output $_.Exception.Message }} }}\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var p = Process.Start(psi);
+            var output = p?.StandardOutput.ReadToEnd().Trim() ?? "";
+            p?.WaitForExit(5000);
+
+            if (output.Contains("SUCCESS"))
+            {
+                return (true, $"Windows print queue '{printerQueueName}' removed successfully. Drivers and ports remain preserved.");
+            }
+
+            return (false, $"Could not remove printer queue '{printerQueueName}': {output}");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Exception removing printer queue: {ex.Message}");
+        }
     }
 }

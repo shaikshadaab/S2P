@@ -24,6 +24,7 @@ import {
   Layers,
   ArrowRight
 } from "lucide-react";
+import { formatRupees, safeFixed } from "@/lib/format";
 import { PRIMARY_PILOT_SHOP, Order, getOrderStatusDisplay } from "@s2p/shared";
 import { useAuth } from "../../../lib/firebase/auth-context";
 
@@ -399,9 +400,7 @@ export default function CounterCashierPage() {
             const isPaid = order.paymentStatus === "PAID";
             const isCash = order.paymentMethod === "CASH";
             const isUpi = order.paymentMethod === "MANUAL_UPI";
-            const amountRupees = order.pricingSnapshot
-              ? (order.pricingSnapshot.totalPaise / 100).toFixed(2)
-              : ((order.totalAmount || 0)).toFixed(2);
+            const amountRupees = safeFixed(order.pricingSnapshot?.totalPaise != null ? order.pricingSnapshot.totalPaise / 100 : ((order as any).totalAmount ?? (order as any).totalRupees), 2, "—");
             const isRevealed = revealedContacts[order.id];
 
             return (

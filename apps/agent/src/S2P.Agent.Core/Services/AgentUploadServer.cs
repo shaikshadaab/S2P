@@ -125,6 +125,12 @@ public class AgentUploadServer : IDisposable
                 return;
             }
 
+            if (path == "/api/agent/printer-action" && req.HttpMethod == "POST")
+            {
+                await HandlePrinterActionAsync(req, res);
+                return;
+            }
+
             res.StatusCode = 404;
             await WriteJsonAsync(res, 404, new { error = "NOT_FOUND", message = "Endpoint not found" });
         }
@@ -139,6 +145,179 @@ public class AgentUploadServer : IDisposable
                 await WriteJsonAsync(res, 500, new { error = "SERVER_ERROR", message = ex.Message });
             }
             catch { }
+        }
+    }
+
+
+    private async Task HandlePrinterActionAsync(HttpListenerRequest req, HttpListenerResponse res)
+    {
+        // Cryptographic Authentication
+        var incomingSecret = req.Headers["x-device-secret"] ?? "";
+        var incomingHash = req.Headers["x-credential-hash"] ?? "";
+
+        bool isAuth = false;
+        if (!string.IsNullOrEmpty(incomingSecret) && incomingSecret == _config.DeviceSecret)
+        {
+            isAuth = true;
+        }
+        else if (!string.IsNullOrEmpty(incomingHash))
+        {
+            var myHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(_config.DeviceSecret))).ToLowerInvariant();
+            if (myHash.Equals(incomingHash.ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))
+            {
+                isAuth = true;
+            }
+        }
+
+        if (!isAuth)
+        {
+            res.StatusCode = 401;
+            await WriteJsonAsync(res, 401, new { error = "UNAUTHORIZED", message = "Invalid agent command authentication credentials." });
+            return;
+        }
+
+        using var reader = new StreamReader(req.InputStream, req.ContentEncoding);
+        var bodyStr = await reader.ReadToEndAsync();
+        using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(bodyStr) ? "{}" : bodyStr);
+        var root = doc.RootElement;
+
+        var action = root.TryGetProperty("action", out var actEl) ? actEl.GetString() : "";
+        var queueName = root.TryGetProperty("queueName", out var qEl) ? qEl.GetString() : "";
+        var force = root.TryGetProperty("force", out var fEl) && fEl.GetBoolean();
+
+        switch (action)
+        {
+            case "SET_WINDOWS_DEFAULT":
+            {
+                if (string.IsNullOrWhiteSpace(queueName))
+                {
+                    res.StatusCode = 400;
+                    await WriteJsonAsync(res, 400, new { error = "INVALID_REQUEST", message = "queueName is required." });
+                    return;
+                }
+                var (success, msg) = S2P.Agent.Core.Printing.WindowsSpoolerService.SetAsWindowsDefault(queueName);
+                if (success)
+                {
+                    var discovered = S2P.Agent.Core.Discovery.WindowsPrinterDiscovery.DiscoverInstalledPrinters();
+                    await _apiClient.SyncPrintersAsync(_config, discovered);
+                    await WriteJsonAsync(res, 200, new { success = true, queueName, message = msg, printers = discovered });
+                }
+                else
+                {
+                    res.StatusCode = 400;
+                    await WriteJsonAsync(res, 400, new { success = false, error = "SET_DEFAULT_FAILED", message = msg });
+                }
+                return;
+            }
+
+            case "REMOVE_PRINTER":
+            {
+                if (string.IsNullOrWhiteSpace(queueName))
+                {
+                    res.StatusCode = 400;
+                    await WriteJsonAsync(res, 400, new { error = "INVALID_REQUEST", message = "queueName is required." });
+                    return;
+                }
+
+                var (success, msg) = S2P.Agent.Core.Printing.WindowsSpoolerService.RemovePrinterQueue(queueName, force);
+                if (success)
+                {
+                    var discovered = S2P.Agent.Core.Discovery.WindowsPrinterDiscovery.DiscoverInstalledPrinters();
+                    await _apiClient.SyncPrintersAsync(_config, discovered);
+                    await WriteJsonAsync(res, 200, new { success = true, queueName, message = msg, printers = discovered });
+                }
+                else
+                {
+                    res.StatusCode = 400;
+                    await WriteJsonAsync(res, 400, new { success = false, error = "REMOVE_FAILED", message = msg });
+                }
+                return;
+            }
+
+            case "CHECK_JOBS":
+            {
+                if (string.IsNullOrWhiteSpace(queueName))
+                {
+                    res.StatusCode = 400;
+                    await WriteJsonAsync(res, 400, new { error = "INVALID_REQUEST", message = "queueName is required." });
+                    return;
+                }
+                var jobs = S2P.Agent.Core.Printing.WindowsSpoolerService.GetCurrentSpoolJobIds(queueName);
+                await WriteJsonAsync(res, 200, new { success = true, queueName, pendingJobCount = jobs.Count, jobIds = jobs });
+                return;
+            }
+
+            case "TEST_PRINT":
+            {
+                if (string.IsNullOrWhiteSpace(queueName))
+                {
+                    res.StatusCode = 400;
+                    await WriteJsonAsync(res, 400, new { error = "INVALID_REQUEST", message = "queueName is required." });
+                    return;
+                }
+
+                string testDoc = Path.Combine(AppContext.BaseDirectory, "test_visible_a4.pdf");
+                if (!File.Exists(testDoc))
+                {
+                    testDoc = Path.Combine(Directory.GetCurrentDirectory(), "test_visible_a4.pdf");
+                }
+                if (!File.Exists(testDoc))
+                {
+                    var minimalPdf = @"%PDF-1.4
+1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 595 842]/Parent 2 0 R/Resources<<>>>>endobj
+xref
+0 4
+0000000000 65535 f 
+0000000009 00000 n 
+0000000052 00000 n 
+0000000101 00000 n 
+trailer<</Size 4/Root 1 0 R>>
+startxref
+180
+%%EOF
+";
+                    File.WriteAllText(testDoc, minimalPdf);
+                }
+
+                var spooler = new S2P.Agent.Core.Printing.WindowsSpoolerService();
+                var spoolResult = spooler.SubmitToSpooler(queueName, "S2P_Manual_Test_Print", testDoc, dryRun: false);
+
+                if (spoolResult.Success)
+                {
+                    await WriteJsonAsync(res, 200, new
+                    {
+                        success = true,
+                        queueName,
+                        spoolJobId = spoolResult.SpoolJobId,
+                        message = $"Test document submitted to Windows Spooler for '{queueName}' (Job ID: {spoolResult.SpoolJobId}). Please verify paper tray output.",
+                        spoolCompleted = true
+                    });
+                }
+                else
+                {
+                    res.StatusCode = 400;
+                    await WriteJsonAsync(res, 400, new
+                    {
+                        success = false,
+                        error = "TEST_PRINT_FAILED",
+                        message = spoolResult.ErrorMessage ?? "Windows Spooler submission error"
+                    });
+                }
+                return;
+            }
+
+            case "REFRESH":
+            {
+                var discovered = S2P.Agent.Core.Discovery.WindowsPrinterDiscovery.DiscoverInstalledPrinters();
+                await _apiClient.SyncPrintersAsync(_config, discovered);
+                await WriteJsonAsync(res, 200, new { success = true, count = discovered.Count, printers = discovered });
+                return;
+            }
+
+            default:
+                res.StatusCode = 400;
+                await WriteJsonAsync(res, 400, new { error = "UNKNOWN_ACTION", message = $"Unrecognized action: {action}" });
+                return;
         }
     }
 

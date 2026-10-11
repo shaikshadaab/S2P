@@ -1,3 +1,4 @@
+using S2P.Agent.Core.Printing;
 ﻿using System.Diagnostics;
 using System.Text.Json;
 using S2P.Agent.Core.Models;
@@ -148,6 +149,8 @@ public class WindowsPrinterDiscovery
             PrinterKind = printerKind,
             ConnectionType = connectionType,
             IsDefault = isDefault,
+            IsWindowsDefault = isDefault,
+            PendingJobCount = WindowsSpoolerService.GetCurrentSpoolJobIds(name).Count,
             IsOnline = true,
             Capabilities = new PrinterCapabilities
             {

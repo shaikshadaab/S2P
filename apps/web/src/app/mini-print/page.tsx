@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Info
 } from "lucide-react";
+import { formatRupees, formatFileSizeKb } from "@/lib/format";
 import { PRIMARY_PILOT_SHOP } from "@s2p/shared";
 import { SosLogo } from "@/components/common/SosLogo";
 
@@ -48,7 +49,7 @@ export default function MiniPrintPage() {
   // Pricing: A4 simplex = 200 paise, A4 duplex = 300 paise
   const ratePerSheetPaise = duplexMode === "DOUBLE" ? 300 : 200;
   const totalPaise = totalOutputSheets * ratePerSheetPaise;
-  const finalPriceRupees = (Math.max(500, totalPaise) / 100).toFixed(2);
+  const finalPriceRupees = ((Math.max(500, totalPaise || 0)) / 100).toFixed(2);
 
   const handleProceedToBasket = () => {
     // Navigate to /print
@@ -126,7 +127,7 @@ export default function MiniPrintPage() {
                 {selectedFile ? selectedFile.name : "Click to Choose PDF Document"}
               </div>
               <p className="text-[11px] text-[#64748B]">
-                {selectedFile ? `${(selectedFile.size / 1024).toFixed(0)} KB PDF file` : "Supports lecture slides, notes & reading handouts"}
+                {selectedFile ? `${formatFileSizeKb(selectedFile?.size)} PDF file` : "Supports lecture slides, notes & reading handouts"}
               </p>
             </div>
 

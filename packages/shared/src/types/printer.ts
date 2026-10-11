@@ -29,7 +29,9 @@ export interface Printer {
   portName: string;
   printerKind: PrinterKind;
   connectionType: PrinterConnectionType;
-  isDefault: boolean;
+  isDefault: boolean; // SOS PRINT preferred printer
+  isWindowsDefault?: boolean; // Windows Spooler default printer
+  pendingJobCount?: number;
   isOnline: boolean;
   isEnabled: boolean;
   isIgnored?: boolean;

@@ -1,4 +1,5 @@
 "use client";
+import { safeFixed, formatRupees, formatFileSizeKb } from "@/lib/format";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
@@ -652,7 +653,7 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
                       {uploadedFile.safeDisplayName}
                     </h3>
                     <div className="text-[10px] text-slate-500 mt-0.5 flex flex-wrap gap-2">
-                      <span>{(uploadedFile.sizeBytes / 1024).toFixed(1)} KB</span>
+                      <span>{formatFileSizeKb(uploadedFile?.sizeBytes)}</span>
                       <span>•</span>
                       <span className="text-emerald-700 font-semibold">
                         {uploadedFile.pageCount} {uploadedFile.pageCount === 1 ? "Page" : "Pages"} (Server Verified)
@@ -736,7 +737,7 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
                     </span>
                     <div className="truncate">
                       <div className="text-xs font-bold text-slate-900 truncate max-w-[170px]">{f.safeDisplayName}</div>
-                      <div className="text-[9px] text-slate-500">{(f.sizeBytes / 1024).toFixed(0)} KB • {f.pageCount}p • ✓ Ready</div>
+                      <div className="text-[9px] text-slate-500">{formatFileSizeKb(f?.sizeBytes)} • {f.pageCount}p • ✓ Ready</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -1117,12 +1118,12 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
               </div>
               <div className="flex justify-between">
                 <span>Printed Sides ({quote.totalSides} sides)</span>
-                <span className="text-slate-900 font-mono">₹{quote.breakdown.printCost.toFixed(2)}</span>
+                <span className="text-slate-900 font-mono">{formatRupees(quote?.breakdown?.printCost)}</span>
               </div>
               {quote.breakdown.finishingCost > 0 && (
                 <div className="flex justify-between">
                   <span>Finishing Charge</span>
-                  <span className="text-slate-900 font-mono">₹{quote.breakdown.finishingCost.toFixed(2)}</span>
+                  <span className="text-slate-900 font-mono">{formatRupees(quote?.breakdown?.finishingCost)}</span>
                 </div>
               )}
               <div className="flex justify-between text-slate-500 text-[11px]">
@@ -1140,7 +1141,7 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
                   <span className="text-[9px] text-slate-500 font-mono">Integer Paise: {quote.totalPaise}p</span>
                 </div>
                 <span className="text-2xl font-black text-emerald-700 font-mono">
-                  ₹{quote.totalRupees.toFixed(2)}
+                  {formatRupees(quote?.totalRupees)}
                 </span>
               </div>
             </div>
@@ -1296,7 +1297,7 @@ export default function CustomerShopPage({ params }: { params: { slug: string } 
               </>
             ) : (
               <>
-                <span>Place Order {quote ? `(₹${quote.totalRupees.toFixed(2)})` : ""}</span>
+                <span>Place Order {quote ? `(${formatRupees(quote?.totalRupees)})` : ""}</span>
               </>
             )}
           </button>

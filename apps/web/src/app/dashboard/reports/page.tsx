@@ -15,6 +15,7 @@ import {
   Loader2,
   FileText
 } from "lucide-react";
+import { formatRupees, safeFixed } from "@/lib/format";
 import { PRIMARY_PILOT_SHOP, BRAND_FULL_NAME, Order } from "@s2p/shared";
 import { useAuth } from "../../../lib/firebase/auth-context";
 
@@ -323,7 +324,7 @@ export default function ReportsPage() {
                       {o.items?.reduce((acc, i) => acc + (i.printedSides || 0), 0) || 1} sides • {o.items?.reduce((acc, i) => acc + (i.estimatedSheets || 0), 0) || 1} sheets
                     </td>
                     <td className="px-4 py-3 text-right font-mono font-bold text-white">
-                      ₹{((o.totalPaise || 0) / 100).toFixed(2)}
+                      {formatRupees(o.totalPaise != null ? o.totalPaise / 100 : ((o as any).totalAmount ?? (o as any).totalRupees))}
                     </td>
                   </tr>
                 ))}

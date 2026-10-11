@@ -27,6 +27,7 @@ import {
 import { PRIMARY_PILOT_SHOP, Order, getOrderStatusDisplay } from "@s2p/shared";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../../../lib/firebase/config";
+import { formatRupees } from "@/lib/format";
 import { useAuth } from "../../../lib/firebase/auth-context";
 
 function maskPhoneNumber(phone?: string | null): string {
@@ -354,7 +355,7 @@ export default function DashboardOrdersView() {
                         )}
                       </td>
                       <td className="py-3 px-4 font-mono font-black text-emerald-700 text-sm">
-                        ₹{o.totalAmount.toFixed(2)}
+                        {formatRupees((o as any).totalAmount ?? ((o as any).totalPaise != null ? (o as any).totalPaise / 100 : (o as any).totalRupees))}
                       </td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
@@ -448,7 +449,7 @@ export default function DashboardOrdersView() {
               </div>
               <div className="text-right">
                 <span className="text-slate-500 text-[10px] block uppercase font-bold">Payment ({selectedOrder.paymentMethod})</span>
-                <span className="text-lg font-black text-emerald-700 font-mono">₹{selectedOrder.totalAmount.toFixed(2)}</span>
+                <span className="text-lg font-black text-emerald-700 font-mono">{formatRupees((selectedOrder as any).totalAmount ?? ((selectedOrder as any).totalPaise != null ? (selectedOrder as any).totalPaise / 100 : (selectedOrder as any).totalRupees))}</span>
                 <span className={`text-[10px] font-bold block mt-0.5 ${
                   selectedOrder.paymentStatus === 'PAID' ? 'text-emerald-700' : 'text-amber-700'
                 }`}>
@@ -531,7 +532,7 @@ export default function DashboardOrdersView() {
                     className="py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Banknote className="w-3.5 h-3.5" />
-                    <span>Confirm Cash (₹{selectedOrder.totalAmount.toFixed(2)})</span>
+                    <span>Confirm Cash ({formatRupees((selectedOrder as any).totalAmount ?? ((selectedOrder as any).totalPaise != null ? (selectedOrder as any).totalPaise / 100 : (selectedOrder as any).totalRupees))})</span>
                   </button>
                 )}
 

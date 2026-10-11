@@ -1,4 +1,5 @@
 "use client";
+import { safeFixed, formatRupees, formatFileSizeKb, formatFileSizeMb } from "@/lib/format";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
@@ -301,7 +302,7 @@ export default function DirectPrintPage() {
         // Step 3: Relay fallback only if direct failed and file <= 4MB
         if (!directSuccess) {
           if (f.size > 4 * 1024 * 1024) {
-            throw new Error(`Direct upload to shop PC failed for large file (${(f.size / 1024 / 1024).toFixed(1)} MB). Please ensure start-free-tunnel.bat is active on the shop PC.`);
+            throw new Error(`Direct upload to shop PC failed for large file (${formatFileSizeMb(f?.size)}). Please ensure start-free-tunnel.bat is active on the shop PC.`);
           }
           setUploadProgressMsg(`Sending ${f.name} via serverless relay...`);
           const relayForm = new FormData();
@@ -734,7 +735,7 @@ export default function DirectPrintPage() {
                             {file.safeDisplayName}
                           </div>
                           <div className="text-[11px] text-slate-500 font-mono">
-                            {file.pageCount} {file.pageCount === 1 ? "page" : "pages"} • {(file.sizeBytes / 1024).toFixed(0)} KB
+                            {file.pageCount} {file.pageCount === 1 ? "page" : "pages"} • {formatFileSizeKb(file?.sizeBytes)}
                           </div>
                           {file.mimeType.startsWith("image/") && (
                             <div className="flex items-center gap-2 mt-1">
@@ -1023,7 +1024,7 @@ export default function DirectPrintPage() {
                   {isCalculatingQuote ? (
                     <Loader2 className="w-6 h-6 animate-spin inline-block text-emerald-600" />
                   ) : quote ? (
-                    `₹${quote.totalRupees.toFixed(2)}`
+                    formatRupees(quote?.totalRupees)
                   ) : (
                     "—"
                   )}
@@ -1192,7 +1193,7 @@ export default function DirectPrintPage() {
                 <Printer className="w-5 h-5" />
               )}
               <span>
-                {`Submit Order • ₹${quote.totalRupees.toFixed(2)}`}
+                {`Submit Order • ${formatRupees(quote?.totalRupees)}`}
               </span>
             </button>
           </form>

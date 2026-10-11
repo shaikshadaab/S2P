@@ -15,7 +15,7 @@
 **Production Aliased Domains:** `sos-print.vercel.app`, `sos-print-dxsqq9s2e-shaikshadaab951-1346s-projects.vercel.app`  
 **Deployed Commit:** `548482e`  
 **Vercel Deployment ID:** `dpl_Hm5ruBvJZJwPwy8evP3stLnVdYFp`  
-**Windows Agent Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (2,777,465 bytes [2.65 MB], SHA-256: `80DEE09389B9822224A5A7A7FD1537A84BEF7040B5A7B1E6F4CB19C18898A971`)
+**Windows Agent Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (2,782,466 bytes [2.65 MB], SHA-256: `8B7A581442657D245A492D0B12FD3C10734081E588EA6949141DB25F2AF76345`)
 **Source Backup Archive:** `C:\SOSPrint-Backups\SOS-Print-Source-20261010-2054.zip` (72.29 MB, SHA-256: `67C628D94AE2E59C374FB3544EF39204EEBEA6E33A4AE3EFD7B4D6F6D7039DFE`)
 
 ---
@@ -47,6 +47,9 @@ These features are fully built, unit-tested, and verified live on production at 
 | **Manual Crop & Ratios** | EnhancedImageEditor, CropBoxOverlay | Free, 1:1, 4:6, A4, Passport (35Ã—45mm), Visa (2Ã—2 in), Stamp (25Ã—30mm); draggable corner & edge handles clamped in viewport; pan & zoom; rotate 90Â°; flip H/V; 4-corner perspective warp | **HOSTED-VERIFIED** |
 | **Background Removal Studio** | EnhancedImageEditor, ImageEnhancementEngine | 100% in-browser segmentation; Transparent, White, Passport Blue, Pearl; manual Erase & Restore brush with size slider; edge feathering; government disclaimer | **HOSTED-VERIFIED** |
 | **Quality Enhancement & Scan Mode** | EnhancedImageEditor, ImageEnhancementEngine | Brightness, contrast, saturation, 3Ã—3 unsharp mask, restrained denoise; Document Scan Mode preserving faint writing & rubber stamps; 2Ã— digital upscaler with honest disclaimer | **HOSTED-VERIFIED** |
+| **Frontend Safe Numeric Formatting** | Global UI / Dashboard | Universal safeFixed/formatRupees + ErrorBoundary preventing .toFixed crashes on missing data | **HOSTED-VERIFIED** |
+| **Manual Printer Dashboard Controls** | /dashboard/printers | Full manual control: Select for SOS, Set as Win Default, Safe Remove Queue, Test Page, Refresh | **IMPLEMENTED & VERIFIED** |
+| **Windows Agent Queue Management** | Agent Core / Worker | WindowsSpoolerService: SetAsWindowsDefault, RemovePrinterQueue, Direct Win32 Spool Test Print | **IMPLEMENTED & VERIFIED** |
 | **Print-Ready Full-Res Export** | EnhancedImageEditor, /api/upload/derivative | Source-resolution pixel processing (not preview screenshot); real-time DPI calculator for A4/4Ã—6/Passport with low-res warning (<200 DPI); PNG/JPEG derivative artifact | **HOSTED-VERIFIED** |
 | **Owner Commissioning Test Order** | /api/orders/test-order, /dashboard/printers | Owner-authorized test order flow using test_visible_a4.pdf (1446 bytes, SHA-256: 93C329...); works while public customer intake remains paused; bypasses public pause safely | **HOSTED-VERIFIED** |
 | **Direct Phone-to-PC Upload** | /print, /api/upload/grant, AgentUploadServer.cs | Customer uploads from mobile data directly reach shop PC via Cloudflare Tunnel; browser CORS enabled; private local disk receipt; zero cloud storage costs | **HOSTED-VERIFIED** |

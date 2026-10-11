@@ -4,6 +4,7 @@
 
 import crypto from 'crypto';
 import { Firestore, FieldValue } from 'firebase-admin/firestore';
+import { getActiveShopMember } from './order-service';
 import {
   Device,
   DevicePairingCode,
@@ -295,6 +296,8 @@ export async function syncDiscoveredPrinters(
     printerKind?: string;
     connectionType?: string;
     isDefault?: boolean;
+    isWindowsDefault?: boolean;
+    pendingJobCount?: number;
     isOnline?: boolean;
     capabilities?: {
       paperSizes?: string[];
@@ -362,6 +365,8 @@ export async function syncDiscoveredPrinters(
       printerKind: validKind,
       connectionType: validConnection,
       isDefault,
+      isWindowsDefault: Boolean(q.isWindowsDefault ?? q.isDefault),
+      pendingJobCount: Number(q.pendingJobCount || 0),
       isOnline: q.isOnline !== false,
       isEnabled,
       isIgnored,
@@ -606,5 +611,165 @@ export async function updateDeviceUploadUrl(
     deviceId,
     agentUploadUrl: normalizedUrl,
     healthVerified
+  };
+}
+
+/**
+ * Executes an authenticated remote printer action on the paired Windows Agent.
+ * Validates:
+ * 1. Caller is OWNER or MANAGER
+ * 2. Paired Windows Agent is ONLINE and heartbeat is fresh (<90s)
+ * 3. Cannot delete active preferred printer without replacement or force confirmation
+ * 4. Dispatches action securely to agent via live tunnel with cryptographic verification
+ * 5. Writes immutable audit log in Firestore
+ */
+export async function executeRemotePrinterAction(
+  db: Firestore,
+  shopId: string,
+  actorUid: string,
+  payload: {
+    action: 'SET_WINDOWS_DEFAULT' | 'REMOVE_PRINTER' | 'TEST_PRINT' | 'REFRESH' | 'CHECK_JOBS';
+    printerId?: string;
+    queueName?: string;
+    force?: boolean;
+    replacementPrinterId?: string;
+  }
+) {
+  if (!shopId || !actorUid) {
+    throw new Error('shopId and actorUid are required.');
+  }
+
+  // 1. Check shop member permissions
+  const member = await getActiveShopMember(db, actorUid, shopId);
+  if (member.role !== 'OWNER' && member.role !== 'MANAGER') {
+    throw new Error('UNAUTHORIZED_ROLE: Only OWNER or MANAGER can execute remote printer management commands.');
+  }
+
+  // 2. Find online paired device for this shop
+  const devicesSnap = await db.collection('devices')
+    .where('shopId', '==', shopId)
+    .where('status', '==', 'ONLINE')
+    .get();
+
+  if (devicesSnap.empty) {
+    throw new Error('AGENT_OFFLINE: No paired Windows Agent is currently online. Please launch Start-SOS-Print.bat on the shop PC.');
+  }
+
+  // Sort by heartbeat recency
+  const devices = devicesSnap.docs.map(d => d.data() as Device);
+  devices.sort((a, b) => new Date(b.lastHeartbeatAt || 0).getTime() - new Date(a.lastHeartbeatAt || 0).getTime());
+  const device = devices[0];
+
+  const lastSeenMs = Date.now() - new Date(device.lastHeartbeatAt || 0).getTime();
+  if (lastSeenMs > 90000) {
+    throw new Error('AGENT_OFFLINE: Paired Windows Agent heartbeat is stale (>90s). Ensure Start-SOS-Print.bat is active on the shop PC.');
+  }
+
+  const agentUploadUrl = device.agentUploadUrl;
+  if (!agentUploadUrl) {
+    throw new Error('AGENT_ENDPOINT_UNAVAILABLE: Agent upload tunnel URL is not yet published. Ensure start-free-tunnel.bat is running.');
+  }
+
+  // 3. For REMOVE_PRINTER safety check
+  if (payload.action === 'REMOVE_PRINTER' && payload.printerId) {
+    const shopDoc = await db.collection('shops').doc(shopId).get();
+    const currentDefaultPrinterId = shopDoc.data()?.defaultPrinterId;
+    if (currentDefaultPrinterId === payload.printerId && !payload.replacementPrinterId && !payload.force) {
+      throw new Error('CANNOT_REMOVE_PREFERRED_PRINTER: Cannot remove active SOS PRINT preferred printer without selecting a replacement printer first.');
+    }
+  }
+
+  // 4. Send authenticated command to the agent's live tunnel
+  const actionUrl = `${agentUploadUrl.replace(/\/+$/, '')}/api/agent/printer-action`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
+  let agentResponseData: any;
+  try {
+    const res = await fetch(actionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-credential-hash': device.credentialHash || '',
+      },
+      body: JSON.stringify({
+        action: payload.action,
+        queueName: payload.queueName,
+        force: Boolean(payload.force)
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeout);
+    agentResponseData = await res.json().catch(() => ({}));
+
+    if (!res.ok || !agentResponseData.success) {
+      throw new Error(agentResponseData.message || agentResponseData.error || `Agent returned HTTP ${res.status}`);
+    }
+  } catch (err: any) {
+    clearTimeout(timeout);
+    const msg = err.name === 'AbortError'
+      ? 'Agent command timed out after 15s. Check Windows Agent window on shop PC.'
+      : (err.message || 'Failed to communicate with Windows Agent');
+    throw new Error(msg);
+  }
+
+  const nowIso = new Date().toISOString();
+
+  // 5. Post-action state synchronization in database
+  if (payload.action === 'SET_WINDOWS_DEFAULT' && payload.printerId) {
+    const batch = db.batch();
+    const allPrinters = await db.collection('printers').where('shopId', '==', shopId).get();
+    for (const doc of allPrinters.docs) {
+      if (doc.id === payload.printerId) {
+        batch.update(doc.ref, { isWindowsDefault: true, updatedAt: nowIso });
+      } else if (doc.data().isWindowsDefault) {
+        batch.update(doc.ref, { isWindowsDefault: false, updatedAt: nowIso });
+      }
+    }
+    await batch.commit();
+  } else if (payload.action === 'REMOVE_PRINTER' && payload.printerId) {
+    const batch = db.batch();
+    batch.delete(db.collection('printers').doc(payload.printerId));
+
+    if (payload.replacementPrinterId) {
+      batch.update(db.collection('printers').doc(payload.replacementPrinterId), {
+        isDefault: true,
+        isEnabled: true,
+        isIgnored: false,
+        updatedAt: nowIso
+      });
+      batch.update(db.collection('shops').doc(shopId), {
+        defaultPrinterId: payload.replacementPrinterId,
+        updatedAt: nowIso
+      });
+    }
+    await batch.commit();
+  }
+
+  // 6. Write authoritative audit log
+  const auditId = 'aud_' + Date.now().toString(36) + '_' + crypto.randomBytes(3).toString('hex');
+  await db.collection('auditLogs').doc(auditId).set({
+    id: auditId,
+    organizationId: device.organizationId,
+    shopId,
+    action: payload.action,
+    targetType: 'PRINTER',
+    targetId: payload.printerId || payload.queueName || 'ALL',
+    actorId: actorUid,
+    actorRole: member.role,
+    timestamp: nowIso,
+    details: {
+      queueName: payload.queueName,
+      agentDeviceId: device.id,
+      agentResult: agentResponseData
+    }
+  });
+
+  return {
+    success: true,
+    action: payload.action,
+    queueName: payload.queueName,
+    agentResult: agentResponseData
   };
 }

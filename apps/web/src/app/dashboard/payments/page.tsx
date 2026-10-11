@@ -16,6 +16,7 @@ import {
   DollarSign,
   TrendingUp
 } from "lucide-react";
+import { formatRupees, safeFixed } from "@/lib/format";
 import { PRIMARY_PILOT_SHOP, Order } from "@s2p/shared";
 import { useAuth } from "../../../lib/firebase/auth-context";
 
@@ -192,7 +193,7 @@ export default function DashboardPaymentsPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4 font-mono font-black text-[#111827]">
-                      ₹{(order.pricingSnapshot ? order.pricingSnapshot.totalPaise / 100 : (order.totalAmount || 0)).toFixed(2)}
+                      {formatRupees(order.pricingSnapshot?.totalPaise != null ? order.pricingSnapshot.totalPaise / 100 : ((order as any).totalAmount ?? (order as any).totalRupees))}
                     </td>
                     <td className="py-3 px-4 font-mono text-[11px] text-slate-500">
                       {order.paymentReference || order.customerClaimedUtr || "Counter Verified"}
