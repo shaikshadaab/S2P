@@ -65,7 +65,7 @@ export async function queueOrderForPrint(
     }
 
     // Status check: ACCEPTED or already QUEUED_FOR_PRINT (idempotent double-click protection)
-    const validStatuses = ['SUBMITTED', 'ACCEPTED', 'QUEUED_FOR_PRINT', 'PAYMENT_CONFIRMED', 'PRINTING', 'FAILED'];
+    const validStatuses = ['RECEIVED', 'SUBMITTED', 'ACCEPTED', 'QUEUED_FOR_PRINT', 'PAYMENT_CONFIRMED', 'PRINTING', 'FAILED'];
     if (!validStatuses.includes(order.status)) {
       throw new Error('INVALID_ORDER_STATUS: Order cannot be queued for print in status: ' + order.status);
     }
@@ -180,9 +180,9 @@ export async function queueOrderForPrint(
       };
     }
 
-    // 7. Transition order: ACCEPTED -> QUEUED_FOR_PRINT
-    if (order.status === 'ACCEPTED') {
-      assertValidOrderTransition(order.status, 'QUEUED_FOR_PRINT');
+    // 7. Transition order: ACCEPTED / RECEIVED / SUBMITTED -> QUEUED_FOR_PRINT
+    if (order.status === 'ACCEPTED' || order.status === 'RECEIVED' || order.status === 'SUBMITTED') {
+      assertValidOrderTransition(order.status as any, 'QUEUED_FOR_PRINT');
       transaction.update(orderRef, {
         status: 'QUEUED_FOR_PRINT',
         updatedAt: nowIso
