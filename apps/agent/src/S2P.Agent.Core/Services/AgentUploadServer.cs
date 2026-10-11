@@ -151,19 +151,25 @@ public class AgentUploadServer : IDisposable
 
     private async Task HandlePrinterActionAsync(HttpListenerRequest req, HttpListenerResponse res)
     {
+        // Read body payload first for HMAC validation
+        using var reader = new StreamReader(req.InputStream, req.ContentEncoding);
+        var bodyStr = await reader.ReadToEndAsync();
+
         // Cryptographic Authentication
         var incomingSecret = req.Headers["x-device-secret"] ?? "";
-        var incomingHash = req.Headers["x-credential-hash"] ?? "";
+        var incomingSig = req.Headers["x-device-signature"] ?? "";
 
         bool isAuth = false;
         if (!string.IsNullOrEmpty(incomingSecret) && incomingSecret == _config.DeviceSecret)
         {
             isAuth = true;
         }
-        else if (!string.IsNullOrEmpty(incomingHash))
+        else if (!string.IsNullOrEmpty(incomingSig))
         {
             var myHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(_config.DeviceSecret))).ToLowerInvariant();
-            if (myHash.Equals(incomingHash.ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(myHash));
+            var expectedSig = Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(bodyStr))).ToLowerInvariant();
+            if (myHash.Length > 0 && expectedSig.Equals(incomingSig.ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))
             {
                 isAuth = true;
             }
@@ -176,8 +182,6 @@ public class AgentUploadServer : IDisposable
             return;
         }
 
-        using var reader = new StreamReader(req.InputStream, req.ContentEncoding);
-        var bodyStr = await reader.ReadToEndAsync();
         using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(bodyStr) ? "{}" : bodyStr);
         var root = doc.RootElement;
 

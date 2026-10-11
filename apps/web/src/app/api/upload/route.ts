@@ -113,8 +113,13 @@ export async function POST(req: NextRequest) {
           { status: 403 }
         );
       }
-      // Auto-sync guest session on unexpired draft so mobile browsers never get blocked
-      if (identity.guestSessionId && draftData.guestSessionId !== identity.guestSessionId) {
+      if (draftData.guestSessionId && draftData.guestSessionId !== identity.guestSessionId) {
+        return NextResponse.json(
+          { success: false, error: 'Order draft belongs to another session.' },
+          { status: 403 }
+        );
+      }
+      if (!draftData.guestSessionId && identity.guestSessionId) {
         await draftDoc.ref.update({
           guestSessionId: identity.guestSessionId,
           updatedAt: new Date().toISOString()

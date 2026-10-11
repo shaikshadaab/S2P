@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
-import { authenticateOrGuest } from '@/lib/auth/session';
+import { authenticateOrGuest, attachGuestCookie } from '@/lib/auth/session';
 import { issueUploadGrant } from '@/server/upload-grant-service';
 
 export const dynamic = 'force-dynamic';
@@ -16,7 +16,11 @@ export async function POST(req: NextRequest) {
       guestSessionId: identity.guestSessionId
     });
 
-    return NextResponse.json(result);
+    const response = NextResponse.json({
+      ...result,
+      guestSessionToken: identity.newGuestSessionToken || undefined
+    });
+    return attachGuestCookie(response, identity);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Failed to issue upload grant';
     const status = msg.includes('AGENT_OFFLINE') ? 503 : msg.includes('FORBIDDEN') ? 403 : msg.includes('NOT_FOUND') ? 404 : 400;

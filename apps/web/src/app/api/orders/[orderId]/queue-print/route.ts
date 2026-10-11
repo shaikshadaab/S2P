@@ -17,7 +17,10 @@ export async function POST(req: NextRequest, { params }: { params: { orderId: st
       return NextResponse.json({ success: false, error: 'shopId is required.' }, { status: 400 });
     }
 
-    const result = await queueOrderForPrint(adminDb, params.orderId, identity.uid, shopId);
+    const result = await queueOrderForPrint(adminDb, params.orderId, identity.uid, shopId, {
+      forceResend: Boolean(body.forceResend),
+      resendReason: body.resendReason
+    });
     return NextResponse.json(result);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Failed to queue order for print';

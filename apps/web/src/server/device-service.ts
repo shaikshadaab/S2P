@@ -130,32 +130,41 @@ export async function pairAgent(
     }
 
     // 2. Generate Device Credentials
-    const deviceId = 'dev_' + Date.now().toString(36) + '_' + crypto.randomBytes(4).toString('hex');
+    const deviceId = (codeData as any).targetDeviceId || ('dev_' + Date.now().toString(36) + '_' + crypto.randomBytes(4).toString('hex'));
     const rawSecret = crypto.randomBytes(32).toString('hex'); // 64 hex chars (256-bit entropy)
     const credentialHash = crypto.createHash('sha256').update(rawSecret).digest('hex');
 
     const nowIso = new Date().toISOString();
 
-    const deviceRecord: Device = {
-      id: deviceId,
-      organizationId: codeData.organizationId,
-      shopId: codeData.shopId,
-      name: (input.deviceName || input.hostname || 'Windows S2P Agent').trim(),
-      hostname: (input.hostname || 'DESKTOP').trim(),
-      windowsVersion: (input.windowsVersion || 'Windows').trim(),
-      agentVersion: (input.agentVersion || '0.1.0').trim(),
-      status: 'ONLINE',
-      credentialHash,
-      pairedByUid: codeData.createdByUid,
-      pairedAt: nowIso,
-      lastHeartbeatAt: nowIso,
-      capabilities: {},
-      createdAt: nowIso,
-      updatedAt: nowIso
-    };
-
-    // 3. Atomic writes
-    transaction.set(db.collection('devices').doc(deviceId), deviceRecord);
+    if ((codeData as any).targetDeviceId) {
+      transaction.update(db.collection('devices').doc(deviceId), {
+        credentialHash,
+        status: 'ONLINE',
+        lastHeartbeatAt: nowIso,
+        updatedAt: nowIso,
+        ...(input.hostname ? { hostname: input.hostname.trim() } : {}),
+        ...(input.agentVersion ? { agentVersion: input.agentVersion.trim() } : {})
+      });
+    } else {
+      const deviceRecord: Device = {
+        id: deviceId,
+        organizationId: codeData.organizationId,
+        shopId: codeData.shopId,
+        name: (input.deviceName || input.hostname || 'Windows S2P Agent').trim(),
+        hostname: (input.hostname || 'DESKTOP').trim(),
+        windowsVersion: (input.windowsVersion || 'Windows').trim(),
+        agentVersion: (input.agentVersion || '0.1.0').trim(),
+        status: 'ONLINE',
+        credentialHash,
+        pairedByUid: codeData.createdByUid,
+        pairedAt: nowIso,
+        lastHeartbeatAt: nowIso,
+        capabilities: {},
+        createdAt: nowIso,
+        updatedAt: nowIso
+      };
+      transaction.set(db.collection('devices').doc(deviceId), deviceRecord);
+    }
 
     transaction.update(codeDoc.ref, {
       status: 'USED',
@@ -175,8 +184,8 @@ export async function pairAgent(
       actorRole: 'STAFF',
       timestamp: nowIso,
       details: {
-        hostname: deviceRecord.hostname,
-        agentVersion: deviceRecord.agentVersion
+        hostname: (input.hostname || 'DESKTOP').trim(),
+        agentVersion: (input.agentVersion || '0.1.0').trim()
       }
     });
 
@@ -219,13 +228,9 @@ export async function authenticateAgent(
   const storedHash = device.credentialHash || '';
 
   const incomingBuffer = Buffer.from(incomingHash, 'hex');
-  const directBuffer = Buffer.from(deviceSecret, 'hex');
   const storedBuffer = Buffer.from(storedHash, 'hex');
 
-  const matchesRawSecret = incomingBuffer.length === storedBuffer.length && crypto.timingSafeEqual(incomingBuffer, storedBuffer);
-  const matchesDirectHash = directBuffer.length === storedBuffer.length && crypto.timingSafeEqual(directBuffer, storedBuffer);
-
-  if (!matchesRawSecret && !matchesDirectHash) {
+  if (incomingBuffer.length !== storedBuffer.length || !crypto.timingSafeEqual(incomingBuffer, storedBuffer)) {
     throw new Error("INVALID_DEVICE_CREDENTIALS: Device secret verification failed.");
   }
 
@@ -691,7 +696,7 @@ export async function executeRemotePrinterAction(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-credential-hash': device.credentialHash || '',
+        'x-device-signature': crypto.createHmac('sha256', device.credentialHash || '').update(JSON.stringify({ action: payload.action, queueName: payload.queueName, force: Boolean(payload.force) })).digest('hex'),
       },
       body: JSON.stringify({
         action: payload.action,
@@ -772,5 +777,45 @@ export async function executeRemotePrinterAction(
     action: payload.action,
     queueName: payload.queueName,
     agentResult: agentResponseData
+  };
+}
+
+/**
+ * Safely rotates credentials for an existing device.
+ * Creates a short-lived pairing code bound directly to targetDeviceId for seamless re-pairing.
+ */
+export async function rotateDeviceCredentials(
+  db: Firestore,
+  deviceId: string,
+  shopId: string,
+  actorUid: string
+) {
+  const deviceDoc = await db.collection('devices').doc(deviceId).get();
+  if (!deviceDoc.exists) throw new Error('DEVICE_NOT_FOUND: Device not found.');
+  const device = deviceDoc.data() as Device;
+  if (device.shopId !== shopId) throw new Error('FORBIDDEN_SHOP: Device does not belong to shop.');
+
+  const rawCode = crypto.randomBytes(3).toString('hex').toUpperCase(); // 6 chars
+  const codeHash = crypto.createHash('sha256').update(rawCode).digest('hex');
+  const codeId = 'dpc_' + Date.now().toString(36) + '_' + crypto.randomBytes(4).toString('hex');
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+  await db.collection('devicePairingCodes').doc(codeId).set({
+    id: codeId,
+    shopId,
+    organizationId: device.organizationId,
+    codeHash,
+    status: 'ACTIVE',
+    expiresAt,
+    createdByUid: actorUid,
+    targetDeviceId: deviceId,
+    createdAt: new Date().toISOString()
+  });
+
+  return {
+    success: true,
+    deviceId,
+    pairingCode: rawCode,
+    expiresAt
   };
 }

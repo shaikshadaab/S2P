@@ -545,6 +545,9 @@ export async function calculateQuoteService(
   } else if (identity.isGuest) {
     if (draft.ownerUid) throw new Error('Draft belongs to an authenticated user account.');
     if (draft.guestSessionId && draft.guestSessionId !== identity.guestSessionId) {
+      throw new Error('Draft belongs to another guest session.');
+    }
+    if (!draft.guestSessionId && identity.guestSessionId) {
       await db.collection('orderDrafts').doc(draftId).update({
         guestSessionId: identity.guestSessionId,
         updatedAt: new Date().toISOString()
@@ -934,6 +937,9 @@ export async function createAuthoritativeOrder(
     } else if (identity.isGuest) {
       if (draft.ownerUid) throw new Error('Draft belongs to another user account.');
       if (draft.guestSessionId && draft.guestSessionId !== identity.guestSessionId) {
+        throw new Error('Draft belongs to another guest session.');
+      }
+      if (!draft.guestSessionId && identity.guestSessionId) {
         transaction.update(draftRef, {
           guestSessionId: identity.guestSessionId,
           updatedAt: new Date().toISOString()
@@ -1375,6 +1381,10 @@ export async function updateOrderStatusAtomic(
         }
         newPaymentStatus = 'PAID';
         isPaymentChanged = true;
+        if (order.status === 'SUBMITTED' || order.status === 'RECEIVED') {
+          newStatus = 'ACCEPTED';
+          isStatusChanged = true;
+        }
         eventNote = eventNote || 'Cash payment received and confirmed at counter.';
         break;
 
@@ -1391,6 +1401,10 @@ export async function updateOrderStatusAtomic(
         }
         newPaymentStatus = 'PAID';
         isPaymentChanged = true;
+        if (order.status === 'SUBMITTED' || order.status === 'RECEIVED') {
+          newStatus = 'ACCEPTED';
+          isStatusChanged = true;
+        }
         eventNote = eventNote || 'Manual UPI payment verified and confirmed by staff.';
         break;
 
@@ -1468,7 +1482,7 @@ export async function updateOrderStatusAtomic(
         paymentMethod: order.paymentMethod,
         previousStatus: order.paymentStatus,
         newStatus: newPaymentStatus,
-        amountPaise: order.totalPaise,
+        amountPaise: order.totalPaise || (order as any).totalAmountPaise || 0,
         actorType: 'STAFF',
         actorUid: identity.uid!,
         actorRole: role,

@@ -36,7 +36,8 @@ export async function queueOrderForPrint(
   db: Firestore,
   orderId: string,
   staffUid: string,
-  requestedShopId: string
+  requestedShopId: string,
+  options?: { forceResend?: boolean; resendReason?: string }
 ) {
   if (!orderId || !staffUid || !requestedShopId) {
     throw new Error('orderId, staffUid, and requestedShopId are required.');
@@ -103,11 +104,18 @@ export async function queueOrderForPrint(
       }
 
       // 5. Deterministic Idempotency Key per Item
-      const jobId = 'pj_' + order.id + '_' + item.id;
-      const jobRef = db.collection('printJobs').doc(jobId);
+      const baseJobId = 'pj_' + order.id + '_' + item.id;
+      let targetJobId = baseJobId;
+      if (options?.forceResend) {
+        const attemptNum = ((order as any).printAttemptCount || 1) + 1;
+        targetJobId = `${baseJobId}_att${attemptNum}`;
+      }
+      const jobId = targetJobId;
+
+      const jobRef = db.collection('printJobs').doc(targetJobId);
       const existingJobDoc = await transaction.get(jobRef);
 
-      if (existingJobDoc.exists) {
+      if (existingJobDoc.exists && !options?.forceResend) {
         const existingJob = existingJobDoc.data() as PrintJob;
         const activeStatuses: PrintJobStatus[] = [
           'CREATED', 'QUEUED', 'LEASED', 'DOWNLOADING', 'READY_TO_PRINT', 'SUBMITTED', 'PRINTING', 'COMPLETED'
@@ -152,11 +160,11 @@ export async function queueOrderForPrint(
         printConfigSnapshot,
         fileSnapshot: {
           fileId: file.id,
-          sha256: file.sha256,
-          sizeBytes: file.sizeBytes,
-          mimeType: file.mimeType,
-          pageCount: file.pageCount,
-          filename: file.originalFilename || 'document.pdf'
+          sha256: file.sha256 || 'none',
+          sizeBytes: file.sizeBytes || 0,
+          mimeType: file.mimeType || 'application/pdf',
+          pageCount: file.pageCount || 1,
+          filename: file.originalFilename || file.safeDisplayName || 'document.pdf'
         },
         attemptCount: 0,
         activeAttemptId: null,

@@ -97,8 +97,10 @@ export async function issueUploadGrant(
     if (draftData.ownerUid) {
       throw new Error("FORBIDDEN_SESSION: This draft belongs to an authenticated user account.");
     }
-    // Auto-sync guest session on unexpired draft so mobile browsers never get blocked
-    if (identity.guestSessionId && draftData.guestSessionId !== identity.guestSessionId) {
+    if (draftData.guestSessionId && draftData.guestSessionId !== identity.guestSessionId) {
+      throw new Error('FORBIDDEN_SESSION: Order draft belongs to another session.');
+    }
+    if (!draftData.guestSessionId && identity.guestSessionId) {
       await draftDoc.ref.update({
         guestSessionId: identity.guestSessionId,
         updatedAt: new Date().toISOString()
@@ -248,62 +250,123 @@ export async function confirmAgentUpload(
   deviceSecret: string,
   input: AgentConfirmUploadRequest & { draftId?: string; orderId?: string }
 ): Promise<OrderFile> {
-  const device = await authenticateAgent(db, deviceId, deviceSecret);
-  let targetOrderId = input.draftId || (input as any).orderId || '';
-  let grantRef: any = null;
-
-  if (input.grantId) {
-    const grant = await db.collection('uploadGrants').doc(input.grantId).get();
-    if (grant.exists) {
-      const grantData = grant.data() as UploadGrant;
-      if (grantData.shopId !== device.shopId) {
-        throw new Error("FORBIDDEN_SHOP: Device does not belong to grant shop.");
-      }
-      targetOrderId = grantData.draftId || targetOrderId;
-      grantRef = grant.ref;
-    }
+  if (!input.grantId || typeof input.grantId !== 'string' || !input.grantId.trim()) {
+    throw new Error('GRANT_REQUIRED: Upload confirmation strictly requires an issued upload grant ID.');
   }
 
-  const fileId = input.fileId || ('f_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'));
-  const nowIso = new Date().toISOString();
+  const device = await authenticateAgent(db, deviceId, deviceSecret);
 
-  const fileDoc: OrderFile = {
-    id: fileId,
-    organizationId: device.organizationId,
-    shopId: device.shopId,
-    orderId: targetOrderId,
-    originalFilename: input.safeDisplayName,
-    safeDisplayName: input.safeDisplayName,
-    mimeType: input.mimeType || 'application/pdf',
-    sizeBytes: input.sizeBytes,
-    sha256: input.sha256,
-    pageCount: input.pageCount || 1,
-    convertedFrom: input.convertedFrom || null,
-    storageMode: 'LOCAL_AGENT',
-    agentDeviceId: device.id,
-    agentLocalPath: input.localPath,
-    storageOriginalPath: 'local://' + fileId,
-    processingStatus: 'READY_FOR_PRINT',
-    documentAvailable: true,
-    uploadedAt: nowIso,
-    validatedAt: nowIso,
-    readyAt: nowIso,
-    purgeStatus: 'NOT_SCHEDULED'
-  };
+  return await db.runTransaction(async (transaction) => {
+    const grantRef = db.collection('uploadGrants').doc(input.grantId);
+    const grantDoc = await transaction.get(grantRef);
 
-  await db.runTransaction(async (transaction) => {
-    // 1. Write OrderFile
-    transaction.set(db.collection('orderFiles').doc(fileId), fileDoc, { merge: true });
+    if (!grantDoc.exists) {
+      throw new Error('GRANT_NOT_FOUND: Upload grant does not exist.');
+    }
 
-    // 2. Mark Grant USED
-    if (grantRef) {
+    const grantData = grantDoc.data() as UploadGrant;
+
+    // 1. Idempotency check: if already USED, return existing OrderFile without duplicates
+    if (grantData.status === 'USED') {
+      if (grantData.confirmedFileId) {
+        const existingFileDoc = await transaction.get(db.collection('orderFiles').doc(grantData.confirmedFileId));
+        if (existingFileDoc.exists) {
+          return existingFileDoc.data() as OrderFile;
+        }
+      }
+      throw new Error('GRANT_ALREADY_USED: This upload grant has already been consumed.');
+    }
+
+    // 2. Status check
+    if (grantData.status !== 'ISSUED') {
+      throw new Error(`GRANT_INVALID: Upload grant is in invalid status: ${grantData.status}.`);
+    }
+
+    // 3. Expiration check
+    const now = Date.now();
+    const expiresAtMs = new Date(grantData.expiresAt).getTime();
+    if (expiresAtMs < now) {
+      transaction.update(grantRef, { status: 'EXPIRED' });
+      throw new Error('GRANT_EXPIRED: Upload grant has expired.');
+    }
+
+    // 4. Shop binding
+    if (grantData.shopId !== device.shopId) {
+      throw new Error('FORBIDDEN_SHOP: Upload grant belongs to a different shop than this device.');
+    }
+
+    // 5. Target device binding
+    if (grantData.targetDeviceId && grantData.targetDeviceId !== device.id) {
+      throw new Error(`FORBIDDEN_DEVICE: Upload grant is bound to device ${grantData.targetDeviceId}, but confirmed by ${device.id}.`);
+    }
+
+    // 6. File constraints check
+    if (input.sizeBytes > grantData.maxSizeBytes) {
+      throw new Error(`FILE_TOO_LARGE: Uploaded file size (${input.sizeBytes} bytes) exceeds granted maximum (${grantData.maxSizeBytes} bytes).`);
+    }
+
+    const normMime = (input.mimeType || 'application/pdf').toLowerCase().trim();
+    if (grantData.allowedMimeTypes && grantData.allowedMimeTypes.length > 0) {
+      const allowed = grantData.allowedMimeTypes.map(m => m.toLowerCase().trim());
+      if (!allowed.includes(normMime)) {
+        throw new Error(`INVALID_MIME_TYPE: File type '${normMime}' is not permitted by grant. Allowed: ${grantData.allowedMimeTypes.join(', ')}`);
+      }
+    }
+
+    // 7. Authoritative draft binding (never trust caller-supplied draftId as substitute)
+    const authoritativeDraftId = grantData.draftId;
+    if (!authoritativeDraftId) {
+      throw new Error('GRANT_INVALID: Upload grant is not bound to a valid order draft.');
+    }
+    if (input.draftId && input.draftId !== authoritativeDraftId) {
+      throw new Error('DRAFT_MISMATCH: Caller supplied draftId does not match the draft bound to this grant.');
+    }
+
+    // Verify draft exists
+    const draftRef = db.collection('orderDrafts').doc(authoritativeDraftId);
+    const draftDoc = await transaction.get(draftRef);
+    if (!draftDoc.exists) {
+      throw new Error('DRAFT_NOT_FOUND: The order draft bound to this grant no longer exists.');
+    }
+
+    // 8. Generate file and write atomically
+    const fileId = input.fileId || ('f_' + Date.now().toString(36) + '_' + crypto.randomBytes(4).toString('hex'));
+    const nowIso = new Date().toISOString();
+
+    const fileDoc: OrderFile = {
+      id: fileId,
+      organizationId: device.organizationId,
+      shopId: device.shopId,
+      orderId: authoritativeDraftId,
+      originalFilename: input.safeDisplayName,
+      safeDisplayName: input.safeDisplayName,
+      mimeType: normMime,
+      sizeBytes: input.sizeBytes,
+      sha256: input.sha256,
+      pageCount: input.pageCount || 1,
+      convertedFrom: input.convertedFrom || null,
+      storageMode: 'LOCAL_AGENT',
+      agentDeviceId: device.id,
+      agentLocalPath: input.localPath,
+      storageOriginalPath: 'local://' + fileId,
+      processingStatus: 'READY_FOR_PRINT',
+      documentAvailable: true,
+      uploadedAt: nowIso,
+      validatedAt: nowIso,
+      readyAt: nowIso,
+      purgeStatus: 'NOT_SCHEDULED'
+    };
+
+    // Atomic write 1: Set OrderFile
+    transaction.set(db.collection('orderFiles').doc(fileId), fileDoc);
+
+    // Atomic write 2: Mark Grant USED with confirmedFileId
     transaction.update(grantRef, {
       status: 'USED',
       usedAt: nowIso,
       confirmedFileId: fileId
     });
-    }
-  });
 
-  return fileDoc;
+    return fileDoc;
+  });
 }

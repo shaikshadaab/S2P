@@ -1,3 +1,4 @@
+import { NextResponse } from 'next/server';
 import {
   getGuestSessionSecret,
   createGuestSessionToken,
@@ -109,4 +110,17 @@ export async function validateActiveShop(shopId: string): Promise<boolean> {
     console.error('[validateActiveShop] Firestore lookup error, failing closed:', err);
     return false;
   }
+}
+
+export function attachGuestCookie(response: NextResponse, identity: VerifiedIdentity): NextResponse {
+  if (identity.newGuestSessionToken) {
+    response.cookies.set('s2p_guest_session', identity.newGuestSessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60 // 30 days
+    });
+  }
+  return response;
 }
