@@ -1214,17 +1214,22 @@ export default function DirectPrintPage() {
             {/* Place Order CTA Button */}
             <button
               type="submit"
-              disabled={isSubmittingOrder || !quote}
-              className="w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm tracking-wide shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              disabled={isSubmittingOrder || !quote || (availability !== null && !availability.available)}
+              className="w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm tracking-wide shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
-              {(availability !== null && !availability.available) ? (<span>Intake Paused • Ask Staff</span>) : isSubmittingOrder ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+              {availability !== null && !availability.available ? (
+                <span>{availability.message || "Intake Paused • Ask Staff"}</span>
+              ) : isSubmittingOrder ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Submitting Order...</span>
+                </>
               ) : (
-                <Printer className="w-5 h-5" />
+                <>
+                  <Printer className="w-5 h-5" />
+                  <span>{`Submit Order • ${formatRupees(quote?.totalRupees)}`}</span>
+                </>
               )}
-              <span>
-                {`Submit Order • ${formatRupees(quote?.totalRupees)}`}
-              </span>
             </button>
           </form>
         )}

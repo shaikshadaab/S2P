@@ -1,5 +1,6 @@
-﻿"use client";
+"use client";
 
+import { formatPaiseToRupees, formatRupees, safeFixed } from "@/lib/format";
 import React, { useState, useEffect } from "react";
 import {
   Tag,
@@ -96,7 +97,7 @@ export default function DashboardPricingPage() {
         if (setSnap.exists()) {
           const sData = setSnap.data() as ShopPricingSettings;
           if (sData.minimumOrderPaise) {
-            setRates(prev => ({ ...prev, minimumOrder: (sData.minimumOrderPaise / 100).toFixed(2) }));
+            setRates(prev => ({ ...prev, minimumOrder: sData.minimumOrderPaise ? safeFixed(sData.minimumOrderPaise / 100, 2, "5.00") : "5.00" }));
           }
         }
       } catch (err) {
@@ -542,19 +543,19 @@ export default function DashboardPricingPage() {
                       <td className="py-3 px-4 font-bold text-white">{item.name}</td>
                       <td className="py-3 px-4 text-slate-400 font-mono text-[11px]">{item.calculationNotes}</td>
                       <td className="py-3 px-4 text-right text-slate-300 font-mono">{item.quantity}</td>
-                      <td className="py-3 px-4 text-right text-slate-300 font-mono">₹{(item.unitPricePaise / 100).toFixed(2)}</td>
-                      <td className="py-3 px-4 text-right font-bold text-white font-mono">₹{(item.totalPaise / 100).toFixed(2)}</td>
+                      <td className="py-3 px-4 text-right text-slate-300 font-mono">{formatPaiseToRupees(item.unitPricePaise)}</td>
+                      <td className="py-3 px-4 text-right font-bold text-white font-mono">{formatPaiseToRupees(item.totalPaise)}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot className="bg-[#141d18] border-t border-[#1f2937] font-semibold text-xs">
                   <tr>
                     <td colSpan={4} className="py-2.5 px-4 text-slate-400 text-right">Subtotal:</td>
-                    <td className="py-2.5 px-4 text-right text-white font-mono">₹{(quoteResult.subtotalPaise / 100).toFixed(2)}</td>
+                    <td className="py-2.5 px-4 text-right text-white font-mono">{formatPaiseToRupees(quoteResult.subtotalPaise)}</td>
                   </tr>
                   <tr className="border-t border-[#1f2937] text-sm font-extrabold">
                     <td colSpan={4} className="py-3 px-4 text-emerald-400 text-right uppercase">Total:</td>
-                    <td className="py-3 px-4 text-right text-emerald-400 font-mono text-base">₹{(quoteResult.totalPaise / 100).toFixed(2)}</td>
+                    <td className="py-3 px-4 text-right text-emerald-400 font-mono text-base">{formatPaiseToRupees(quoteResult.totalPaise)}</td>
                   </tr>
                 </tfoot>
               </table>

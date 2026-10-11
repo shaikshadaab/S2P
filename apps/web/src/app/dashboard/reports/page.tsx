@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPaiseToRupees, formatRupees, safeFixed } from "@/lib/format";
 import React, { useState, useEffect } from "react";
 import {
   BarChart3,
@@ -15,7 +16,6 @@ import {
   Loader2,
   FileText
 } from "lucide-react";
-import { formatRupees, safeFixed } from "@/lib/format";
 import { PRIMARY_PILOT_SHOP, BRAND_FULL_NAME, Order } from "@s2p/shared";
 import { useAuth } from "../../../lib/firebase/auth-context";
 
@@ -73,7 +73,7 @@ export default function ReportsPage() {
     (sum, o) => sum + (o.totalPaise || 0),
     0
   );
-  const totalRevenueRupees = (totalRevenuePaise / 100).toFixed(2);
+  const totalRevenueRupees = safeFixed(totalRevenuePaise / 100, 2, "0.00");
 
   const cashRevenuePaise = paidOrders
     .filter((o) => o.paymentMethod === "CASH")
@@ -106,7 +106,7 @@ export default function ReportsPage() {
         o.status,
         o.paymentMethod || "UNKNOWN",
         o.paymentStatus,
-        ((o.totalPaise || 0) / 100).toFixed(2),
+        safeFixed(((o.totalPaise || 0) / 100), 2, "0.00"),
         String(o.items?.reduce((acc, i) => acc + (i.estimatedSheets || 0), 0) || 1)
       ])
     ];
@@ -201,7 +201,7 @@ export default function ReportsPage() {
           </div>
           <div className="mt-3">
             <span className="text-2xl font-black text-white font-mono">
-              ₹{(cashRevenuePaise / 100).toFixed(2)}
+              {formatPaiseToRupees(cashRevenuePaise)}
             </span>
             <p className="mt-1 text-[11px] text-slate-500">
               Physical cash collected at till
@@ -221,7 +221,7 @@ export default function ReportsPage() {
           </div>
           <div className="mt-3">
             <span className="text-2xl font-black text-white font-mono">
-              ₹{((upiRevenuePaise + onlineRevenuePaise) / 100).toFixed(2)}
+              {formatPaiseToRupees(upiRevenuePaise + onlineRevenuePaise)}
             </span>
             <p className="mt-1 text-[11px] text-slate-500">
               Direct UPI + Online gateway payments

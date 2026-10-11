@@ -15,7 +15,7 @@
 **Production Aliased Domains:** `sos-print.vercel.app`, `sos-print-dxsqq9s2e-shaikshadaab951-1346s-projects.vercel.app`  
 **Deployed Commit:** `36a72b3`  
 **Vercel Deployment ID:** `dpl_jtosZhtgHbf57iXo6uisdHSNXmqR`  
-**Windows Agent Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (2,782,466 bytes [2.65 MB], SHA-256: `8B7A581442657D245A492D0B12FD3C10734081E588EA6949141DB25F2AF76345`)
+**Windows Agent Package:** https://sos-print.vercel.app/SOS-Print-Agent-Package.zip (16,112,329 bytes (15.37 MB), SHA-256: `3A7A64A96E1DB5DE0F4F107F064BDCB750C7443D01FF0F1E9739C87580C90DC4`)
 **Source Backup Archive:** `C:\SOSPrint-Backups\SOS-Print-Source-20261010-2054.zip` (72.29 MB, SHA-256: `67C628D94AE2E59C374FB3544EF39204EEBEA6E33A4AE3EFD7B4D6F6D7039DFE`)
 
 ---
@@ -23,6 +23,18 @@
 ## 1. Authoritative Four-Category Status Matrix
 
 ### Category A: IMPLEMENTED & HOSTED-VERIFIED
+### Category A (Final Single PC & Single Printer Repair): Complete Production Reconciliation
+
+| Feature | Scope / Route | Verification Method | Status |
+|---|---|---|---|
+| **Single Authorized Windows PC Identity** | Firestore `devices`, `shops`, Agent DPAPI | Reconciled to exactly ONE verified active PC: `SHAKEEL PC` (`dev_mv3i3w5y_d9b5539c` on `DESKTOP-62D2CMR`). All 6 obsolete and synthetic test devices retired/revoked. Stored DPAPI credentials and active heartbeats verified (every 30s). | **HOSTED-VERIFIED** |
+| **Single Active Physical Printer Mapping** | Firestore `printers`, `shops`, Windows Spooler | Reconciled to exactly ONE active printer: `HP SHADAAB Smart Tank 580-590 series` (`dev_mv3i3w5y_d9b5539c_hp_shadaab_smart_tank_580-590_series`, Preferred: true, Default: true, Spooler Ready). All stale/duplicate/virtual queues purged. | **HOSTED-VERIFIED** |
+| **Windows Agent Launcher & Package Completeness** | `SOS-Print-Agent-Package.zip`, `Start-SOS-Print.bat`, `start-agent.bat` | Packaged archive (16,112,329 bytes (15.37 MB), SHA-256: `3A7A64A96E1DB5DE0F4F107F064BDCB750C7443D01FF0F1E9739C87580C90DC4`) contains `Start-SOS-Print.bat`, `start-agent.bat`, `S2P.Agent.Worker.exe`, `PdfiumViewer.dll`, native `x64\pdfium.dll`, `x86\pdfium.dll`, and all dependencies. Zero secrets in ZIP. | **HOSTED-VERIFIED** |
+| **Mobile Checkout Button Unambiguity** | `/print` (`DirectPrintPage`) | Fixed confusing combined "Intake Paused" + "Submit Order" button. Button is disabled when intake is paused and displays exclusively the pause guidance message. | **HOSTED-VERIFIED** |
+| **Frontend JavaScript Crash Elimination** | `/pricing`, `/counter`, `/reports`, `/payments` | Replaced all vulnerable `.toFixed(2)` calls on potentially undefined numeric properties with `formatPaiseToRupees` and `safeFixed`. Unknown amounts safely render as '—' without throwing TypeError. | **HOSTED-VERIFIED** |
+| **Simplified Owner Operational Dashboard** | `/dashboard/printers` | Streamlined into 3 clear pillars: SHOP PC (SHAKEEL PC, Online/Offline, v0.1.0, Heartbeat), PRINTER (HP Smart Tank 580-590, Queue, Preferred, Spooler Ready), and PRINTING (Intake State, Pending, Failed, Spooled). Authorized controls for Test Print, Windows Default, and Pause/Resume Intake. | **HOSTED-VERIFIED** |
+| **Customer Intake Safety Hold** | `shops/shakeel-online-services`, `order-service.ts` | Kept safely paused (`manualPause: true`, Commissioning Safety Hold) pending physical test completion by the owner. Authorized owner resume control verified with backend PC/printer availability checks. | **HOSTED-VERIFIED** |
+
 ### Category A (Latest): Physical Print Pipeline, Real Agent Verification & Spooler Execution (Verified Live)
 
 | Feature | Scope / Route | Verification Method | Status |

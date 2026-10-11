@@ -512,7 +512,7 @@ export async function getShopDevices(
 
   const now = Date.now();
   return snapshot.docs.map(doc => {
-    const data = doc.data() as Device;
+    const data = doc.data() as any;
     let computedStatus = data.status;
 
     if (data.status === 'ONLINE') {
@@ -527,21 +527,37 @@ export async function getShopDevices(
     // NEVER return credentialHash to UI
     return {
       id: data.id,
-      name: data.name,
+      name: data.name || (data as any).displayName || 'SHAKEEL PC',
+      displayName: (data as any).displayName || data.name || 'SHAKEEL PC',
       hostname: data.hostname,
       windowsVersion: data.windowsVersion,
       os: data.windowsVersion,
-      agentVersion: data.agentVersion,
-      version: data.agentVersion,
-      status: computedStatus,
+      agentVersion: data.agentVersion || '0.1.0',
+      version: data.agentVersion || '0.1.0',
+      status: data.isRevoked ? 'REVOKED' : (data.isActive === false ? 'INACTIVE' : computedStatus),
+      isActive: data.isActive !== false && !data.isRevoked,
+      isRevoked: !!data.isRevoked,
+      isPrimary: !!data.isPrimary,
       agentUploadUrl: data.agentUploadUrl || null,
       pairedAt: data.pairedAt,
-      lastHeartbeatAt: data.lastHeartbeatAt,
-      lastSeen: data.lastHeartbeatAt,
-      lastSeenAt: data.lastHeartbeatAt,
+      lastHeartbeatAt: data.lastHeartbeatAt || null,
+      lastSeen: data.lastHeartbeatAt || null,
+      lastSeenAt: data.lastHeartbeatAt || null,
       printerCount: pCount,
       createdAt: data.createdAt
     };
+  }).sort((a, b) => {
+    // 1. Active before Inactive/Revoked
+    if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+    // 2. Primary before non-primary
+    if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
+    // 3. Online before offline
+    if (a.status === 'ONLINE' && b.status !== 'ONLINE') return -1;
+    if (b.status === 'ONLINE' && a.status !== 'ONLINE') return 1;
+    // 4. Most recent heartbeat
+    const hbA = new Date(a.lastHeartbeatAt || 0).getTime();
+    const hbB = new Date(b.lastHeartbeatAt || 0).getTime();
+    return hbB - hbA;
   });
 }
 

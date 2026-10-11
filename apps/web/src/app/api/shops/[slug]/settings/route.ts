@@ -34,7 +34,12 @@ export async function GET(
         shopName: shopData?.name || PRIMARY_PILOT_SHOP.name,
         phone: shopData?.phone || "+91 95815 29381",
         googleReviewUrl: shopData?.googleReviewUrl || "",
-        printDispatchMode: shopData?.printDispatchMode || shopData?.settings?.printDispatchMode || 'MANUAL_QUEUE'
+        printDispatchMode: shopData?.printDispatchMode || shopData?.settings?.printDispatchMode || 'MANUAL_QUEUE',
+        manualPause: shopData?.manualPause === true || shopData?.settings?.manualPause === true,
+        manualPauseReason: shopData?.manualPauseReason || (shopData?.manualPause ? 'COMMISSIONING_HOLD' : null),
+        commissionedAt: shopData?.commissionedAt || null,
+        activeDeviceId: shopData?.activeDeviceId || null,
+        defaultPrinterId: shopData?.defaultPrinterId || null
       }
     });
   } catch (err: unknown) {
@@ -76,6 +81,33 @@ export async function POST(
     }
     if (typeof body.printDispatchMode === 'string' && ['MANUAL_QUEUE', 'AUTO_AFTER_PAYMENT'].includes(body.printDispatchMode)) {
       updateData.printDispatchMode = body.printDispatchMode;
+    }
+    if (typeof body.manualPause === 'boolean') {
+      if (body.manualPause === false) {
+        // Validation before unpausing: Ensure an active device is online
+        const devicesSnap = await adminDb.collection('devices').where('shopId', '==', shopId).get();
+        const now = Date.now();
+        const hasOnlineDevice = devicesSnap.docs.some(d => {
+          const dat = d.data();
+          if (dat.isRevoked || dat.isActive === false) return false;
+          const hb = new Date(dat.lastHeartbeatAt || 0).getTime();
+          return now - hb <= 90 * 1000;
+        });
+        if (!hasOnlineDevice) {
+          return NextResponse.json({
+            success: false,
+            error: 'Cannot resume intake: Shop Windows PC is currently offline. Ensure Start-SOS-Print.bat is running.'
+          }, { status: 400 });
+        }
+        updateData.manualPause = false;
+        updateData['settings.manualPause'] = false;
+        updateData.manualPauseReason = null;
+        updateData.commissionedAt = new Date().toISOString();
+      } else {
+        updateData.manualPause = true;
+        updateData['settings.manualPause'] = true;
+        updateData.manualPauseReason = body.manualPauseReason || 'MANUAL_PAUSE';
+      }
     }
 
     await adminDb.collection('shops').doc(shopId).set(updateData, { merge: true });

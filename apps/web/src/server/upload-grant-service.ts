@@ -51,7 +51,7 @@ export async function issueUploadGrant(
   if (shopData?.status !== 'ACTIVE') {
     throw new Error('SHOP_INACTIVE: Target shop is currently inactive.');
   }
-  if (shopData?.settings?.manualPause === true) {
+  if (shopData?.settings?.manualPause === true || shopData?.manualPause === true) {
     // Owner commissioning flow: Allow authorized OWNER or MANAGER to test uploads while public intake is paused
     let isAuthorizedStaff = false;
     if (identity.uid) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPaiseToRupees, formatRupees, safeFixed } from "@/lib/format";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Banknote,
@@ -24,7 +25,6 @@ import {
   Layers,
   ArrowRight
 } from "lucide-react";
-import { formatRupees, safeFixed } from "@/lib/format";
 import { PRIMARY_PILOT_SHOP, Order, getOrderStatusDisplay } from "@s2p/shared";
 import { useAuth } from "../../../lib/firebase/auth-context";
 
@@ -627,7 +627,7 @@ export default function CounterCashierPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500">Exact Amount:</span>
                   <span className="font-mono font-black text-emerald-700 text-sm">
-                    ₹{confirmModalOrder.pricingSnapshot ? (confirmModalOrder.pricingSnapshot.totalPaise / 100).toFixed(2) : (confirmModalOrder.totalAmount || 0).toFixed(2)}
+                    {confirmModalOrder.pricingSnapshot?.totalPaise != null ? formatPaiseToRupees(confirmModalOrder.pricingSnapshot.totalPaise) : formatRupees(confirmModalOrder.totalAmount)}
                   </span>
                 </div>
                 {confirmModalOrder.customerClaimedUtr && (

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPaiseToRupees, formatRupees, safeFixed } from "@/lib/format";
 import React, { useState, useEffect } from "react";
 import {
   CreditCard,
@@ -16,7 +17,6 @@ import {
   DollarSign,
   TrendingUp
 } from "lucide-react";
-import { formatRupees, safeFixed } from "@/lib/format";
 import { PRIMARY_PILOT_SHOP, Order } from "@s2p/shared";
 import { useAuth } from "../../../lib/firebase/auth-context";
 
@@ -105,7 +105,7 @@ export default function DashboardPaymentsPage() {
             <TrendingUp className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-2xl font-black text-[#111827] font-mono mt-2">
-            ₹{(totalCollectedPaise / 100).toFixed(2)}
+            {formatPaiseToRupees(totalCollectedPaise)}
           </div>
           <div className="text-[11px] text-[#475569] mt-1 font-medium">
             {paidOrders.length} verified transactions
@@ -118,7 +118,7 @@ export default function DashboardPaymentsPage() {
             <Banknote className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-2xl font-black text-emerald-700 font-mono mt-2">
-            ₹{(cashTotalPaise / 100).toFixed(2)}
+            {formatPaiseToRupees(cashTotalPaise)}
           </div>
           <div className="text-[11px] text-[#475569] mt-1 font-medium">
             {cashPaidOrders.length} cash orders verified
@@ -131,7 +131,7 @@ export default function DashboardPaymentsPage() {
             <QrCode className="w-4 h-4 text-blue-600" />
           </div>
           <div className="text-2xl font-black text-blue-700 font-mono mt-2">
-            ₹{(upiTotalPaise / 100).toFixed(2)}
+            {formatPaiseToRupees(upiTotalPaise)}
           </div>
           <div className="text-[11px] text-[#475569] mt-1 font-medium">
             {upiPaidOrders.length} direct transfers verified

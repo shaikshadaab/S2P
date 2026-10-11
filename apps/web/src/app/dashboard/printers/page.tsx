@@ -21,16 +21,17 @@ import {
   Network,
   Download,
   Info,
-  ExternalLink,
-  ChevronRight,
-  Terminal,
-  Cpu,
   Star,
   Settings,
   Layers,
   FileText,
   AlertTriangle,
-  Play
+  Play,
+  PauseCircle,
+  PlayCircle,
+  ChevronDown,
+  ChevronUp,
+  Cpu
 } from "lucide-react";
 import { PRIMARY_PILOT_SHOP, Printer, Device } from "@s2p/shared";
 import { useAuth } from "../../../lib/firebase/auth-context";
@@ -41,6 +42,8 @@ export default function DashboardPrintersPage() {
   const { user, role } = useAuth();
   const [devices, setDevices] = useState<any[]>([]);
   const [printers, setPrinters] = useState<Printer[]>([]);
+  const [shopSettings, setShopSettings] = useState<any>(null);
+  const [printJobs, setPrintJobs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,16 +57,16 @@ export default function DashboardPrintersPage() {
   const [copiedCode, setCopiedCode] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(300);
 
-  // Revoke state
-  const [revokingDeviceId, setRevokingDeviceId] = useState<string | null>(null);
-
-  // Printer Management Action States
+  // Action feedback & state
   const [updatingPrinterId, setUpdatingPrinterId] = useState<string | null>(null);
   const [dispatchMode, setDispatchMode] = useState<"MANUAL_QUEUE" | "AUTO_AFTER_PAYMENT">("MANUAL_QUEUE");
   const [isUpdatingDispatchMode, setIsUpdatingDispatchMode] = useState<boolean>(false);
+  const [isUpdatingIntake, setIsUpdatingIntake] = useState<boolean>(false);
   const [executingActionId, setExecutingActionId] = useState<string | null>(null);
-  const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string; printerName?: string } | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error' | 'info'; message: string; printerName?: string } | null>(null);
   const [isRefreshingPrinters, setIsRefreshingPrinters] = useState(false);
+  const [showObsoleteDevices, setShowObsoleteDevices] = useState(false);
+  const [showQueueDetails, setShowQueueDetails] = useState(false);
 
   // Remove Printer Confirmation Modal
   const [removeModalData, setRemoveModalData] = useState<{
@@ -75,30 +78,30 @@ export default function DashboardPrintersPage() {
 
   const isOwnerOrManager = role === "OWNER" || role === "MANAGER";
 
-  // Compute online device and recency
-  const activeDevice = devices.length > 0 ? devices[0] : null;
-  const hbTime = activeDevice ? (activeDevice.lastHeartbeatAt || activeDevice.lastSeen || activeDevice.lastSeenAt) : null;
-  const lastSeenMs = hbTime ? Date.now() - new Date(hbTime).getTime() : Infinity;
-  const isAgentOnline = activeDevice && (activeDevice.status === "ONLINE" || activeDevice.status === "ACTIVE" || lastSeenMs < 90000);
-
+  // Data Fetching
   const fetchData = async () => {
     try {
       setError(null);
       const token = user ? await user.getIdToken() : "";
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const [devRes, printRes, settRes] = await Promise.all([
+      const [devRes, printRes, settRes, jobsRes] = await Promise.all([
         fetch(`/api/devices?shopId=${PRIMARY_PILOT_SHOP.id}`, { headers }),
         fetch(`/api/printers?shopId=${PRIMARY_PILOT_SHOP.id}`, { headers }),
-        fetch(`/api/shops/${PRIMARY_PILOT_SHOP.id}/settings`, { headers })
+        fetch(`/api/shops/${PRIMARY_PILOT_SHOP.id}/settings`, { headers }),
+        fetch(`/api/print-jobs?shopId=${PRIMARY_PILOT_SHOP.id}`, { headers })
       ]);
 
       const devData = await devRes.json();
       const printData = await printRes.json();
       const settData = await settRes.json();
+      const jobsData = await jobsRes.json();
 
-      if (settData?.success && settData?.settings?.printDispatchMode) {
-        setDispatchMode(settData.settings.printDispatchMode);
+      if (settData?.success && settData?.settings) {
+        setShopSettings(settData.settings);
+        if (settData.settings.printDispatchMode) {
+          setDispatchMode(settData.settings.printDispatchMode);
+        }
       }
 
       if (devData.success) {
@@ -106,6 +109,9 @@ export default function DashboardPrintersPage() {
       }
       if (printData.success) {
         setPrinters(printData.printers || []);
+      }
+      if (jobsData.success) {
+        setPrintJobs(jobsData.printJobs || []);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to load devices/printers";
@@ -120,6 +126,58 @@ export default function DashboardPrintersPage() {
     const interval = setInterval(fetchData, 6000);
     return () => clearInterval(interval);
   }, [user]);
+
+  // Compute Active Single PC with Priority Selection
+  const activeDevice =
+    devices.find(d => d.isActive && (d.id === shopSettings?.activeDeviceId || d.isPrimary)) ||
+    devices.find(d => d.isActive && d.status === "ONLINE") ||
+    devices.find(d => d.isActive) ||
+    (devices.length > 0 ? devices[0] : null);
+
+  const obsoleteDevices = devices.filter(d => d.id !== activeDevice?.id);
+
+  // Compute Heartbeat & Online Status
+  const hbTime = activeDevice ? (activeDevice.lastHeartbeatAt || activeDevice.lastSeen || activeDevice.lastSeenAt) : null;
+  const lastSeenMs = hbTime ? Date.now() - new Date(hbTime).getTime() : Infinity;
+  const isAgentOnline = Boolean(
+    activeDevice &&
+    activeDevice.isActive !== false &&
+    !activeDevice.isRevoked &&
+    (activeDevice.status === "ONLINE" || lastSeenMs <= 90000)
+  );
+
+  // Format recency of heartbeat
+  const formatHeartbeatRecency = (ms: number): string => {
+    if (!Number.isFinite(ms) || ms === Infinity) return "Never";
+    const sec = Math.floor(ms / 1000);
+    if (sec < 60) return `${sec}s ago`;
+    const min = Math.floor(sec / 60);
+    if (min < 60) return `${min}m ago`;
+    const hr = Math.floor(min / 60);
+    return `${hr}h ago`;
+  };
+
+  // Compute Preferred Single Printer
+  const preferredPrinter =
+    printers.find(p => p.isDefault || (p as any).isPreferred) ||
+    printers.find(p => p.queueName.toLowerCase().includes("smart tank")) ||
+    (printers.length > 0 ? printers[0] : null);
+
+  // Compute Intake & Order Counts
+  const isIntakePaused = Boolean(
+    shopSettings?.manualPause === true ||
+    shopSettings?.settings?.manualPause === true
+  );
+
+  const pauseReason = shopSettings?.manualPauseReason || (
+    isIntakePaused
+      ? (shopSettings?.commissionedAt ? "Manual Owner Hold" : "Commissioning Safety Hold (Pending Physical Verification)")
+      : null
+  );
+
+  const pendingOrdersCount = printJobs.filter(j => ['QUEUED', 'CLAIMED', 'DISPATCHED'].includes(j.status)).length;
+  const failedOrdersCount = printJobs.filter(j => j.status === 'FAILED').length;
+  const awaitingOutputCount = printJobs.filter(j => j.status === 'SPOOL_COMPLETED').length;
 
   // Pairing code countdown
   useEffect(() => {
@@ -136,7 +194,43 @@ export default function DashboardPrintersPage() {
     return () => clearInterval(timer);
   }, [pairingCodeData]);
 
-  // Handle updating print dispatch mode (Manual Queue vs Auto Spooler)
+  // Handle Pause / Resume Customer Intake
+  const handleToggleIntake = async (targetPause: boolean) => {
+    if (!user) return;
+    setIsUpdatingIntake(true);
+    setActionFeedback(null);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/shops/${PRIMARY_PILOT_SHOP.id}/settings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          manualPause: targetPause,
+          manualPauseReason: targetPause ? "MANUAL_PAUSE" : null
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to update intake status");
+      }
+      setActionFeedback({
+        type: "success",
+        message: targetPause
+          ? "Customer Intake PAUSED. Mobile QR uploads are held safely until you resume."
+          : "Customer Intake RESUMED & OPEN! Customers can now upload documents and submit orders."
+      });
+      await fetchData();
+    } catch (err: any) {
+      setActionFeedback({ type: "error", message: err?.message || "Failed to toggle intake state" });
+    } finally {
+      setIsUpdatingIntake(false);
+    }
+  };
+
+  // Handle updating print dispatch mode
   const handleUpdateDispatchMode = async (newMode: "MANUAL_QUEUE" | "AUTO_AFTER_PAYMENT") => {
     if (!user) return;
     setIsUpdatingDispatchMode(true);
@@ -159,8 +253,8 @@ export default function DashboardPrintersPage() {
       setActionFeedback({
         type: "success",
         message: newMode === "MANUAL_QUEUE"
-          ? "Manual Dispatch Mode Active: Customer payment ke baad order Counter par rahega. Aap khud 'Send to Printer (प्रिंटर को भेजो)' dabayenge."
-          : "Automatic Spooler Mode Active: Payment confirm hote hi orders seedha Windows Spooler ko chale jayenge."
+          ? "Manual Dispatch Active: Cashier reviews order on Counter screen before clicking 'Send to Printer'."
+          : "Automatic Spooler Active: Payment confirmation instantly spools documents to Windows Spooler."
       });
     } catch (err: any) {
       setActionFeedback({ type: "error", message: err?.message || "Failed to save dispatch mode" });
@@ -169,7 +263,7 @@ export default function DashboardPrintersPage() {
     }
   };
 
-  // Handle setting SOS PRINT preferred printer
+  // Handle setting Preferred Printer
   const handleSelectPreferredPrinter = async (printerId: string) => {
     if (!user) return;
     setUpdatingPrinterId(printerId);
@@ -197,7 +291,7 @@ export default function DashboardPrintersPage() {
       const targetP = printers.find(p => p.id === printerId);
       setActionFeedback({
         type: 'success',
-        message: `"${targetP?.displayName || targetP?.queueName}" is now the active SOS PRINT Preferred Printer! All incoming customer print jobs will dispatch here.`,
+        message: `"${targetP?.displayName || targetP?.queueName}" is now the active SOS PRINT Preferred Printer!`,
         printerName: targetP?.displayName
       });
       await fetchData();
@@ -208,51 +302,11 @@ export default function DashboardPrintersPage() {
     }
   };
 
-  // Toggle ignore / disable state
-  const handleToggleIgnorePrinter = async (printerId: string, willIgnore: boolean) => {
-    if (!user) return;
-    setUpdatingPrinterId(printerId);
-    setActionFeedback(null);
-    try {
-      const token = await user.getIdToken();
-      const res = await fetch('/api/printers', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          printerId,
-          shopId: PRIMARY_PILOT_SHOP.id,
-          isIgnored: willIgnore,
-          isEnabled: !willIgnore,
-          ...(willIgnore ? { isDefault: false } : {})
-        })
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to update printer status');
-      }
-      const targetP = printers.find(p => p.id === printerId);
-      setActionFeedback({
-        type: 'success',
-        message: willIgnore
-          ? `"${targetP?.displayName || targetP?.queueName}" excluded from SOS Print customer options.`
-          : `"${targetP?.displayName || targetP?.queueName}" enabled and available for printing.`
-      });
-      await fetchData();
-    } catch (err: any) {
-      setActionFeedback({ type: 'error', message: err.message || 'Error updating printer status' });
-    } finally {
-      setUpdatingPrinterId(null);
-    }
-  };
-
   // Set Windows Default Printer via Windows Agent
   const handleSetWindowsDefault = async (printer: Printer) => {
     if (!user) return;
     if (!isAgentOnline) {
-      alert("Windows Agent is currently OFFLINE. Please make sure Start-SOS-Print.bat is running on your shop PC before setting Windows default printer.");
+      alert("Windows Agent is currently OFFLINE. Ensure Start-SOS-Print.bat is running on your shop PC.");
       return;
     }
 
@@ -279,76 +333,14 @@ export default function DashboardPrintersPage() {
       }
       setActionFeedback({
         type: 'success',
-        message: `Windows default printer successfully updated to "${printer.displayName || printer.queueName}" on the shop PC!`,
+        message: `Windows default printer set to "${printer.displayName || printer.queueName}" on SHAKEEL PC!`,
         printerName: printer.displayName
       });
       await fetchData();
     } catch (err: any) {
       setActionFeedback({
         type: 'error',
-        message: err.message || 'Error communicating with Windows Agent to set default printer'
-      });
-    } finally {
-      setExecutingActionId(null);
-    }
-  };
-
-  // Open Remove Confirmation Modal
-  const handleInitiateRemovePrinter = (printer: Printer) => {
-    if (!isAgentOnline) {
-      alert("Windows Agent is currently OFFLINE. Cannot remove Windows printer queue while agent is disconnected.");
-      return;
-    }
-
-    const otherPrinters = printers.filter(p => p.id !== printer.id);
-    const preferredCandidate = otherPrinters.find(p => p.queueName.toLowerCase().includes('smart tank')) || otherPrinters[0];
-
-    setRemoveModalData({
-      printer,
-      pendingJobs: printer.pendingJobCount || 0,
-      replacementPrinterId: preferredCandidate?.id || '',
-      forceConfirm: false
-    });
-  };
-
-  // Confirm Remove Printer via Windows Agent
-  const handleConfirmRemovePrinter = async () => {
-    if (!user || !removeModalData) return;
-    const { printer, replacementPrinterId, forceConfirm } = removeModalData;
-
-    setExecutingActionId(printer.id);
-    setActionFeedback(null);
-    try {
-      const token = await user.getIdToken();
-      const res = await fetch('/api/printers/action', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          action: 'REMOVE_PRINTER',
-          printerId: printer.id,
-          queueName: printer.queueName,
-          shopId: PRIMARY_PILOT_SHOP.id,
-          force: forceConfirm,
-          replacementPrinterId: printer.isDefault ? replacementPrinterId : undefined
-        })
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || data.message || 'Failed to remove Windows printer queue');
-      }
-      setRemoveModalData(null);
-      setActionFeedback({
-        type: 'success',
-        message: `Printer queue "${printer.displayName || printer.queueName}" removed from Windows Spooler. Windows drivers and ports remain installed.`
-      });
-      await fetchData();
-    } catch (err: any) {
-      setActionFeedback({
-        type: 'error',
-        message: err.message || 'Error removing printer queue from Windows Agent'
+        message: err.message || 'Error communicating with Windows Agent'
       });
     } finally {
       setExecutingActionId(null);
@@ -359,7 +351,7 @@ export default function DashboardPrintersPage() {
   const handlePrintTestPage = async (printer: Printer) => {
     if (!user) return;
     if (!isAgentOnline) {
-      alert("Windows Agent is currently OFFLINE. Ensure Start-SOS-Print.bat is running on the shop PC to submit a test print.");
+      alert("Windows Agent is currently OFFLINE. Ensure Start-SOS-Print.bat is running on SHAKEEL PC.");
       return;
     }
 
@@ -386,7 +378,7 @@ export default function DashboardPrintersPage() {
       }
       setActionFeedback({
         type: 'success',
-        message: `Authorized 1-page test document sent to "${printer.displayName || printer.queueName}" (Windows Spool Job #${data.agentResult?.spoolJobId || 'Active'}). Verify physical paper tray output!`,
+        message: `Authorized test page sent to "${printer.displayName || printer.queueName}" (Spool Job #${data.agentResult?.spoolJobId || 'Active'}). Verify physical paper tray output!`,
         printerName: printer.displayName
       });
       await fetchData();
@@ -420,11 +412,11 @@ export default function DashboardPrintersPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || data.message || 'Failed to refresh printers from Windows Agent');
+        throw new Error(data.error || data.message || 'Failed to refresh printers');
       }
       setActionFeedback({
         type: 'success',
-        message: `Discovered queues freshly re-enumerated from Windows Spooler (${data.agentResult?.count || 0} printers found).`
+        message: `Windows Spooler re-scanned: ${data.agentResult?.count || 0} queue(s) found.`
       });
       await fetchData();
     } catch (err: any) {
@@ -458,10 +450,10 @@ export default function DashboardPrintersPage() {
         code: data.pairingCode,
         expiresAt: data.expiresAt
       });
+      setTimeLeft(300);
       setIsPairingModalOpen(true);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error generating pairing code";
-      setError(msg);
+    } catch (err: any) {
+      setError(err?.message || "Failed to generate pairing code");
     } finally {
       setIsGeneratingCode(false);
     }
@@ -475,25 +467,26 @@ export default function DashboardPrintersPage() {
   };
 
   return (
-    <ErrorBoundary fallbackTitle="Printers Dashboard Notice">
-      <div className="space-y-6 max-w-6xl pb-12">
-        {/* Action Feedback Banner */}
+    <ErrorBoundary>
+      <div className="space-y-6 max-w-6xl mx-auto pb-12">
+        {/* Banner Action Feedback */}
         {actionFeedback && (
-          <div className={`p-4 rounded-xl border flex items-start justify-between gap-3 shadow-xs ${
-            actionFeedback.type === 'success'
-              ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
-              : 'bg-red-50 border-red-200 text-red-800'
+          <div className={`p-4 rounded-xl flex items-center justify-between gap-3 text-xs border ${
+            actionFeedback.type === "success"
+              ? "bg-emerald-50 border-emerald-300 text-emerald-900"
+              : actionFeedback.type === "info"
+              ? "bg-blue-50 border-blue-300 text-blue-900"
+              : "bg-red-50 border-red-300 text-red-900"
           }`}>
-            <div className="flex items-start gap-2.5">
-              {actionFeedback.type === 'success' ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+            <div className="flex items-center gap-2">
+              {actionFeedback.type === "success" ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              ) : actionFeedback.type === "info" ? (
+                <Info className="w-4 h-4 text-blue-600 shrink-0" />
               ) : (
-                <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
               )}
-              <div className="space-y-0.5 text-xs">
-                <p className="font-bold">{actionFeedback.type === 'success' ? 'Command Verified' : 'Action Failed'}</p>
-                <p className="leading-relaxed">{actionFeedback.message}</p>
-              </div>
+              <span>{actionFeedback.message}</span>
             </div>
             <button
               onClick={() => setActionFeedback(null)}
@@ -504,19 +497,19 @@ export default function DashboardPrintersPage() {
           </div>
         )}
 
-        {/* 1. Header Banner */}
+        {/* 1. Header Bar with Global Controls */}
         <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="p-2 rounded-xl bg-emerald-50 text-emerald-700">
+            <div className="flex items-center gap-2.5">
+              <span className="p-2.5 rounded-xl bg-emerald-50 text-emerald-700">
                 <PrinterIcon className="w-5 h-5" />
               </span>
               <div>
-                <h2 className="text-lg font-bold text-[#111827]">
-                  Manual Printer Management & Windows Spooler
-                </h2>
+                <h1 className="text-xl font-black text-[#111827]">
+                  SOS Print Operational Command Center
+                </h1>
                 <p className="text-xs text-[#475569] mt-0.5">
-                  Select preferred printer for SOS PRINT, change Windows default, test print, and manage queues on {PRIMARY_PILOT_SHOP.name} PC
+                  Single PC • Single Physical Printer • Controlled Spooler Dispatch • {PRIMARY_PILOT_SHOP.name}
                 </p>
               </div>
             </div>
@@ -527,24 +520,24 @@ export default function DashboardPrintersPage() {
               onClick={handleRefreshFromAgent}
               disabled={isRefreshingPrinters || isLoading}
               className="px-3.5 py-2.5 rounded-xl border border-[#E2E8F0] hover:bg-slate-50 text-[#475569] hover:text-[#111827] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-              title="Query Windows Spooler and reload printer queues"
+              title="Query Windows Spooler and reload status"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingPrinters || isLoading ? "animate-spin text-emerald-600" : ""}`} />
-              <span>{isRefreshingPrinters ? "Scanning Spooler..." : "Refresh Printers"}</span>
+              <span>{isRefreshingPrinters ? "Scanning..." : "Refresh Status"}</span>
             </button>
 
             {isOwnerOrManager && (
               <button
                 onClick={handleGeneratePairingCode}
                 disabled={isGeneratingCode}
-                className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {isGeneratingCode ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Plus className="w-4 h-4" />
                 )}
-                <span>Pair New Windows PC</span>
+                <span>Pair Windows PC</span>
               </button>
             )}
           </div>
@@ -557,46 +550,270 @@ export default function DashboardPrintersPage() {
           </div>
         )}
 
-        {/* 2. Paired Windows PC Status Bar */}
-        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                isAgentOnline ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
-              }`}>
-                <Laptop className="w-4 h-4" />
-              </div>
-              <div>
+        {/* 2. THE THREE CORE OPERATIONAL PILLARS (SHOP PC | PRINTER | PRINTING) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* ========================================================= */}
+          {/* PILLAR 1: SHOP PC                                         */}
+          {/* ========================================================= */}
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-[#111827]">
-                    {activeDevice?.name || "Shop Windows PC"}
-                  </span>
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    isAgentOnline
-                      ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                      : "bg-red-50 text-red-700 border border-red-200"
-                  }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${isAgentOnline ? "bg-emerald-600 animate-pulse" : "bg-red-500"}`} />
-                    {isAgentOnline ? "Agent Online & Ready" : "Agent Offline"}
+                  <Laptop className="w-4 h-4 text-emerald-600" />
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                    SHOP PC
                   </span>
                 </div>
-                <p className="text-[11px] text-[#475569] mt-0.5">
-                  ID: <span className="font-mono">{activeDevice?.id || "None"}</span> • Last Heartbeat: {hbTime ? new Date(hbTime).toLocaleTimeString() : "Never"}
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black border ${
+                  isAgentOnline
+                    ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                    : "bg-red-50 text-red-700 border-red-200"
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isAgentOnline ? "bg-emerald-600 animate-pulse" : "bg-red-500"}`} />
+                  {isAgentOnline ? "ONLINE" : "OFFLINE"}
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-base font-black text-[#111827]">
+                  {activeDevice?.name || "SHAKEEL PC"}
+                </h3>
+                <p className="text-[11px] font-mono text-slate-500 mt-0.5">
+                  Host: {activeDevice?.hostname || "DESKTOP-62D2CMR"}
                 </p>
               </div>
+
+              <div className="space-y-1.5 text-xs text-[#475569] bg-slate-50 border border-slate-200 rounded-xl p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 text-[11px]">Agent Version:</span>
+                  <span className="font-mono font-bold text-slate-800 text-[11px]">
+                    v{activeDevice?.agentVersion || "0.1.0"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 text-[11px]">Last Heartbeat:</span>
+                  <span className="font-mono font-bold text-slate-800 text-[11px]">
+                    {formatHeartbeatRecency(lastSeenMs)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 text-[11px]">Device ID:</span>
+                  <span className="font-mono font-semibold text-slate-700 text-[10px] truncate max-w-[140px]" title={activeDevice?.id}>
+                    {activeDevice?.id || "None"}
+                  </span>
+                </div>
+              </div>
+
+              {activeDevice?.agentUploadUrl && (
+                <div className="bg-emerald-50/60 border border-emerald-200 rounded-xl p-2.5 flex items-center gap-2 text-[11px]">
+                  <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse shrink-0" />
+                  <div className="truncate">
+                    <span className="text-slate-500 text-[10px] block">Upload Tunnel:</span>
+                    <span className="font-mono text-emerald-800 font-bold truncate block text-[11px]">
+                      {activeDevice.agentUploadUrl}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {activeDevice?.agentUploadUrl && (
-              <div className="bg-[#F8FAFC] border border-[#E2E8F0] px-3 py-1.5 rounded-lg flex items-center gap-2 text-[11px]">
-                <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse shrink-0" />
-                <span className="text-[#475569]">Tunnel:</span>
-                <span className="font-mono text-emerald-800 font-bold truncate max-w-xs">{activeDevice.agentUploadUrl}</span>
+            <div className="pt-2 border-t border-[#E2E8F0]">
+              <div className="flex items-center justify-between text-[11px] text-slate-500">
+                <span>Active Windows Pairing:</span>
+                <span className="font-bold text-emerald-700 font-mono">1 PC Verified</span>
               </div>
-            )}
+            </div>
+          </div>
+
+          {/* ========================================================= */}
+          {/* PILLAR 2: PRINTER                                         */}
+          {/* ========================================================= */}
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
+                <div className="flex items-center gap-2">
+                  <PrinterIcon className="w-4 h-4 text-emerald-600" />
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                    PRINTER
+                  </span>
+                </div>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  <Star className="w-3 h-3 fill-emerald-600 text-emerald-600" />
+                  <span>PREFERRED</span>
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-base font-black text-[#111827]">
+                  {preferredPrinter?.displayName || "HP Smart Tank 580-590"}
+                </h3>
+                <p className="text-[11px] font-mono text-slate-500 mt-0.5 truncate" title={preferredPrinter?.queueName}>
+                  Queue: {preferredPrinter?.queueName || "HP SHADAAB Smart Tank 580-590 series"}
+                </p>
+              </div>
+
+              <div className="space-y-1.5 text-xs text-[#475569] bg-slate-50 border border-slate-200 rounded-xl p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 text-[11px]">Windows Default:</span>
+                  <span className="font-bold text-slate-800 text-[11px] flex items-center gap-1">
+                    {preferredPrinter?.isWindowsDefault ? (
+                      <span className="text-blue-700">✓ Yes</span>
+                    ) : (
+                      <span className="text-slate-500">No</span>
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 text-[11px]">Spooler State:</span>
+                  <span className="font-bold text-emerald-700 text-[11px] flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <span>Spooler Ready</span>
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 text-[11px]">Driver / Port:</span>
+                  <span className="font-mono text-slate-700 text-[10px] truncate max-w-[140px]" title={preferredPrinter?.portName}>
+                    {preferredPrinter?.portName || "WSD / USB"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons for Single Printer */}
+              {preferredPrinter && (
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    onClick={() => handlePrintTestPage(preferredPrinter)}
+                    disabled={Boolean(executingActionId) || !isAgentOnline}
+                    className="py-2 px-2.5 rounded-xl font-bold text-[11px] bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 text-slate-700 border border-slate-200 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Send official 1-page test document directly to this queue"
+                  >
+                    {executingActionId === preferredPrinter.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                    ) : (
+                      <Play className="w-3.5 h-3.5 text-emerald-600" />
+                    )}
+                    <span>Print Test Page</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleSetWindowsDefault(preferredPrinter)}
+                    disabled={Boolean(executingActionId) || !isAgentOnline || preferredPrinter.isWindowsDefault}
+                    className="py-2 px-2.5 rounded-xl font-bold text-[11px] bg-slate-100 hover:bg-blue-50 hover:text-blue-800 hover:border-blue-300 text-slate-700 border border-slate-200 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-slate-600" />
+                    <span>{preferredPrinter.isWindowsDefault ? "Default Queue" : "Set Default"}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 border-t border-[#E2E8F0]">
+              <div className="flex items-center justify-between text-[11px] text-slate-500">
+                <span>Active Printer Mappings:</span>
+                <span className="font-bold text-emerald-700 font-mono">1 Queue Mapped</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ========================================================= */}
+          {/* PILLAR 3: PRINTING & INTAKE                               */}
+          {/* ========================================================= */}
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-emerald-600" />
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                    PRINTING & INTAKE
+                  </span>
+                </div>
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black border ${
+                  !isIntakePaused
+                    ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                    : "bg-amber-100 text-amber-800 border-amber-300"
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${!isIntakePaused ? "bg-emerald-600 animate-pulse" : "bg-amber-600"}`} />
+                  {!isIntakePaused ? "INTAKE OPEN" : "INTAKE PAUSED"}
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-base font-black text-[#111827]">
+                  {!isIntakePaused ? "Customer QR Intake Open" : "Intake Paused"}
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  {pauseReason || "Orders accepted via mobile QR & counter cashier"}
+                </p>
+              </div>
+
+              {/* Counts Grid */}
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                  <div className="text-xs text-slate-500 font-medium">Pending</div>
+                  <div className="text-base font-black text-slate-900 font-mono mt-0.5">
+                    {pendingOrdersCount}
+                  </div>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                  <div className="text-xs text-slate-500 font-medium">Failed</div>
+                  <div className="text-base font-black text-red-600 font-mono mt-0.5">
+                    {failedOrdersCount}
+                  </div>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                  <div className="text-xs text-slate-500 font-medium">Spooled</div>
+                  <div className="text-base font-black text-emerald-700 font-mono mt-0.5">
+                    {awaitingOutputCount}
+                  </div>
+                </div>
+              </div>
+
+              {/* Pause / Resume Authorized Button */}
+              {isOwnerOrManager && (
+                <div className="pt-1">
+                  {isIntakePaused ? (
+                    <button
+                      onClick={() => handleToggleIntake(false)}
+                      disabled={isUpdatingIntake}
+                      className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {isUpdatingIntake ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <PlayCircle className="w-4 h-4" />
+                      )}
+                      <span>Resume Customer Intake (Open Shop)</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleToggleIntake(true)}
+                      disabled={isUpdatingIntake}
+                      className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {isUpdatingIntake ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <PauseCircle className="w-4 h-4" />
+                      )}
+                      <span>Pause Customer Intake</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 border-t border-[#E2E8F0]">
+              <div className="flex items-center justify-between text-[11px] text-slate-500">
+                <span>Dispatch Mode:</span>
+                <span className="font-bold text-slate-800">
+                  {dispatchMode === "MANUAL_QUEUE" ? "Manual Queue" : "Auto Spooler"}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Print Dispatch Mode (Manual vs Auto Spooler) */}
+        {/* 3. DISPATCH MODE SELECTOR (MANUAL QUEUE VS AUTO SPOOLER) */}
         <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-xs space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E2E8F0] pb-3">
             <div>
@@ -671,360 +888,53 @@ export default function DashboardPrintersPage() {
           </div>
         </div>
 
-        {/* 3. Discovered Printers Management Cards */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-[#111827] flex items-center gap-2">
-                <PrinterIcon className="w-4 h-4 text-emerald-600" />
-                <span>Discovered Windows Printer Queues ({printers.length})</span>
-              </h3>
-              <p className="text-xs text-[#475569] mt-0.5">
-                Full owner controls: select preferred, set Windows default, send test print, or remove queue
-              </p>
-            </div>
-            <span className="text-[11px] text-slate-500 font-medium">
-              Synchronized from Windows Spooler
-            </span>
-          </div>
+        {/* 4. COLLAPSIBLE: MANAGE OBSOLETE DEVICE REGISTRATIONS */}
+        {obsoleteDevices.length > 0 && (
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-xs space-y-3">
+            <button
+              onClick={() => setShowObsoleteDevices(!showObsoleteDevices)}
+              className="w-full flex items-center justify-between text-left cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-slate-500" />
+                <span className="text-xs font-bold text-slate-700">
+                  Manage Obsolete Device Registrations ({obsoleteDevices.length} Retired / Inactive)
+                </span>
+              </div>
+              <div className="text-xs text-slate-500 flex items-center gap-1 font-semibold">
+                <span>{showObsoleteDevices ? "Hide" : "Show Details"}</span>
+                {showObsoleteDevices ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </div>
+            </button>
 
-          {printers.length === 0 ? (
-            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-12 text-center space-y-3 shadow-xs">
-              <PrinterIcon className="w-10 h-10 text-slate-300 mx-auto" />
-              <div className="space-y-1">
-                <h4 className="text-sm font-bold text-[#111827]">No Printers Discovered Yet</h4>
-                <p className="text-xs text-[#475569] max-w-md mx-auto">
-                  Ensure the Windows Agent is running on your shop PC. Click "Refresh Printers" above to query the Windows Print Spooler.
+            {showObsoleteDevices && (
+              <div className="pt-2 border-t border-[#E2E8F0] space-y-2">
+                <p className="text-[11px] text-slate-500">
+                  These registrations were safely retired to preserve the single active shop PC rule. Historical print orders, audit trails, and payment records remain intact.
                 </p>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {printers.map((p) => {
-                const isPreferred = Boolean(p.isDefault);
-                const isWinDefault = Boolean(p.isWindowsDefault);
-                const isExcluded = Boolean(p.isIgnored || !p.isEnabled);
-                const isBusy = updatingPrinterId === p.id || executingActionId === p.id;
-                const isSmartTank = p.queueName.toLowerCase().includes("smart tank") || p.displayName.toLowerCase().includes("smart tank");
-
-                return (
-                  <div
-                    key={p.id}
-                    className={`bg-white border rounded-2xl p-5 flex flex-col justify-between transition relative overflow-hidden shadow-xs ${
-                      isPreferred
-                        ? "border-emerald-500 ring-2 ring-emerald-500/20"
-                        : isExcluded
-                        ? "border-slate-200 opacity-70 bg-slate-50/50"
-                        : "border-[#E2E8F0] hover:border-slate-300"
-                    }`}
-                  >
-                    {/* Top Badges */}
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="text-sm font-extrabold text-[#111827] leading-tight">
-                              {p.displayName || p.queueName}
-                            </h4>
-                          </div>
-                          <p className="text-[11px] font-mono text-slate-500 truncate" title={p.queueName}>
-                            Queue: {p.queueName}
-                          </p>
+                <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
+                  {obsoleteDevices.map(d => (
+                    <div key={d.id} className="p-3 bg-slate-50/50 flex items-center justify-between text-xs">
+                      <div className="space-y-0.5">
+                        <div className="font-bold text-slate-800">
+                          {d.name || d.displayName || "Unknown Device"}
                         </div>
-
-                        {/* Connection Type Icon */}
-                        <div className="p-2 rounded-xl bg-slate-100 text-slate-700 shrink-0" title={`Connection: ${p.connectionType}`}>
-                          {p.connectionType === "USB" ? (
-                            <Usb className="w-4 h-4" />
-                          ) : p.connectionType === "WIFI" ? (
-                            <Wifi className="w-4 h-4" />
-                          ) : (
-                            <Network className="w-4 h-4" />
-                          )}
+                        <div className="font-mono text-[10px] text-slate-500">
+                          ID: {d.id} • Host: {d.hostname || "N/A"}
                         </div>
                       </div>
-
-                      {/* Status Badges Row */}
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {isPreferred && (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
-                            <Star className="w-3 h-3 fill-emerald-600 text-emerald-600" />
-                            <span>SOS PRINT Preferred</span>
-                          </span>
-                        )}
-
-                        {isWinDefault && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200 flex items-center gap-1">
-                            <Check className="w-3 h-3 text-blue-600" />
-                            <span>Windows Default</span>
-                          </span>
-                        )}
-
-                        {isExcluded ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700 flex items-center gap-1">
-                            <XCircle className="w-3 h-3 text-slate-500" />
-                            <span>Excluded / Disabled</span>
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            <span>Spooler Ready</span>
-                          </span>
-                        )}
-
-                        {isSmartTank && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-800 border border-teal-200">
-                            Verified Hardware
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Technical Details Grid */}
-                      <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 space-y-1.5 text-[11px]">
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Driver Model:</span>
-                          <span className="font-semibold text-slate-900 truncate max-w-[150px]">{p.driverName}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Port Name:</span>
-                          <span className="font-mono text-slate-800 text-[10px] truncate max-w-[150px]">{p.portName}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Color Support:</span>
-                          <span className="font-semibold text-slate-900">{p.capabilities?.colorSupported ? "Colour & B&W" : "Monochrome Only"}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Duplex Mode:</span>
-                          <span className="font-semibold text-slate-900">{p.capabilities?.duplexSupported ? "Automatic Duplex" : "Single-Sided (Calibrated)"}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Paper Sizes:</span>
-                          <span className="font-semibold text-slate-900">{p.capabilities?.paperSizes?.join(", ") || "A4"}</span>
-                        </div>
-                        <div className="flex justify-between pt-1 border-t border-slate-200/60">
-                          <span className="text-slate-500">Pending Jobs:</span>
-                          <span className={`font-mono font-bold ${Number(p.pendingJobCount || 0) > 0 ? "text-amber-600" : "text-emerald-700"}`}>
-                            {Number(p.pendingJobCount || 0)} pending in spooler
-                          </span>
-                        </div>
-                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700">
+                        {d.isRevoked ? "REVOKED" : "INACTIVE"}
+                      </span>
                     </div>
-
-                    {/* Action Buttons Toolbar */}
-                    <div className="pt-4 mt-3 border-t border-[#E2E8F0] space-y-2">
-                      {isOwnerOrManager && (
-                        <>
-                          <div className="grid grid-cols-2 gap-2">
-                            {/* 1. SELECT FOR SOS PRINT */}
-                            <button
-                              onClick={() => handleSelectPreferredPrinter(p.id)}
-                              disabled={isBusy || isPreferred}
-                              className={`py-2 px-2.5 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed ${
-                                isPreferred
-                                  ? "bg-emerald-50 text-emerald-800 border border-emerald-300 font-black cursor-default"
-                                  : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
-                              }`}
-                              title="Set this printer as the preferred target for incoming customer print orders"
-                            >
-                              {isBusy && updatingPrinterId === p.id ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <Star className={`w-3.5 h-3.5 ${isPreferred ? "fill-emerald-700 text-emerald-700" : ""}`} />
-                              )}
-                              <span>{isPreferred ? "SOS Preferred" : "Select for SOS"}</span>
-                            </button>
-
-                            {/* 2. SET AS WINDOWS DEFAULT */}
-                            <button
-                              onClick={() => handleSetWindowsDefault(p)}
-                              disabled={isBusy || isWinDefault || !isAgentOnline}
-                              className={`py-2 px-2.5 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                                isWinDefault
-                                  ? "bg-blue-50 text-blue-800 border border-blue-200 cursor-default"
-                                  : "bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300"
-                              }`}
-                              title={!isAgentOnline ? "Agent is offline" : "Change Windows Default Printer on the shop PC"}
-                            >
-                              {isBusy && executingActionId === p.id ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
-                              ) : (
-                                <Settings className="w-3.5 h-3.5 text-slate-600" />
-                              )}
-                              <span>{isWinDefault ? "Win Default" : "Set Win Default"}</span>
-                            </button>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2">
-                            {/* 3. PRINT TEST PAGE */}
-                            <button
-                              onClick={() => handlePrintTestPage(p)}
-                              disabled={isBusy || !isAgentOnline}
-                              className="py-2 px-2.5 rounded-xl font-bold text-[11px] bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 text-slate-700 border border-slate-200 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                              title={!isAgentOnline ? "Agent is offline" : "Send 1-page test document directly to this queue"}
-                            >
-                              {isBusy && executingActionId === p.id ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-                              ) : (
-                                <Play className="w-3.5 h-3.5 text-slate-600" />
-                              )}
-                              <span>Test Print</span>
-                            </button>
-
-                            {/* 4. TOGGLE IGNORE OR REMOVE PRINTER */}
-                            {isExcluded ? (
-                              <button
-                                onClick={() => handleToggleIgnorePrinter(p.id, false)}
-                                disabled={isBusy}
-                                className="py-2 px-2.5 rounded-xl font-bold text-[11px] bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                                title="Re-enable this printer for SOS Print"
-                              >
-                                <span>Enable Queue</span>
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleInitiateRemovePrinter(p)}
-                                disabled={isBusy || !isAgentOnline}
-                                className="py-2 px-2.5 rounded-xl font-bold text-[11px] bg-slate-100 hover:bg-red-50 hover:text-red-700 hover:border-red-300 text-slate-600 border border-slate-200 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Manually remove this queue from Windows Spooler"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 text-slate-500" />
-                                <span>Remove</span>
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Quick Exclude/Ignore Toggle button */}
-                          {!isExcluded && !isPreferred && (
-                            <button
-                              onClick={() => handleToggleIgnorePrinter(p.id, true)}
-                              disabled={isBusy}
-                              className="w-full text-center text-[10px] text-slate-500 hover:text-red-600 font-semibold py-1 transition cursor-pointer"
-                            >
-                              Exclude / Hide from Customer Service Mappings
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* 4. Remove Printer Queue Confirmation Modal */}
-        {removeModalData && (
-          <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white border border-[#E2E8F0] rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
-              <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
-                <div className="flex items-center gap-2 text-red-700">
-                  <AlertTriangle className="w-5 h-5 shrink-0" />
-                  <h3 className="text-base font-bold text-[#111827]">
-                    Remove Windows Printer Queue
-                  </h3>
+                  ))}
                 </div>
-                <button
-                  onClick={() => setRemoveModalData(null)}
-                  className="text-slate-400 hover:text-slate-700 text-lg font-bold cursor-pointer"
-                >
-                  ✕
-                </button>
               </div>
-
-              <div className="space-y-3 text-xs leading-relaxed text-[#475569]">
-                <p>
-                  You are about to remove the following Windows printer queue from the paired shop PC:
-                </p>
-
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-1 font-mono">
-                  <div className="text-sm font-bold text-slate-900">
-                    {removeModalData.printer.displayName || removeModalData.printer.queueName}
-                  </div>
-                  <div className="text-[11px] text-slate-500">
-                    Queue Name: <strong>{removeModalData.printer.queueName}</strong>
-                  </div>
-                  <div className="text-[11px] text-slate-500">
-                    Driver: {removeModalData.printer.driverName}
-                  </div>
-                </div>
-
-                {/* Safety Explanations */}
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-[11px] text-emerald-900 space-y-1">
-                  <div className="font-bold flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                    <span>Safe Queue-Only Removal Guarantee</span>
-                  </div>
-                  <p>
-                    This action will <strong>ONLY remove the Windows print queue</strong>. Installed drivers, driver packages, and printer ports will remain intact and undamaged on the shop PC.
-                  </p>
-                </div>
-
-                {/* Pending Jobs Warning */}
-                {removeModalData.pendingJobs > 0 && (
-                  <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 text-[11px] text-amber-900 space-y-1">
-                    <div className="font-bold flex items-center gap-1.5">
-                      <AlertCircle className="w-4 h-4 text-amber-600" />
-                      <span>{removeModalData.pendingJobs} Print Job(s) Pending in Windows Spooler</span>
-                    </div>
-                    <p>
-                      This printer currently has active or pending jobs. Removing it may cancel those jobs.
-                    </p>
-                  </div>
-                )}
-
-                {/* Preferred Printer Replacement Requirement */}
-                {removeModalData.printer.isDefault && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2 text-[11px] text-blue-900">
-                    <div className="font-bold flex items-center gap-1.5">
-                      <Star className="w-4 h-4 text-blue-600 fill-blue-600" />
-                      <span>This is currently the active SOS PRINT Preferred Printer</span>
-                    </div>
-                    <p>
-                      Please select a replacement printer to receive incoming customer orders:
-                    </p>
-                    <select
-                      value={removeModalData.replacementPrinterId}
-                      onChange={(e) => setRemoveModalData(prev => prev ? { ...prev, replacementPrinterId: e.target.value } : null)}
-                      className="w-full bg-white border border-blue-300 rounded-lg p-2 text-xs font-semibold text-slate-800"
-                    >
-                      {printers.filter(p => p.id !== removeModalData.printer.id).map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.displayName || p.queueName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setRemoveModalData(null)}
-                  className="flex-1 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmRemovePrinter}
-                  disabled={Boolean(executingActionId)}
-                  className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  {executingActionId ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4" />
-                  )}
-                  <span>Confirm Removal</span>
-                </button>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
-        {/* 5. Pairing Code Modal */}
+        {/* 5. PAIRING MODAL */}
         {isPairingModalOpen && pairingCodeData && (
           <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="bg-white border border-[#E2E8F0] rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl">

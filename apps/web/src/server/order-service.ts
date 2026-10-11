@@ -718,11 +718,16 @@ export async function checkShopPrintingAvailability(
       onlinePhysicalPrinters: 0
     };
   }
-  if (shopData?.settings?.manualPause === true) {
+  if (shopData?.settings?.manualPause === true || shopData?.manualPause === true) {
+    const isCommissioning = shopData?.commissioningHold === true || !shopData?.commissionedAt;
+    const pauseReason = shopData?.manualPauseReason || (isCommissioning ? 'COMMISSIONING_HOLD' : 'MANUAL_PAUSE');
+    const pauseMessage = isCommissioning
+      ? 'Customer intake paused pending physical printer commissioning.'
+      : (shopData?.manualPauseMessage || 'Customer intake is temporarily paused by shop owner.');
     return {
       available: false,
-      reason: 'INTAKE_PAUSED',
-      message: 'Customer intake is temporarily paused by shop staff.',
+      reason: pauseReason,
+      message: pauseMessage,
       onlineDeviceCount: 0,
       onlinePhysicalPrinters: 0
     };
