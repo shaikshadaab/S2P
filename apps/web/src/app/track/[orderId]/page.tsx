@@ -137,13 +137,27 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
 
   const fetchOrder = async () => {
     try {
-      const res = await fetch(`/api/orders?orderId=${params.orderId}`);
+      const headers: Record<string, string> = {};
+      try {
+        const { getAuth } = await import("firebase/auth");
+        const auth = getAuth();
+        if (auth.currentUser) {
+          const token = await auth.currentUser.getIdToken();
+          if (token) headers["Authorization"] = `Bearer ${token}`;
+        }
+      } catch {}
+
+      const res = await fetch(`/api/orders?orderId=${params.orderId}`, { headers });
       const data = await res.json();
       if (!res.ok || !data.success || !data.order) {
+        if (res.status === 404) throw new Error("ORDER_NOT_FOUND");
+        if (res.status === 403) throw new Error("UNAUTHORIZED");
+        if (res.status === 401) throw new Error("SESSION_EXPIRED");
         throw new Error(data.error || "Order not found");
       }
       setOrder(data.order);
       setIsLoading(false);
+      setError(null);
 
       if (data.order.status === 'COMPLETED' || data.order.status === 'READY') {
         fetch(`/api/shops/${data.order.shopId || PRIMARY_PILOT_SHOP.id}/settings`)

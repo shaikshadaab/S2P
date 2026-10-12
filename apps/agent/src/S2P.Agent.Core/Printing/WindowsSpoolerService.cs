@@ -13,6 +13,7 @@ public class SpoolResult
     public string RenderingMethod { get; set; } = "WIN32_DRIVER_SPOOLER";
     public string DataType { get; set; } = "RAW / XPS_PASS (Driver Negotiated)";
     public bool RawPdfDirect { get; set; } = false;
+    public string ErrorCode { get; set; } = string.Empty;
     public string? ErrorMessage { get; set; }
     public bool IsDryRun { get; set; }
 }
@@ -112,104 +113,51 @@ public class WindowsSpoolerService
 
         string ext = Path.GetExtension(filePath).ToLowerInvariant();
 
-        // If file is a PDF, render via native Chromium PDFium engine / Acrobat fallback
+        // 1. PDF rendering pipeline (Chromium PDFium / Acrobat fallback)
         if (ext == ".pdf")
         {
             var pdfResult = RenderAndSpoolPdf(printerQueueName, docTitle, filePath, settings);
-            if (pdfResult.Success)
+            if (!pdfResult.Success)
             {
-                return pdfResult;
-            }
-            Console.WriteLine($"[WindowsSpoolerService] PDF rendering fallback: {pdfResult.ErrorMessage}. Attempting Win32 raw spool.");
-        }
-        else if (ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".bmp" || ext == ".webp")
-        {
-            // If file is an Image, render via Windows GDI+ Raster Pipeline with proper page fitting and scaling
-            var imgResult = RenderAndSpoolImage(printerQueueName, docTitle, filePath, settings);
-            if (imgResult.Success)
-            {
-                return imgResult;
-            }
-            Console.WriteLine($"[WindowsSpoolerService] Image rendering warning: {imgResult.ErrorMessage}. Attempting Win32 raw spool.");
-        }
-
-        // Win32 Direct Spooler fallback
-        if (!OpenPrinter(printerQueueName, out hPrinter, IntPtr.Zero))
-        {
-            var err = Marshal.GetLastWin32Error();
-            return new SpoolResult
-            {
-                Success = false,
-                QueueName = printerQueueName,
-                ErrorMessage = "Failed to open printer queue '" + printerQueueName + "' for fallback (Win32 Error: " + err + ")"
-            };
-        }
-
-        try
-        {
-            var di = new DOCINFOA
-            {
-                pDocName = docTitle,
-                pOutputFile = null,
-                pDataType = "RAW" // Driver pipeline negotiates XPS_PASS on v4 drivers like IPP Class Driver
-            };
-
-            int jobId = StartDocPrinter(hPrinter, 1, di);
-            if (jobId <= 0)
-            {
-                var err = Marshal.GetLastWin32Error();
-                ClosePrinter(hPrinter);
+                Console.WriteLine($"[WindowsSpoolerService] PDF rendering failed: {pdfResult.ErrorMessage}. RAW fallback BLOCKED for document integrity.");
                 return new SpoolResult
                 {
                     Success = false,
+                    ErrorCode = "PDF_RENDER_FAILED",
                     QueueName = printerQueueName,
-                    ErrorMessage = "StartDocPrinter failed with Win32 Error: " + err
+                    ErrorMessage = pdfResult.ErrorMessage ?? "PDF rendering failed."
                 };
             }
-
-            var submittedTime = DateTime.UtcNow;
-
-            StartPagePrinter(hPrinter);
-
-            byte[] fileBytes = File.ReadAllBytes(filePath);
-            IntPtr pBytes = Marshal.AllocHGlobal(fileBytes.Length);
-            try
-            {
-                Marshal.Copy(fileBytes, 0, pBytes, fileBytes.Length);
-                WritePrinter(hPrinter, pBytes, fileBytes.Length, out int written);
-            }
-            finally
-            {
-                Marshal.FreeHGlobal(pBytes);
-            }
-
-            EndPagePrinter(hPrinter);
-            EndDocPrinter(hPrinter);
-            ClosePrinter(hPrinter);
-
-            return new SpoolResult
-            {
-                Success = true,
-                SpoolJobId = jobId,
-                QueueName = printerQueueName,
-                DocumentTitle = docTitle,
-                SubmittedAt = submittedTime,
-                RenderingMethod = "WIN32_DRIVER_SPOOLER",
-                DataType = "RAW / XPS_PASS (Driver Negotiated)",
-                RawPdfDirect = false,
-                IsDryRun = false
-            };
+            return pdfResult;
         }
-        catch (Exception ex)
+
+        // 2. Image rendering pipeline (Windows GDI+ raster pipeline with true aspect ratio)
+        if (ext is ".jpg" or ".jpeg" or ".png" or ".bmp" or ".webp")
         {
-            try { ClosePrinter(hPrinter); } catch { }
-            return new SpoolResult
+            var imgResult = RenderAndSpoolImage(printerQueueName, docTitle, filePath, settings);
+            if (!imgResult.Success)
             {
-                Success = false,
-                QueueName = printerQueueName,
-                ErrorMessage = ex.Message
-            };
+                Console.WriteLine($"[WindowsSpoolerService] Image rendering failed: {imgResult.ErrorMessage}. RAW fallback BLOCKED for document integrity.");
+                return new SpoolResult
+                {
+                    Success = false,
+                    ErrorCode = "IMAGE_RENDER_FAILED",
+                    QueueName = printerQueueName,
+                    ErrorMessage = imgResult.ErrorMessage ?? "Image rendering failed."
+                };
+            }
+            return imgResult;
         }
+
+        // 3. Strict safety invariant: Reject unsupported file formats. NEVER send raw uninterpreted bytes to spooler!
+        Console.WriteLine($"[WindowsSpoolerService] Unsupported file format '{ext}' rejected. RAW fallback BLOCKED.");
+        return new SpoolResult
+        {
+            Success = false,
+            ErrorCode = "UNSUPPORTED_FILE_TYPE",
+            QueueName = printerQueueName,
+            ErrorMessage = $"Unsupported file format '{ext}'. Only verified PDF, JPG, PNG, BMP, and WEBP documents may be spooled."
+        };
     }
 
     public static List<int> GetCurrentSpoolJobIds(string printerQueueName)

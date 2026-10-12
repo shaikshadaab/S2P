@@ -1335,7 +1335,11 @@ export async function updateOrderStatusAtomic(
   const txResult = await db.runTransaction(async (transaction) => {
     const orderRef = db.collection('orders').doc(orderId);
     const orderDoc = await transaction.get(orderRef);
-    if (!orderDoc.exists) throw new Error('Order not found.');
+    if (!orderDoc.exists) {
+    const nfErr = new Error('Order not found.');
+    (nfErr as any).code = 'ORDER_NOT_FOUND';
+    throw nfErr;
+  }
     const order = orderDoc.data() as Order;
 
     // Validate canonical shop member
@@ -1452,6 +1456,24 @@ export async function updateOrderStatusAtomic(
         eventNote = eventNote || 'Order cancelled by staff.';
         break;
 
+      case 'CONFIRM_PRINTED':
+        if (order.status === 'READY') {
+          return { success: true, order, isIdempotent: true, message: 'Order already verified printed and READY.' };
+        }
+        newStatus = 'READY';
+        isStatusChanged = true;
+        eventNote = eventNote || 'Physical paper printout verified and confirmed by staff at counter.';
+        break;
+
+      case 'MARK_COLLECTED':
+        if (order.status === 'COMPLETED') {
+          return { success: true, order, isIdempotent: true, message: 'Order already marked COMPLETED.' };
+        }
+        newStatus = 'COMPLETED';
+        isStatusChanged = true;
+        eventNote = eventNote || 'Printed document collected by customer at counter.';
+        break;
+
       default:
         throw new Error('Unknown staff action: ' + action);
     }
@@ -1556,20 +1578,8 @@ export async function updateOrderStatusAtomic(
   });
 
   if (txResult && (txResult as any).success && (action === 'MARK_CASH_PAID' || action === 'CONFIRM_UPI_PAID')) {
-    try {
-      const shopDoc = await db.collection('shops').doc((txResult as any).order.shopId).get();
-      const shopData = shopDoc.data();
-      const shouldAutoDispatch = shopData?.printDispatchMode === 'AUTO_AFTER_PAYMENT' || shopData?.autoQueueForPrint === true;
-
-      if (shouldAutoDispatch) {
-        const { autoDispatchOrderForPrint } = await import('./print-job-service');
-        await autoDispatchOrderForPrint(db, (txResult as any).order.id, (txResult as any).order.shopId);
-      } else {
-        console.log('[Order ' + (txResult as any).order.id + '] Manual dispatch mode active. Order held for staff manual send to printer.');
-      }
-    } catch (dispErr: any) {
-      console.warn('[updateOrderStatusAtomic] Auto dispatch warning:', dispErr?.message);
-    }
+    // Authoritative MANUAL_QUEUE: Order is held in READY FOR PRINT state for staff to click PRINT NOW
+    console.log('[Order ' + (txResult as any).order.id + '] Payment confirmed. Held in READY FOR PRINT state for staff manual dispatch.');
   }
 
   return txResult;
@@ -1607,7 +1617,11 @@ export async function getOrderAuthoritative(
     }
   }
 
-  if (!allowed) throw new Error('Unauthorized to view this order.');
+  if (!allowed) {
+    const authErr = new Error('Unauthorized to view this order.');
+    (authErr as any).code = 'UNAUTHORIZED';
+    throw authErr;
+  }
   return order;
 }
 

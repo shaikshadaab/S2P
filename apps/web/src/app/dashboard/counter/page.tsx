@@ -64,7 +64,7 @@ export default function CounterCashierPage() {
   const [isCreatingTest, setIsCreatingTest] = useState<boolean>(false);
   const [isSendingOrder, setIsSendingOrder] = useState<Record<string, boolean>>({});
 
-  const handleSendToPrinter = async (orderId: string) => {
+  const handleSendToPrinter = async (orderId: string, forceResend: boolean = false) => {
     setIsSendingOrder(prev => ({ ...prev, [orderId]: true }));
     setActionError(null);
     try {
@@ -75,7 +75,7 @@ export default function CounterCashierPage() {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ shopId: PRIMARY_PILOT_SHOP.id })
+        body: JSON.stringify({ shopId: PRIMARY_PILOT_SHOP.id, forceResend })
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -212,6 +212,62 @@ export default function CounterCashierPage() {
   };
 
   // Confirm receipt of payment
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState<Record<string, boolean>>({});
+
+  const handleConfirmPrinted = async (orderId: string) => {
+    setIsUpdatingStatus(prev => ({ ...prev, [orderId]: true }));
+    setActionError(null);
+    try {
+      const token = user ? await user.getIdToken() : "";
+      const res = await fetch("/api/orders/update-status", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          orderId,
+          action: "CONFIRM_PRINTED",
+          note: "Paper printout verified and confirmed by staff at counter."
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to confirm printed");
+      await fetchOrders();
+    } catch (err: any) {
+      setActionError(err?.message || "Failed to confirm printed");
+    } finally {
+      setIsUpdatingStatus(prev => ({ ...prev, [orderId]: false }));
+    }
+  };
+
+  const handleMarkCollected = async (orderId: string) => {
+    setIsUpdatingStatus(prev => ({ ...prev, [orderId]: true }));
+    setActionError(null);
+    try {
+      const token = user ? await user.getIdToken() : "";
+      const res = await fetch("/api/orders/update-status", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          orderId,
+          action: "MARK_COLLECTED",
+          note: "Printed document collected by customer."
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to mark collected");
+      await fetchOrders();
+    } catch (err: any) {
+      setActionError(err?.message || "Failed to mark collected");
+    } finally {
+      setIsUpdatingStatus(prev => ({ ...prev, [orderId]: false }));
+    }
+  };
+
   const handleExecutePaymentConfirmation = async () => {
     if (!confirmModalOrder || !confirmModalMode) return;
     setIsConfirming(true);
@@ -459,7 +515,7 @@ export default function CounterCashierPage() {
                         ? "bg-blue-50 text-blue-800 border-blue-200"
                         : "bg-amber-50 text-amber-800 border-amber-200"
                     }`}>
-                      {isPaid ? "PAID & QUEUED" : order.paymentStatus === "MANUAL_UPI_REVIEW_PENDING" ? "UPI REVIEW PENDING" : isCash ? "CASH PENDING" : "AWAITING PAYMENT"}
+                      {!isPaid ? (order.paymentStatus === "MANUAL_UPI_REVIEW_PENDING" ? "UPI Review Pending" : "Payment Pending") : (order.status === "READY" ? "Ready for Collection" : order.status === "COMPLETED" ? "Collected" : order.status === "PRINTING" ? "Printing" : order.status === "QUEUED_FOR_PRINT" ? "Preparing Document" : order.status === "PRINT_FAILED" ? "Print Failed" : "Ready for Print")}
                     </span>
                     <span className="text-[11px] text-[#64748B] flex items-center gap-1 font-medium">
                       <Clock className="w-3 h-3" />
@@ -549,31 +605,61 @@ export default function CounterCashierPage() {
                     </div>
                   ) : (
                     <div className="flex flex-wrap items-center gap-2">
-                      {order.status === "QUEUED_FOR_PRINT" || order.status === "PRINTING" ? (
-                        <>
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
-                            <Printer className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Queued in Spooler</span>
+                      {order.status === "READY" ? (
+                        <button
+                          type="button"
+                          onClick={() => handleMarkCollected(order.id)}
+                          disabled={isUpdatingStatus[order.id]}
+                          className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Mark Collected (ग्राहक को दे दिया)</span>
+                        </button>
+                      ) : order.status === "COMPLETED" ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold border border-slate-300">
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Collected</span>
+                        </span>
+                      ) : order.status === "QUEUED_FOR_PRINT" || order.status === "PRINTING" ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-50 text-cyan-800 text-xs font-bold border border-cyan-200">
+                            <Printer className="w-3.5 h-3.5 text-cyan-600 animate-pulse" />
+                            <span>Printing in Progress</span>
                           </span>
                           <button
                             type="button"
-                            onClick={() => handleSendToPrinter(order.id)}
-                            disabled={isSendingOrder[order.id]}
-                            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer disabled:opacity-50"
-                            title="Re-send this document to printer queue"
+                            onClick={() => handleConfirmPrinted(order.id)}
+                            disabled={isUpdatingStatus[order.id]}
+                            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            title="Verify physical paper is printed and ready for customer pickup"
                           >
-                            {isSendingOrder[order.id] ? "Sending..." : "Re-send to Printer"}
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Confirm Printed (कागज़ निकल गया)</span>
                           </button>
-                        </>
+                        </div>
+                      ) : order.status === "PRINT_FAILED" ? (
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-1 text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200 rounded-lg">
+                            Print Failed
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleSendToPrinter(order.id, true)}
+                            disabled={isSendingOrder[order.id]}
+                            className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition cursor-pointer disabled:opacity-50"
+                          >
+                            Retry Print
+                          </button>
+                        </div>
                       ) : (
                         <button
                           type="button"
                           onClick={() => handleSendToPrinter(order.id)}
                           disabled={isSendingOrder[order.id]}
-                          className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50 hover:scale-102 active:scale-98"
+                          className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50 hover:scale-102 active:scale-98"
                         >
                           <Printer className="w-4 h-4" />
-                          <span>{isSendingOrder[order.id] ? "Sending to Printer..." : "Send to Printer (प्रिंटर को भेजो)"}</span>
+                          <span>{isSendingOrder[order.id] ? "Preparing Print..." : "PRINT NOW (प्रिंट निकालो)"}</span>
                         </button>
                       )}
                     </div>

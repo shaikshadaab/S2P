@@ -501,7 +501,7 @@ while (!cts.IsCancellationRequested)
                 else
                 {
                     // Download file to temp
-                    tempPath = tempManager.AllocateJobTempPath(job.Id);
+                    tempPath = tempManager.AllocateJobTempPath(job.Id, job.FileSnapshot?.Filename, job.FileSnapshot?.MimeType);
                     Console.WriteLine($"[Download] Downloading authorized document to: {Path.GetFileName(tempPath)}...");
                     var downloadedSha = await client.DownloadFileAsync(config, job.Id, leaseToken, tempPath);
                     if (!string.IsNullOrEmpty(downloadedSha) && string.IsNullOrEmpty(expectedSha))
@@ -511,6 +511,7 @@ while (!cts.IsCancellationRequested)
                 }
 
                 // Verify SHA-256
+                tempPath = AgentTempFileManager.ValidateAndNormalizeExtensionByMagicBytes(tempPath);
                 var actualSha = await AgentFileIntegrity.ComputeSha256Async(tempPath);
                 Console.WriteLine($"  Expected SHA-256: {expectedSha}");
                 Console.WriteLine($"  Actual SHA-256:   {actualSha}");
@@ -713,8 +714,8 @@ while (!cts.IsCancellationRequested)
                         config,
                         job.Id,
                         leaseToken,
-                        "STATUS_UNKNOWN",
-                        "SPOOLER_SUBMISSION_FAILED",
+                        "FAILED",
+                        !string.IsNullOrEmpty(spoolRes.ErrorCode) ? spoolRes.ErrorCode : "PRINTER_SUBMISSION_FAILED",
                         spoolRes.ErrorMessage ?? "Windows Spooler submission error"
                     );
                 }

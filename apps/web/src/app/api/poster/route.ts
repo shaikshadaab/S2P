@@ -272,12 +272,14 @@ export async function GET(req: NextRequest) {
     });
 
     const pdfBytes = await pdfDoc.save();
+    const isInline = searchParams.get('view') === 'inline' || searchParams.get('action') === 'print';
+    const disposition = isInline ? 'inline' : `attachment; filename="SOS-Print-Poster-${format}.pdf"`;
 
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="SOS-Print-Poster-${format}.pdf"`,
+        'Content-Disposition': disposition,
         'Cache-Control': 'public, max-age=3600'
       }
     });

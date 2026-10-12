@@ -121,8 +121,15 @@ export async function queueOrderForPrint(
           'CREATED', 'QUEUED', 'LEASED', 'DOWNLOADING', 'READY_TO_PRINT', 'SUBMITTED', 'PRINTING', 'COMPLETED'
         ];
         if (activeStatuses.includes(existingJob.status)) {
-          createdJobs.push(existingJob);
-          continue;
+          // If already actively printing or submitting, prevent accidental double-dispatch even with forceResend
+          if (existingJob.status === 'SUBMITTED' || existingJob.status === 'PRINTING') {
+            createdJobs.push(existingJob);
+            continue;
+          }
+          if (!options?.forceResend) {
+            createdJobs.push(existingJob);
+            continue;
+          }
         }
       }
 
@@ -876,15 +883,16 @@ export async function autoDispatchOrderForPrint(
     const shopData = shopDoc.exists ? shopDoc.data() : null;
     const dispatchMode = (shopData?.printDispatchMode || shopData?.settings?.printDispatchMode || 'MANUAL_QUEUE');
 
-    if (dispatchMode !== 'AUTO_AFTER_PAYMENT') {
-      return {
-        success: true,
-        dispatched: false,
-        heldForManual: true,
-        orderId,
-        message: 'Order held for manual review. Shopkeeper will dispatch to printer when ready at counter.'
-      };
-    }
+    // Strict Invariant: Authoritative policy is MANUAL_QUEUE.
+    // Real customer orders are NEVER automatically dispatched merely upon payment confirmation.
+    // The shopkeeper/operator must explicitly click "PRINT NOW" at the counter.
+    return {
+      success: true,
+      dispatched: false,
+      heldForManual: true,
+      orderId,
+      message: 'Order held for manual review. Staff will click PRINT NOW when ready at counter.'
+    };
 
     // Read all order items (Multi-item support, No limit(1))
     const itemsSnap = await transaction.get(
@@ -962,8 +970,8 @@ export async function autoDispatchOrderForPrint(
         }
 
         if (matched) {
-          assignedPrinterId = matched.id;
-          assignedDeviceId = matched.deviceId;
+          assignedPrinterId = (matched as any).id;
+          assignedDeviceId = (matched as any).deviceId;
         } else {
           initialStatus = 'ON_HOLD';
         }
