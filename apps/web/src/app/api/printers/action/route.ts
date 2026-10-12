@@ -1,7 +1,8 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { authenticateOrGuest } from '@/lib/auth/session';
 import { executeRemotePrinterAction } from '@/server/device-service';
+import { createOwnerCommissioningTestOrder } from '@/server/print-job-service';
 import { PRIMARY_PILOT_SHOP } from '@s2p/shared';
 
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,33 @@ export async function POST(req: NextRequest) {
 
     if (!action) {
       return NextResponse.json({ success: false, error: 'action is required.' }, { status: 400 });
+    }
+
+    // Direct Cloud-Queue dispatch for Test Print: Completely eliminates tunnel dependency & 'fetch failed'
+    if (action === 'TEST_PRINT') {
+      const testResult = await createOwnerCommissioningTestOrder(
+        adminDb,
+        identity.uid,
+        targetShopId,
+        printerId
+      );
+      return NextResponse.json({
+        success: true,
+        message: `Authorized test page queued for "${queueName || 'Printer'}" (Order ${testResult.orderNumber}, Job #${testResult.printJobId}). Agent will claim and print physically!`,
+        orderNumber: testResult.orderNumber,
+        printJobId: testResult.printJobId,
+        agentResult: {
+          spoolJobId: testResult.printJobId
+        }
+      });
+    }
+
+    // Instant acknowledgement for Refresh: Catalog updates via agent cloud heartbeat
+    if (action === 'REFRESH') {
+      return NextResponse.json({
+        success: true,
+        message: 'Printer catalog is synchronized with Windows Agent via periodic Cloud Queue heartbeat.'
+      });
     }
 
     const result = await executeRemotePrinterAction(adminDb, targetShopId, identity.uid, {

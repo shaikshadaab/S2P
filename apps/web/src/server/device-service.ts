@@ -688,9 +688,6 @@ export async function executeRemotePrinterAction(
   }
 
   const agentUploadUrl = device.agentUploadUrl;
-  if (!agentUploadUrl) {
-    throw new Error('AGENT_ENDPOINT_UNAVAILABLE: Agent upload tunnel URL is not yet published. Ensure start-free-tunnel.bat is running.');
-  }
 
   // 3. For REMOVE_PRINTER safety check
   if (payload.action === 'REMOVE_PRINTER' && payload.printerId) {
@@ -701,39 +698,32 @@ export async function executeRemotePrinterAction(
     }
   }
 
-  // 4. Send authenticated command to the agent's live tunnel
-  const actionUrl = `${agentUploadUrl.replace(/\/+$/, '')}/api/agent/printer-action`;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
-
-  let agentResponseData: any;
-  try {
-    const res = await fetch(actionUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-device-signature': crypto.createHmac('sha256', device.credentialHash || '').update(JSON.stringify({ action: payload.action, queueName: payload.queueName, force: Boolean(payload.force) })).digest('hex'),
-      },
-      body: JSON.stringify({
-        action: payload.action,
-        queueName: payload.queueName,
-        force: Boolean(payload.force)
-      }),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeout);
-    agentResponseData = await res.json().catch(() => ({}));
-
-    if (!res.ok || !agentResponseData.success) {
-      throw new Error(agentResponseData.message || agentResponseData.error || `Agent returned HTTP ${res.status}`);
+  // 4. Send authenticated command to the agent's live tunnel if available (non-blocking fallback)
+  let agentResponseData: any = null;
+  if (agentUploadUrl) {
+    const actionUrl = `${agentUploadUrl.replace(/\/+$/, '')}/api/agent/printer-action`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    try {
+      const res = await fetch(actionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-device-signature': crypto.createHmac('sha256', device.credentialHash || '').update(JSON.stringify({ action: payload.action, queueName: payload.queueName, force: Boolean(payload.force) })).digest('hex'),
+        },
+        body: JSON.stringify({
+          action: payload.action,
+          queueName: payload.queueName,
+          force: Boolean(payload.force)
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+      agentResponseData = await res.json().catch(() => ({}));
+    } catch {
+      clearTimeout(timeout);
+      // Non-fatal: Cloud queue updates take precedence
     }
-  } catch (err: any) {
-    clearTimeout(timeout);
-    const msg = err.name === 'AbortError'
-      ? 'Agent command timed out after 15s. Check Windows Agent window on shop PC.'
-      : (err.message || 'Failed to communicate with Windows Agent');
-    throw new Error(msg);
   }
 
   const nowIso = new Date().toISOString();

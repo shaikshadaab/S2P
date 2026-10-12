@@ -1057,7 +1057,8 @@ export async function autoDispatchOrderForPrint(
 export async function createOwnerCommissioningTestOrder(
   db: Firestore,
   staffUid: string,
-  requestedShopId: string
+  requestedShopId: string,
+  targetPrinterId?: string
 ) {
   if (!staffUid || !requestedShopId) {
     throw new Error('staffUid and requestedShopId are required.');
@@ -1089,6 +1090,10 @@ export async function createOwnerCommissioningTestOrder(
   const foundPath = candidates.find(p => fs.existsSync(p));
   if (foundPath) {
     const buf = fs.readFileSync(foundPath);
+    fileSize = buf.length;
+    fileSha256 = crypto.createHash('sha256').update(buf).digest('hex');
+  } else {
+    const buf = Buffer.from(BUNDLED_TEST_VISIBLE_A4_PDF_BASE64, 'base64');
     fileSize = buf.length;
     fileSha256 = crypto.createHash('sha256').update(buf).digest('hex');
   }
@@ -1157,7 +1162,7 @@ export async function createOwnerCommissioningTestOrder(
     });
 
     // 4. Print Job
-    transaction.set(db.collection('printJobs').doc(jobId), {
+    const printJobData: any = {
       id: jobId,
       orderId,
       orderNumber,
@@ -1183,7 +1188,11 @@ export async function createOwnerCommissioningTestOrder(
       },
       createdAt: nowIso,
       updatedAt: nowIso
-    });
+    };
+    if (targetPrinterId) {
+      printJobData.printerId = targetPrinterId;
+    }
+    transaction.set(db.collection('printJobs').doc(jobId), printJobData);
 
     // 5. Audit Log
     const auditId = `aud_${now.toString(36)}_${crypto.randomBytes(3).toString('hex')}`;
