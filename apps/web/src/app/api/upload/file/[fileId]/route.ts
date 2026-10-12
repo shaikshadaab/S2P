@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+import { BUNDLED_TEST_VISIBLE_A4_PDF_BASE64 } from '@/server/print-job-service';
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb, getFileStorageBucket } from '@/lib/firebase/admin';
 import { authenticateOrGuest } from '@/lib/auth/session';
@@ -47,6 +50,30 @@ export async function GET(
     const storagePath = fileRecord.storageOriginalPath;
     if (!storagePath) {
       return NextResponse.json({ success: false, error: 'Physical storage path missing.' }, { status: 404 });
+    }
+
+    // Direct support for test documents
+    if ((fileRecord as any).isTestFile || storagePath === 'system/test_visible_a4.pdf' || fileRecord.safeDisplayName === 'test_visible_a4.pdf') {
+      const candidates = [
+        path.join(process.cwd(), 'public', 'test_visible_a4.pdf'),
+        path.join(process.cwd(), 'apps', 'web', 'public', 'test_visible_a4.pdf'),
+        path.join(process.cwd(), 'test_visible_a4.pdf')
+      ];
+      let buffer: Buffer;
+      const found = candidates.find(p => fs.existsSync(p));
+      if (found) {
+        buffer = fs.readFileSync(found);
+      } else {
+        buffer = Buffer.from(BUNDLED_TEST_VISIBLE_A4_PDF_BASE64, 'base64');
+      }
+      return new NextResponse(new Uint8Array(buffer), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': 'inline; filename="test_visible_a4.pdf"',
+          'Cache-Control': 'private, no-cache'
+        }
+      });
     }
 
     const bucket = getFileStorageBucket();

@@ -21,6 +21,8 @@ import {
 import {
   Upload,
   FileText,
+  Eye,
+  X,
   ShieldCheck,
   CheckCircle2,
   ArrowLeft,
@@ -122,6 +124,7 @@ export default function DirectPrintPage() {
   // Order Submission
   const [isSubmittingOrder, setIsSubmittingOrder] = useState<boolean>(false);
   const [orderError, setOrderError] = useState<string | null>(null);
+  const [isCustomerPreviewModalOpen, setIsCustomerPreviewModalOpen] = useState<boolean>(false);
 
   // Clean English-only interface
 
@@ -342,7 +345,10 @@ export default function DirectPrintPage() {
         }
 
         const isImg = f.type.startsWith("image/");
-        const previewUrl = isImg ? URL.createObjectURL(f) : undefined;
+        let previewUrl: string | undefined = undefined;
+        try {
+          previewUrl = URL.createObjectURL(f);
+        } catch {}
         const detected = isImg ? ImageDetectionEngine.detectImageMode(1000, 1000, { filename: f.name }) : null;
 
         newRecords.push({
@@ -1071,6 +1077,106 @@ export default function DirectPrintPage() {
           </section>
         )}
 
+        {/* 2.5 LIVE DOCUMENT & PRINT SHEET PREVIEW */}
+        {uploadedFiles.length > 0 && activeFile && (
+          <section className="bg-white border border-[#E2E8F0] rounded-2xl p-6 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E2E8F0] pb-3">
+              <div className="flex items-center gap-2">
+                <Eye className="w-5 h-5 text-emerald-600" />
+                <div>
+                  <h2 className="text-base font-black text-[#0F172A]">
+                    {"Live Print Sheet Preview (प्रिंट का प्रिव्यू)"}
+                  </h2>
+                  <p className="text-xs text-[#64748B]">
+                    {"See how your page will look on physical A4 paper before confirming order"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+                  colorMode === "COLOR"
+                    ? "bg-purple-50 text-purple-800 border-purple-200"
+                    : "bg-slate-100 text-slate-800 border-slate-300"
+                }`}>
+                  {colorMode === "COLOR" ? "Full Color (रंगीन)" : "B&W Grayscale (काले-सफेद)"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsCustomerPreviewModalOpen(true)}
+                  className="px-3 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Maximize2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{"Full Screen (बड़ा देखें)"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Simulated Physical A4 Sheet */}
+            <div className="bg-slate-100/90 rounded-2xl p-4 sm:p-8 flex flex-col items-center justify-center border border-slate-200">
+              <div
+                className={`bg-white rounded-md shadow-2xl border border-slate-300 transition-all duration-300 overflow-hidden relative flex flex-col items-center justify-center ${
+                  orientation === "LANDSCAPE"
+                    ? "w-full max-w-md aspect-[1.414/1]"
+                    : "w-full max-w-xs sm:max-w-sm aspect-[1/1.414]"
+                }`}
+                style={{
+                  filter: colorMode === "BW" ? "grayscale(100%) contrast(1.05)" : "none"
+                }}
+              >
+                {activeFile.localPreviewUrl ? (
+                  activeFile.mimeType.startsWith("image/") ? (
+                    <img
+                      src={activeFile.localPreviewUrl}
+                      alt={activeFile.safeDisplayName}
+                      className="w-full h-full object-contain p-2"
+                    />
+                  ) : (
+                    <iframe
+                      src={`${activeFile.localPreviewUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                      title="PDF Preview"
+                      className="w-full h-full border-0 pointer-events-auto"
+                    />
+                  )
+                ) : (
+                  <div className="p-6 text-center space-y-2">
+                    <FileText className="w-12 h-12 text-slate-300 mx-auto" />
+                    <div className="text-xs font-bold text-slate-700 truncate max-w-[200px]">
+                      {activeFile.safeDisplayName}
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      {activeFile.pageCount} page(s) • Standard A4 Output
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Sheet Metadata Indicators */}
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-[11px] text-slate-600 font-medium">
+                <span className="flex items-center gap-1">
+                  <Layers className="w-3.5 h-3.5 text-slate-400" />
+                  Sheet: <strong className="text-slate-800">A4 (210 × 297 mm)</strong>
+                </span>
+                <span>•</span>
+                <span>
+                  Color: <strong className="text-slate-800">{colorMode === "BW" ? "B&W" : "Color"}</strong>
+                </span>
+                <span>•</span>
+                <span>
+                  Copies: <strong className="text-slate-800">{copies}</strong>
+                </span>
+                <span>•</span>
+                <span>
+                  Sides: <strong className="text-slate-800">{duplexMode === "DOUBLE" ? "Double Sided" : "Single Sided"}</strong>
+                </span>
+                <span>•</span>
+                <span>
+                  Orientation: <strong className="text-slate-800">{orientation === "LANDSCAPE" ? "Landscape" : "Portrait"}</strong>
+                </span>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* CUSTOMER CONTACT & PAYMENT (Final Order Placement) */}
         {uploadedFiles.length > 0 && quote && (
           <form onSubmit={handlePlaceOrder} className="bg-white border border-[#E2E8F0] rounded-2xl p-6 shadow-xs space-y-6">
@@ -1403,6 +1509,81 @@ export default function DirectPrintPage() {
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
+        {/* CUSTOMER FULLSCREEN PREVIEW LIGHTBOX */}
+        {isCustomerPreviewModalOpen && activeFile && (
+          <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-800 shrink-0">
+                    <Eye className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-slate-900 truncate">
+                      {activeFile.safeDisplayName}
+                    </h3>
+                    <p className="text-[11px] text-slate-500">
+                      {colorMode === "BW" ? "Black & White (B&W)" : "Full Color"} • A4 Output
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCustomerPreviewModalOpen(false)}
+                  className="w-8 h-8 rounded-xl bg-slate-200/70 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-auto p-4 sm:p-8 bg-slate-100 flex items-center justify-center">
+                <div
+                  className={`bg-white rounded-lg shadow-2xl border border-slate-300 overflow-hidden ${
+                    orientation === "LANDSCAPE"
+                      ? "w-full max-w-xl aspect-[1.414/1]"
+                      : "w-full max-w-md aspect-[1/1.414]"
+                  }`}
+                  style={{
+                    filter: colorMode === "BW" ? "grayscale(100%) contrast(1.05)" : "none"
+                  }}
+                >
+                  {activeFile.localPreviewUrl ? (
+                    activeFile.mimeType.startsWith("image/") ? (
+                      <img
+                        src={activeFile.localPreviewUrl}
+                        alt={activeFile.safeDisplayName}
+                        className="w-full h-full object-contain p-2"
+                      />
+                    ) : (
+                      <iframe
+                        src={activeFile.localPreviewUrl}
+                        title="PDF Full Preview"
+                        className="w-full h-full border-0"
+                      />
+                    )
+                  ) : (
+                    <div className="p-8 text-center text-xs text-slate-500">
+                      Preview ready for print
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="px-6 py-3 border-t border-slate-200 bg-white flex items-center justify-between text-xs">
+                <span className="text-slate-500">
+                  Ready to print at Shakeel Online Services
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsCustomerPreviewModalOpen(false)}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition cursor-pointer"
+                >
+                  Done / Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
       {/* Enhanced Image Editor Modal */}
       {editingFile && (
